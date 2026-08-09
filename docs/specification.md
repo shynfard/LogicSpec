@@ -105,14 +105,19 @@ feature:
   actors: [customer]
 
   context:
+    services: ServiceList
     service: Service
-    slot: Slot
+    slots: SlotList
 
   start: select-service
 
   steps:
     select-service:
       type: page
+      load:
+        call: booking-service.list-services
+        into:
+          services: services
       actions:
         next: check-availability
         cancel: cancelled
@@ -120,6 +125,10 @@ feature:
     check-availability:
       type: operation
       call: booking-service.check-availability
+      with:
+        service: service
+      into:
+        slots: slots
       on-success: checkout
       on-error:
         no-slots: no-slots-error
@@ -155,6 +164,7 @@ Rules:
 - `context` declares named data carried through the flow. In v0.1 the values are informal type names; a formal type system is an [open question](open-questions.md).
 - `start` MUST reference a step ID defined in `steps`.
 - Every transition target (`next`, action targets, branch targets, `on-success`, `on-error` targets, `timeout`) MUST be a step ID defined in the same feature.
+- Data flow is explicit: `with:` maps context into operation inputs and event payloads; `into:` maps operation outputs and event payloads into context; `load:` declares what a page fetches on entry. All mappings are `name: name` pairs, MAY be partial (unmapped fields are unspecified in v0.1), and validate against the declared `input`/`output`/`payload`/`context` names.
 - A step that no path can reach is an *unreachable step* — a diagnostic future tooling MUST report (see [references.md](references.md)).
 
 ### Step types
@@ -168,12 +178,19 @@ A UI state presented to an actor.
 ```yaml
 select-service:
   type: page
+  load:
+    call: booking-service.list-services
+    into:
+      services: services
+    on-error:
+      service-unavailable: load-error
   actions:
     next: check-availability
     cancel: cancelled
 ```
 
 - `actions` is REQUIRED: a map of action name (kebab-case) → target step ID.
+- `load` is OPTIONAL: data fetched when the page is entered. It contains `call:` or `endpoint:` (exactly one), and optional `with:`, `into:`, and `on-error:` with the same semantics as on [`operation`](#operation) steps.
 
 #### `operation`
 
@@ -183,14 +200,35 @@ A call to a service operation.
 reserve-slot:
   type: operation
   call: booking-service.reserve-slot
+  with:
+    slot: slot
+  into:
+    reservation: reservation
   on-success: checkout
   on-error:
     slot-conflict: slot-conflict-error
 ```
 
-- `call` is REQUIRED and MUST have the form `<service-id>.<operation-id>`.
+- Exactly one of `call` or `endpoint` is REQUIRED.
+  - `call` MUST have the form `<service-id>.<operation-id>`.
+  - `endpoint` is the escape hatch for external APIs that have no service document in the workspace: `{method, url}`. Operations on workspace-owned services SHOULD use `call`, never `endpoint`.
+- `with` is OPTIONAL: input mapping, `<input-name>: <context-key>`. Each key MUST match a declared `input` name of the called operation; each value MUST match a declared context key.
+- `into` is OPTIONAL: output mapping, `<context-key>: <output-name>`. Each key MUST match a declared context key; each value MUST match a declared `output` name of the called operation.
 - `on-success` is OPTIONAL: target step on success.
 - `on-error` is OPTIONAL: a map of error ID (as declared by the operation) → target step.
+
+```yaml
+fetch-holidays:
+  type: operation
+  endpoint:
+    method: GET
+    url: https://api.example.com/holidays
+  into:
+    holidays: holidays
+  on-success: select-time
+```
+
+Mappings against an `endpoint` cannot be validated by tooling; `with`/`into` names are taken on trust there.
 
 #### `decision`
 
@@ -216,10 +254,13 @@ Emit an event.
 confirm-booking:
   type: publish
   event: BookingCreated
+  with:
+    bookingId: booking
   next: success
 ```
 
 - `event` is REQUIRED and MUST be an event name.
+- `with` is OPTIONAL: payload mapping, `<payload-field>: <context-key>`. Each key MUST match a declared payload field of the event; each value MUST match a declared context key.
 - `next` is OPTIONAL: target step after publishing.
 
 #### `wait`
@@ -230,11 +271,14 @@ Suspend the flow until an event arrives. This is the v0.1 primitive for asynchro
 await-payment:
   type: wait
   event: PaymentCompleted
+  into:
+    receiptId: receiptId
   next: create-booking
-  timeout: payment-timeout-error
+  timeout: payment-timeout
 ```
 
 - `event` is REQUIRED.
+- `into` is OPTIONAL: payload mapping, `<context-key>: <payload-field>`. Each key MUST match a declared context key; each value MUST match a declared payload field of the event.
 - `next` is OPTIONAL: target step when the event arrives.
 - `timeout` is OPTIONAL: target step if the event does not arrive. v0.1 does not define timeout durations.
 
@@ -265,8 +309,20 @@ service:
   name: Booking Service
 
   operations:
+    list-services:
+      description: Return bookable services.
+      http:
+        method: GET
+        path: /services
+      output:
+        services: ServiceList
+      errors: [service-unavailable]
+
     check-availability:
       description: Return available slots for a service.
+      http:
+        method: GET
+        path: /slots
       input:
         service: Service
       output:
@@ -275,6 +331,9 @@ service:
 
     reserve-slot:
       description: Reserve a time slot.
+      http:
+        method: POST
+        path: /reservations
       input:
         slot: Slot
       output:
@@ -286,8 +345,9 @@ service:
 Rules:
 
 - `id`, `name`, and `operations` are REQUIRED.
-- Each operation MAY declare `description`, `input`, `output`, `errors`, and `publishes`.
-- `input` and `output` are informal name → type-name maps in v0.1.
+- Each operation MAY declare `description`, `http`, `input`, `output`, `errors`, and `publishes`.
+- `http` is the OPTIONAL transport binding: `method` (one of `GET`, `POST`, `PUT`, `PATCH`, `DELETE`) and `path` (starting with `/`). The binding lives on the operation so features stay transport-independent; tooling resolves `call:` references to it (e.g. for [hover](vscode-extension.md#hover)). Path parameters, query strings, headers, and status codes are undefined in v0.1 — see [open-questions.md](open-questions.md).
+- `input` and `output` are informal name → type-name maps in v0.1. Their names are the vocabulary that feature `with:`/`into:` mappings validate against.
 - `errors` lists error IDs (kebab-case) that features MAY route on via `on-error`.
 - `publishes` lists event names the operation emits.
 
