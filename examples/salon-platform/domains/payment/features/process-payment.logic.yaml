@@ -40,7 +40,15 @@ feature:
         receipt: receipt
       on-success: done
       on-error:
-        payment-failed: failed
+        payment-failed: announce-failure
+
+    announce-failure:
+      type: publish
+      description: Tell the requesting module the payment did not go through.
+      event: PaymentFailed
+      with:
+        bookingRef: bookingRef
+      next: failed
 
     done:
       type: outcome

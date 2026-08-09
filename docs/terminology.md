@@ -36,7 +36,9 @@ Glossary of LogicSpec terms. Normative definitions live in [specification.md](sp
 
 **Context** — named data carried through a feature's flow. Informal type names in v0.1. Mappings (`with:`, `into:`) validate against these names.
 
-**Load** — the optional `load:` block on a page step declaring what data is fetched when the page is entered, and where the response goes.
+**Load** — the optional `load:` on a page step declaring what data is fetched when the page is entered and where each response goes. One block or a list of independent blocks (no ordering defined; tooling may fetch in parallel).
+
+**Wait-for-any** — the `events:` form of a wait step: the flow resumes on whichever listed event arrives first, each with its own mapping and target step.
 
 **Mapping** — a `name: name` pairing connecting context to operation inputs/outputs or event payloads: `with:` (context → input/payload), `into:` (output/payload → context). Mappings may be partial.
 

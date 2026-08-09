@@ -190,7 +190,28 @@ select-service:
 ```
 
 - `actions` is REQUIRED: a map of action name (kebab-case) → target step ID.
-- `load` is OPTIONAL: data fetched when the page is entered. It contains `call:` or `endpoint:` (exactly one), and optional `with:`, `into:`, and `on-error:` with the same semantics as on [`operation`](#operation) steps.
+- `load` is OPTIONAL: data fetched when the page is entered — a single load block or a list of load blocks. Each block contains `call:` or `endpoint:` (exactly one), and optional `with:`, `into:`, and `on-error:` with the same semantics as on [`operation`](#operation) steps. Multiple blocks are independent fetches; v0.1 defines no ordering between them (tooling MAY run them in parallel).
+
+```yaml
+select-time:
+  type: page
+  load:
+    - call: booking-service.check-availability
+      with:
+        service: service
+      into:
+        slots: slots
+      on-error:
+        no-slots: no-slots
+    - endpoint:
+        method: GET
+        url: https://holidays.example.com/api/v1/holidays
+      into:
+        holidays: holidays
+  actions:
+    next: reserve-slot
+    cancel: cancelled
+```
 
 #### `operation`
 
@@ -277,10 +298,26 @@ await-payment:
   timeout: payment-timeout
 ```
 
-- `event` is REQUIRED.
+- Exactly one of `event` or `events` is REQUIRED.
+- `event` (singular form): wait for one event. `into` and `next` sit on the step, as above.
+- `events` (wait-for-any form): a map of event name → branch. The step resumes on whichever event arrives first. Each branch MAY declare its own `into` and `next`; the step-level `into`/`next` MUST NOT be combined with `events`.
+
+```yaml
+await-payment:
+  type: wait
+  events:
+    PaymentCompleted:
+      into:
+        receiptId: receiptId
+      next: create-booking
+    PaymentFailed:
+      next: payment-declined
+  timeout: payment-timeout
+```
+
 - `into` is OPTIONAL: payload mapping, `<context-key>: <payload-field>`. Each key MUST match a declared context key; each value MUST match a declared payload field of the event.
 - `next` is OPTIONAL: target step when the event arrives.
-- `timeout` is OPTIONAL: target step if the event does not arrive. v0.1 does not define timeout durations.
+- `timeout` is OPTIONAL: target step if no awaited event arrives. v0.1 does not define timeout durations.
 
 #### `outcome`
 

@@ -16,6 +16,12 @@ events:
       bookingRef: string
       receiptId: string
 
+  PaymentFailed:
+    description: A requested payment was declined or could not be processed.
+    payload:
+      bookingRef: string
+      reason: string
+
   BookingCreated:
     description: A booking was successfully created.
     payload:
