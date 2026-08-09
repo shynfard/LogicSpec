@@ -68,7 +68,18 @@ or packaged LogicSpec libraries.
 
 **Current lean:** closed set. Predictability for tooling and agents outweighs flexibility at this stage.
 
-## 8. Timeout semantics on `wait`
+## 8. HTTP binding depth
+
+**Context:** service operations may carry an `http:` binding (`method`, `path`), and operation steps may use the `endpoint:` escape hatch for external APIs. v0.1 deliberately stops there: no path parameters, query strings, headers, status-code mapping, or auth.
+
+**Options:**
+- Keep bindings shallow (transport detail belongs to generators).
+- Grow toward a fuller HTTP description (path templates like `/bookings/{id}`, status → error mapping).
+- Defer richer API description to a future `integration` document kind.
+
+**Current lean:** stay shallow. The binding exists for navigation, hover, and generation hints — not to replace OpenAPI. Revisit when Phase 5 generation needs more. Related: should a future linter flag `endpoint:` used against workspace-owned services?
+
+## 9. Timeout semantics on `wait`
 
 **Context:** `timeout:` names a target step but no duration; durations, retries, and escalation are undefined.
 

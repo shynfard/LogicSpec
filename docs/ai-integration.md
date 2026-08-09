@@ -51,6 +51,7 @@ Agents writing or editing LogicSpec documents MUST follow the [specification](sp
 4. Never write derived state (module lists, counts, indexes) into `logicspec.yaml` or any document.
 5. Respect [ID casing and uniqueness](references.md#uniqueness); check for collisions before introducing an ID.
 6. After editing, verify cross-references resolve: every `call:` target exists, every `event:` is defined, every step target exists in the feature.
+7. Make data flow explicit: pages that fetch data declare `load:`; operation steps declare `with:`/`into:` mappings that match the operation's declared `input`/`output` names and the feature's context keys. Use `endpoint:` only for APIs outside the workspace.
 
 ## Skill design (future)
 

@@ -18,7 +18,7 @@ Instead of treating source code as the only source of truth, LogicSpec lets you 
 * errors and recovery paths
 * feature outcomes
 
-A LogicSpec definition can be validated, visualized automatically, understood by AI coding agents, and used as the source for generating software.
+A LogicSpec definition can be validated, visualized automatically, understood by AI coding agents, and used as the source for generating software. Data flow is explicit: what a page loads, which operation is called with which inputs, where the response goes, and which HTTP endpoint backs an operation are all visible in the YAML.
 
 ```text
                     LogicSpec
@@ -48,16 +48,28 @@ module: booking
 feature:
   id: create-booking
   name: Create Booking
+  context:
+    services: ServiceList
+    slot: Slot
+    reservation: Reservation
   start: select-service
   steps:
     select-service:
       type: page
+      load:
+        call: booking-service.list-services
+        into:
+          services: services
       actions:
         next: reserve-slot
         cancel: cancelled
     reserve-slot:
       type: operation
       call: booking-service.reserve-slot
+      with:
+        slot: slot
+      into:
+        reservation: reservation
       on-success: confirm
       on-error:
         slot-conflict: conflict-error

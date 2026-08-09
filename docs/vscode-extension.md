@@ -186,8 +186,9 @@ call: booking-service.reserve-slot
 ```text
 Booking Service › Reserve Slot
 
+POST /reservations
 Reserve a time slot.
-Errors: slot-conflict
+Input: slot · Output: reservation · Errors: slot-conflict
 
 Defined in: backend/booking/booking-service.logic.yaml
 ```

@@ -34,7 +34,15 @@ Glossary of LogicSpec terms. Normative definitions live in [specification.md](sp
 
 **Actor** — who drives a feature (customer, staff, system). Named but not further defined in v0.1.
 
-**Context** — named data carried through a feature's flow. Informal type names in v0.1.
+**Context** — named data carried through a feature's flow. Informal type names in v0.1. Mappings (`with:`, `into:`) validate against these names.
+
+**Load** — the optional `load:` block on a page step declaring what data is fetched when the page is entered, and where the response goes.
+
+**Mapping** — a `name: name` pairing connecting context to operation inputs/outputs or event payloads: `with:` (context → input/payload), `into:` (output/payload → context). Mappings may be partial.
+
+**HTTP binding** — the optional `http:` block (`method`, `path`) on a service operation. Transport detail lives on the operation, never in features.
+
+**Endpoint (escape hatch)** — the `endpoint:` block (`method`, `url`) on an operation step or load block, for external APIs that have no service document. Internal services use `call:`.
 
 **Service** — a backend component exposing named operations. Defined by a `service` document.
 

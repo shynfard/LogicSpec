@@ -33,6 +33,7 @@ Keep this file in sync with `CLAUDE.md` (same substance).
 4. Exactly six step types: `page`, `operation`, `decision`, `publish`, `wait`, `outcome`. Closed set — never invent step types or keys.
 5. **Never write derived state** (module lists, counts, indexes) into `logicspec.yaml` or any document. The root manifest is configuration only.
 6. Physical file location never determines identity.
+7. Data flow is explicit: page fetches use `load:`, operation inputs/outputs use `with:`/`into:` mappings validated against declared `input`/`output`/`payload`/context names. `endpoint:` only for external APIs; workspace services use `call:`.
 
 ## Editing docs
 

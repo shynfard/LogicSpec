@@ -49,6 +49,10 @@ An unresolved reference is a **diagnostic, not a parse error**: the document is 
 | Unknown operation | `call:` names a missing service or operation | `Unknown operation: booking-service.reserve-slto` |
 | Unknown event | `event:`/`publishes:` names an undefined event | `Unknown event: BookingCrated` |
 | Undeclared error route | `on-error` key the operation does not declare | `Operation booking-service.reserve-slot does not declare error: no-slots` |
+| Unknown input | `with:` key not declared by the operation | `Unknown input: booking-service.reserve-slot.slott` |
+| Unknown output | `into:` value not declared by the operation | `Unknown output: booking-service.reserve-slot.reservaton` |
+| Unknown payload field | `with:`/`into:` against an undeclared event payload field | `Unknown payload field: BookingCreated.bookingID` |
+| Unknown context key | mapping references undeclared feature context | `Unknown context key: reservatoin` |
 | Duplicate module ID | two module documents share an ID | `Duplicate module ID: booking` |
 | Duplicate feature ID | two features share an ID | `Duplicate feature ID: create-booking` |
 | Duplicate service ID | two services share an ID | `Duplicate service ID: payment-service` |
