@@ -1,0 +1,105 @@
+# yaml-language-server: $schema=../../../../../schema/logicspec-0.1.schema.json
+logicSpec: "0.1"
+
+kind: feature
+
+module: booking
+
+feature:
+  id: create-booking
+  name: Create Booking
+  description: >
+    A customer selects a service, staff member and time slot, pays,
+    and receives a confirmed booking.
+  actors: [customer]
+
+  context:
+    service: Service
+    staff: Staff
+    slot: Slot
+
+  start: select-service
+
+  steps:
+    select-service:
+      type: page
+      description: Customer picks a salon service.
+      actions:
+        next: select-staff
+        cancel: cancelled
+
+    select-staff:
+      type: page
+      description: Customer picks a staff member.
+      actions:
+        next: select-time
+        cancel: cancelled
+
+    select-time:
+      type: page
+      description: Customer picks a date and time.
+      actions:
+        next: check-availability
+        cancel: cancelled
+
+    check-availability:
+      type: operation
+      call: booking-service.check-availability
+      on-success: reserve-slot
+      on-error:
+        no-slots: no-slots-error
+
+    reserve-slot:
+      type: operation
+      call: booking-service.reserve-slot
+      on-success: checkout
+      on-error:
+        slot-conflict: slot-conflict-error
+
+    checkout:
+      type: page
+      description: Customer reviews the reservation and confirms payment.
+      actions:
+        confirm: request-payment
+        cancel: cancelled
+
+    request-payment:
+      type: publish
+      event: PaymentRequested
+      next: await-payment
+
+    await-payment:
+      type: wait
+      event: PaymentCompleted
+      next: create-booking
+      timeout: payment-timeout-error
+
+    create-booking:
+      type: operation
+      call: booking-service.create-booking
+      on-success: confirm-booking
+
+    confirm-booking:
+      type: publish
+      event: BookingCreated
+      next: success
+
+    success:
+      type: outcome
+      result: success
+
+    cancelled:
+      type: outcome
+      result: cancelled
+
+    no-slots-error:
+      type: outcome
+      result: failure
+
+    slot-conflict-error:
+      type: outcome
+      result: failure
+
+    payment-timeout-error:
+      type: outcome
+      result: failure

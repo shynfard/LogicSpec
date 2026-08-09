@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=../../../../schema/logicspec-0.1.schema.json
+logicSpec: "0.1"
+
+kind: feature
+
+module: notification
+
+feature:
+  id: notify-on-booking
+  name: Notify On Booking
+  description: >
+    Sends the customer a confirmation message whenever a booking is created.
+  actors: [system]
+
+  context:
+    booking: Booking
+
+  start: await-booking
+
+  steps:
+    await-booking:
+      type: wait
+      event: BookingCreated
+      next: send-confirmation
+
+    send-confirmation:
+      type: operation
+      call: notification-service.send-confirmation
+      on-success: done
+
+    done:
+      type: outcome
+      result: success

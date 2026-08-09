@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=../../../schema/logicspec-0.1.schema.json
+logicSpec: "0.1"
+
+kind: events
+
+events:
+  PaymentRequested:
+    description: A feature requests payment for a reservation.
+    payload:
+      bookingRef: string
+      amount: Money
+
+  PaymentCompleted:
+    description: A requested payment was successfully charged.
+    payload:
+      bookingRef: string
+      receiptId: string
+
+  BookingCreated:
+    description: A booking was successfully created.
+    payload:
+      bookingId: string
+
+  BookingCancelled:
+    description: An existing booking was cancelled.
+    payload:
+      bookingId: string
+      refunded: boolean

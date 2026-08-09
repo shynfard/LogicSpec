@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=../../../../schema/logicspec-0.1.schema.json
+logicSpec: "0.1"
+
+kind: service
+
+module: booking
+
+service:
+  id: booking-service
+  name: Booking Service
+  description: >
+    Owns availability, reservations and the booking lifecycle.
+
+  operations:
+    check-availability:
+      description: Return available slots for a service and staff member.
+      input:
+        service: Service
+        staff: Staff
+      output:
+        slots: SlotList
+      errors: [no-slots]
+
+    reserve-slot:
+      description: Temporarily reserve a time slot during checkout.
+      input:
+        slot: Slot
+      output:
+        reservation: Reservation
+      errors: [slot-conflict]
+
+    create-booking:
+      description: Turn a paid reservation into a confirmed booking.
+      input:
+        reservation: Reservation
+      output:
+        booking: Booking
+
+    cancel-booking:
+      description: Cancel an existing booking.
+      input:
+        booking: Booking

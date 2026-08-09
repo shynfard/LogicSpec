@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=../../../../schema/logicspec-0.1.schema.json
+logicSpec: "0.1"
+
+kind: module
+
+module:
+  id: payment
+  name: Payment
+  description: >
+    Handles payment processing for bookings.

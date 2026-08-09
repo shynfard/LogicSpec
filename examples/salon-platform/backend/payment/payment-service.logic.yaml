@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=../../../../schema/logicspec-0.1.schema.json
+logicSpec: "0.1"
+
+kind: service
+
+module: payment
+
+service:
+  id: payment-service
+  name: Payment Service
+  description: >
+    Charges customers and reports payment results as events.
+
+  operations:
+    process-payment:
+      description: Charge the customer for a requested payment.
+      input:
+        payment: PaymentRequest
+      output:
+        receipt: Receipt
+      errors: [payment-failed]
+      publishes: [PaymentCompleted]

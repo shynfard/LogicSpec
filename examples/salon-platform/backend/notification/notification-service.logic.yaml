@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=../../../../schema/logicspec-0.1.schema.json
+logicSpec: "0.1"
+
+kind: service
+
+module: notification
+
+service:
+  id: notification-service
+  name: Notification Service
+  description: >
+    Delivers messages to customers.
+
+  operations:
+    send-confirmation:
+      description: Send a booking confirmation message.
+      input:
+        booking: Booking

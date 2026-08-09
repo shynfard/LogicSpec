@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=../../../../../schema/logicspec-0.1.schema.json
+logicSpec: "0.1"
+
+kind: feature
+
+module: payment
+
+feature:
+  id: process-payment
+  name: Process Payment
+  description: >
+    Reacts to a payment request from another module, charges the customer,
+    and reports completion. The PaymentCompleted event is published by the
+    payment service operation itself.
+  actors: [system]
+
+  context:
+    payment: PaymentRequest
+
+  start: await-request
+
+  steps:
+    await-request:
+      type: wait
+      event: PaymentRequested
+      next: charge
+
+    charge:
+      type: operation
+      call: payment-service.process-payment
+      on-success: done
+      on-error:
+        payment-failed: failed
+
+    done:
+      type: outcome
+      result: success
+
+    failed:
+      type: outcome
+      result: failure
