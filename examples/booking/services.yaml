@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=../../schemas/services.schema.json
+version: "1"
+
+services:
+
+  booking:
+    name: Booking Service
+    operations:
+
+      get-availability:
+        kind: http
+        method: GET
+        path: /availability
+
+      reserve-slot:
+        kind: http
+        method: POST
+        path: /reservations
+
+      create-booking:
+        kind: http
+        method: POST
+        path: /bookings
+
+      cancel-reservation:
+        kind: http
+        method: DELETE
+        path: /reservations
+
+  payment:
+    name: Payment Service
+    operations:
+
+      create-payment:
+        kind: http
+        method: POST
+        path: /payments

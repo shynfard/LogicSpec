@@ -1,0 +1,70 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`mermaid swimlane renderer (experimental) > groups steps into actor lanes deterministically (golden) 1`] = `
+"flowchart TD
+  START(("Start"))
+  subgraph lane_0["Web App (frontend)"]
+    direction TB
+    select_service["Select Service<br/>PAGE"]
+    select_staff["Select Staff<br/>PAGE"]
+    select_date["Select Date<br/>PAGE"]
+    select_time["Select Time<br/>PAGE"]
+    checkout["Checkout<br/>PAGE"]
+  end
+  subgraph lane_1["Booking Service (service)"]
+    direction TB
+    check_availability[["Check Availability<br/>OPERATION"]]
+    reserve_slot[["Reserve Slot<br/>OPERATION"]]
+    create_booking[["Confirm Booking<br/>OPERATION"]]
+    booking_created>"Booking Created<br/>EVENT"]
+    cancel_booking[["Cancel Reservation<br/>OPERATION"]]
+  end
+  subgraph lane_2["Payment Service (service)"]
+    direction TB
+    create_payment[["Create Payment<br/>OPERATION"]]
+  end
+  subgraph lane_3["Unassigned"]
+    direction TB
+    slot_conflict["Slot No Longer Available<br/>ERROR"]:::error
+    no_slots["No Slots Available<br/>ERROR"]:::error
+    availability_error["Availability Error<br/>ERROR"]:::error
+    reservation_error["Reservation Error<br/>ERROR"]:::error
+    payment_error["Payment Failed<br/>ERROR"]:::error
+    booking_error["Booking Error<br/>ERROR"]:::error
+    success((("Booking Confirmed<br/>FINAL · success")))
+    cancelled((("Booking Cancelled<br/>FINAL · cancelled")))
+  end
+
+  START --> select_service
+  select_service -- "Select service" --> select_staff
+  select_staff -- "select" --> select_date
+  select_staff -- "Any Staff" --> select_date
+  select_date -- "select" --> check_availability
+  check_availability -- "available" --> select_time
+  check_availability -- "empty" --> no_slots
+  check_availability -- "error" --> availability_error
+  select_time -- "select" --> reserve_slot
+  select_time -- "back" --> select_date
+  reserve_slot -- "success" --> checkout
+  reserve_slot -- "conflict" --> slot_conflict
+  reserve_slot -- "error" --> reservation_error
+  slot_conflict -- "choose-another" --> select_time
+  checkout -- "pay" --> create_payment
+  checkout -- "cancel" --> cancel_booking
+  create_payment -- "success" --> create_booking
+  create_payment -- "failure" --> payment_error
+  create_booking -- "success" --> booking_created
+  create_booking -- "error" --> booking_error
+  booking_created --> success
+  cancel_booking --> cancelled
+  no_slots -- "change-date" --> select_date
+  no_slots -- "change-staff" --> select_staff
+  availability_error -- "retry" --> check_availability
+  reservation_error -- "retry" --> reserve_slot
+  payment_error -- "retry" --> create_payment
+  payment_error -- "cancel" --> cancel_booking
+  booking_error -- "retry" --> create_booking
+
+  classDef error stroke-width:2px,stroke-dasharray:4 3;
+"
+`;

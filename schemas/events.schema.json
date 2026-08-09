@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://logicspec.dev/schemas/v1/events.schema.json",
+  "title": "LogicSpec Event Catalog",
+  "description": "A LogicSpec event catalog (events.yaml).",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1",
+      "description": "LogicSpec DSL version. Must be the string \"1\"."
+    },
+    "events": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "description": "Broker topic, e.g. booking.created.",
+            "type": "string"
+          },
+          "producer": {
+            "description": "Service that publishes this event.",
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+          },
+          "consumers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+            }
+          },
+          "description": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "schema": {
+                "type": "string",
+                "description": "Path or URL of the payload schema."
+              }
+            },
+            "required": [
+              "schema"
+            ],
+            "additionalProperties": false
+          },
+          "extensions": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+            },
+            "additionalProperties": {},
+            "description": "Namespaced extension metadata. Ignored by core validation."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+      },
+      "additionalProperties": {},
+      "description": "Namespaced extension metadata. Ignored by core validation."
+    }
+  },
+  "required": [
+    "version",
+    "events"
+  ],
+  "additionalProperties": false
+}

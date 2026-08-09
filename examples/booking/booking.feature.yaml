@@ -1,0 +1,260 @@
+# yaml-language-server: $schema=../../schemas/feature.schema.json
+version: "1"
+
+feature:
+  id: booking
+  name: Booking
+  description: Customer books and pays for a service.
+
+start: select-service
+
+actors:
+
+  customer:
+    kind: user
+    label: Customer
+
+  frontend:
+    kind: frontend
+    label: Web App
+
+  booking:
+    kind: service
+    label: Booking Service
+
+  payment:
+    kind: service
+    label: Payment Service
+
+  pubsub:
+    kind: broker
+    label: Pub/Sub
+
+context:
+
+  selectedService:
+    type: string
+
+  selectedStaff:
+    type: string
+
+  selectedDate:
+    type: date
+
+  selectedSlot:
+    type: string
+
+  reservationId:
+    type: string
+
+  bookingId:
+    type: string
+
+steps:
+
+  select-service:
+    type: page
+    label: Select Service
+    actor: frontend
+    route: /booking/service
+    states:
+      - loading
+      - ready
+      - error
+    actions:
+      select:
+        label: Select service
+        produces:
+          - selectedService
+        next: select-staff
+
+  select-staff:
+    type: page
+    label: Select Staff
+    actor: frontend
+    route: /booking/staff
+    requires:
+      - selectedService
+    actions:
+      select:
+        produces:
+          - selectedStaff
+        next: select-date
+      any:
+        label: Any Staff
+        produces:
+          - selectedStaff
+        next: select-date
+
+  select-date:
+    type: page
+    label: Select Date
+    actor: frontend
+    requires:
+      - selectedService
+      - selectedStaff
+    actions:
+      select:
+        produces:
+          - selectedDate
+        next: check-availability
+
+  check-availability:
+    type: operation
+    label: Check Availability
+    actor: booking
+    call: booking.get-availability
+    requires:
+      - selectedService
+      - selectedStaff
+      - selectedDate
+    on:
+      available:
+        next: select-time
+      empty:
+        next: no-slots
+      error:
+        next: availability-error
+
+  select-time:
+    type: page
+    label: Select Time
+    actor: frontend
+    states:
+      - ready
+      - empty
+      - error
+    actions:
+      select:
+        produces:
+          - selectedSlot
+        next: reserve-slot
+      back:
+        next: select-date
+
+  reserve-slot:
+    type: operation
+    label: Reserve Slot
+    actor: booking
+    call: booking.reserve-slot
+    requires:
+      - selectedSlot
+    produces:
+      - reservationId
+    on:
+      success:
+        next: checkout
+      conflict:
+        next: slot-conflict
+      error:
+        next: reservation-error
+
+  slot-conflict:
+    type: error
+    label: Slot No Longer Available
+    message: Someone else booked this slot.
+    actions:
+      choose-another:
+        next: select-time
+
+  checkout:
+    type: page
+    label: Checkout
+    actor: frontend
+    route: /booking/checkout
+    requires:
+      - reservationId
+    actions:
+      pay:
+        next: create-payment
+      cancel:
+        next: cancel-booking
+
+  create-payment:
+    type: operation
+    label: Create Payment
+    actor: payment
+    call: payment.create-payment
+    on:
+      success:
+        next: create-booking
+      failure:
+        next: payment-error
+
+  create-booking:
+    type: operation
+    label: Confirm Booking
+    actor: booking
+    call: booking.create-booking
+    produces:
+      - bookingId
+    on:
+      success:
+        next: booking-created
+      error:
+        next: booking-error
+
+  booking-created:
+    type: event
+    label: Booking Created
+    actor: booking
+    direction: publish
+    event: BookingCreated
+    next: success
+
+  cancel-booking:
+    type: operation
+    label: Cancel Reservation
+    actor: booking
+    call: booking.cancel-reservation
+    next: cancelled
+
+  no-slots:
+    type: error
+    label: No Slots Available
+    actions:
+      change-date:
+        next: select-date
+      change-staff:
+        next: select-staff
+
+  availability-error:
+    type: error
+    label: Availability Error
+    actions:
+      retry:
+        next: check-availability
+
+  reservation-error:
+    type: error
+    label: Reservation Error
+    actions:
+      retry:
+        next: reserve-slot
+
+  payment-error:
+    type: error
+    label: Payment Failed
+    actions:
+      retry:
+        next: create-payment
+      cancel:
+        next: cancel-booking
+
+  booking-error:
+    type: error
+    label: Booking Error
+    actions:
+      retry:
+        next: create-booking
+
+  success:
+    type: final
+    label: Booking Confirmed
+    outcome: success
+
+  cancelled:
+    type: final
+    label: Booking Cancelled
+    outcome: cancelled
+

@@ -1,58 +1,54 @@
 # AGENTS.md
 
-LogicSpec — an open-source, AI-native Application Definition Language: application behavior defined declaratively in YAML, validated, visualized, queried by AI agents, and eventually used to generate software.
+LogicSpec — a YAML DSL for describing application feature logic, plus the v0.1 toolchain: parse → validate → normalize → graph → render (Mermaid). TypeScript, ESM, Node ≥ 20, Zod 4, Vitest, Biome. This is a design/specification tool, **not** a workflow engine: nothing in a YAML document is ever executed.
 
 Keep this file in sync with `CLAUDE.md` (same substance).
 
-## Current phase: 0 — Specification only
+## Commands
 
-- **Do not write executable code** — no indexer, CLI, VS Code extension, or MCP server. Those are Phases 1–4 (`docs/roadmap.md`).
-- The only machine-readable artifact is `schema/logicspec-0.1.schema.json`.
-- The deliverable is precise documentation. Normative language uses RFC-2119 keywords (MUST/SHOULD/MAY).
+```bash
+npm run typecheck   # tsc --noEmit (src + tests + scripts)
+npm run lint        # Biome
+npm test            # Vitest
+npm run build       # compile to dist/
+npm run schemas     # regenerate schemas/*.schema.json (run after changing src/schema/)
+node dist/cli/main.js <cmd>   # run the CLI without npm link
+```
 
-## Doc map
+CLI commands: `init`, `validate [--strict]`, `render [--view flow|swimlane] [--format md|mermaid] [--direction TD|TB|LR|RL|BT] [--output]`, `inspect [--json]`, `watch`. Exit codes: 0 ok, 1 validation errors, 2 parse/config/usage errors.
 
-| File | Read when |
-|------|-----------|
-| `docs/specification.md` | **Source of truth.** Any question about syntax, kinds, IDs, references |
-| `docs/workspaces.md` | Workspace model, root manifest, distributed files |
-| `docs/modules.md` | Modules, membership, derived module views |
-| `docs/discovery.md` | Discovery algorithm, workspace index |
-| `docs/references.md` | Identity-based references, uniqueness, diagnostics catalog |
-| `docs/vscode-extension.md` | Future editor experience (design only) |
-| `docs/ai-integration.md` | MCP tool surface, agent authoring rules, skill design |
-| `docs/vision.md`, `docs/roadmap.md` | Positioning and phases |
-| `docs/open-questions.md` | Unresolved design decisions — add here rather than inventing semantics |
-| `docs/superpowers/` | Internal process specs/plans, not public spec content |
+## Architecture (pipeline order)
+
+| Layer | Path | Role |
+|-------|------|------|
+| Schemas | `src/schema/` | Zod schemas = canonical DSL shape; JSON Schema generation |
+| Parser | `src/parser/` | YAML → value + path→line/col locator; Zod issues → diagnostics |
+| Graph | `src/graph/` | `normalize.ts` (normalized model + ALL transition discovery), `edges.ts` (FeatureGraph), `reachability.ts` (BFS, Tarjan SCC) |
+| Validator | `src/validator/` | `structural.ts` (file-local rules), `semantic.ts` (cross-refs + graph analysis), `validate.ts` (orchestrator), `stats.ts` |
+| Renderers | `src/renderers/` | Mermaid flowchart, experimental swimlane, Markdown wrapper |
+| Workspace | `src/workspace/` | `logicspec.config.yaml` discovery, catalog/feature loading |
+| CLI | `src/cli/` | Commander commands; thin layer over the library |
+| Diagnostics | `src/diagnostics/` | LS codes, Diagnostic type, nearest-name suggestions |
+
+Public API = exports of `src/index.ts` only. Everything else is internal.
 
 ## Core rules (violations are bugs)
 
-1. Every LogicSpec document starts `logicSpec: "0.1"` + `kind:` (`workspace|module|feature|service|events`), body key matches kind.
-2. IDs kebab-case; event names PascalCase.
-3. References use **identity, never file paths** (`module: booking`, `call: booking-service.reserve-slot`).
-4. Exactly six step types: `page`, `operation`, `decision`, `publish`, `wait`, `outcome`. Closed set — never invent step types or keys.
-5. **Never write derived state** (module lists, counts, indexes) into `logicspec.yaml` or any document. The root manifest is configuration only.
-6. Physical file location never determines identity.
-7. Data flow is explicit: page fetches use `load:`, operation inputs/outputs use `with:`/`into:` mappings validated against declared `input`/`output`/`payload`/context names. `endpoint:` only for external APIs; workspace services use `call:`.
+1. **Nine step types, closed set**: `page`, `decision`, `operation`, `event`, `wait`, `subflow`, `parallel`, `error`, `final`. Never invent step types or properties; organization-specific data goes under namespaced `extensions:` (keys contain `/`).
+2. **Diagnostic codes (LS001–LS400) are stable**: never renumber or reuse; new checks get the next free number in the right band (0xx files, 1xx references, 2xx graph, 3xx structure, 4xx advisory). Document new codes in `docs/validation.md`.
+3. **Deterministic output**: nodes/edges in source order; same YAML → byte-identical render. No randomness, no timestamps in generated content.
+4. **Renderers are pure**: objects in, strings out; no file-system access outside `src/cli/` and `src/workspace/`.
+5. **Validation returns `Diagnostic[]`**: no console output outside `src/cli/`.
+6. **Never execute YAML content**: `expression`, `when`, labels, notes are opaque data. No `eval`/`new Function`/shell with user input. Escape every user string in Mermaid output (`escapeMermaid`).
+7. **All transition discovery lives in `src/graph/normalize.ts`**: validators and renderers consume `transitions`/`FeatureGraph`, never re-interpret raw step shapes.
+8. **`schemas/` is generated** — edit `src/schema/*.ts`, then `npm run schemas`. Never hand-edit JSON Schemas.
+9. **Generated Markdown is never hand-edited**; YAML feature files are the source of truth. Mermaid is documentation.
+10. `next` XOR `on` (operation/subflow); event `publish`→`next`, `wait`→`on.received`; final steps have no outgoing transitions.
 
-## Editing docs
+## Feature YAML as source of truth (for product repos using LogicSpec)
 
-- `docs/specification.md` wins on conflict; other docs link to it rather than restating normative rules.
-- Every YAML snippet in docs must validate against the schema (envelope-only fragments excepted).
-- One concept per doc; cross-link with relative links.
-- New unresolved design questions go to `docs/open-questions.md` — don't resolve them ad hoc.
+Before implementing or modifying a feature: read the relevant `features/*.feature.yaml`, run `logicspec validate`, identify affected pages / operations / events / error paths, implement without contradicting the spec, run tests, validate again. Never infer behavior from generated Mermaid when the YAML disagrees — the YAML wins.
 
-## Example workspace
+## Testing
 
-`examples/salon-platform/` — 12 documents, deliberately scattered across `domains/`, `backend/`, `contracts/`. Every v0.1 construct appears at least once. After changing examples or schema, validate:
-
-```bash
-python3 -c "
-import glob,json,yaml,jsonschema
-s=json.load(open('schema/logicspec-0.1.schema.json'))
-fs=['examples/salon-platform/logicspec.yaml']+sorted(glob.glob('examples/salon-platform/**/*.logic.yaml',recursive=True))
-[jsonschema.validate(yaml.safe_load(open(f)),s) for f in fs]
-print(f'{len(fs)} documents PASS')"
-```
-
-Example files carry `# yaml-language-server: $schema=...` headers — keep relative paths correct when moving files.
+Tests mirror `src/` under `tests/`. Renderer output is snapshot-tested — review snapshot diffs like code. `examples/booking/` is the canonical workspace: every step type change should keep it valid (`node dist/cli/main.js validate examples/booking/booking.feature.yaml`).

@@ -1,0 +1,61 @@
+{
+  "name": "logicspec",
+  "version": "0.1.0",
+  "description": "A small YAML DSL for describing application feature logic — validate it, visualize it with Mermaid, and use it as a behavioral source of truth for humans and AI coding agents.",
+  "keywords": [
+    "yaml",
+    "dsl",
+    "specification",
+    "feature",
+    "workflow",
+    "mermaid",
+    "diagram",
+    "design",
+    "documentation"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "logicspec": "./dist/cli/main.js"
+  },
+  "files": [
+    "dist",
+    "schemas",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check src tests scripts",
+    "lint:fix": "biome check --write src tests scripts",
+    "format": "biome format --write src tests scripts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "schemas": "npm run build && node scripts/generate-schemas.mjs",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.3",
+    "commander": "^14.0.0",
+    "yaml": "^2.8.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

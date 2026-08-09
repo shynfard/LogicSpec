@@ -1,0 +1,15 @@
+version: "1"
+
+features:
+  directory: .
+
+catalogs:
+  services: ./services.yaml
+  events: ./events.yaml
+
+output:
+  directory: ./generated
+
+render:
+  view: flow
+  direction: TD

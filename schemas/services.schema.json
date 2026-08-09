@@ -1,0 +1,229 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://logicspec.dev/schemas/v1/services.schema.json",
+  "title": "LogicSpec Service Catalog",
+  "description": "A LogicSpec service catalog (services.yaml).",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1",
+      "description": "LogicSpec DSL version. Must be the string \"1\"."
+    },
+    "services": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "operations": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+            },
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "http"
+                    },
+                    "method": {
+                      "type": "string",
+                      "enum": [
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "PATCH",
+                        "DELETE",
+                        "HEAD",
+                        "OPTIONS"
+                      ]
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "extensions": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                      },
+                      "additionalProperties": {},
+                      "description": "Namespaced extension metadata. Ignored by core validation."
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "method",
+                    "path"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "grpc"
+                    },
+                    "service": {
+                      "type": "string"
+                    },
+                    "method": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "extensions": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                      },
+                      "additionalProperties": {},
+                      "description": "Namespaced extension metadata. Ignored by core validation."
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "service",
+                    "method"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "internal"
+                    },
+                    "operation": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "extensions": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                      },
+                      "additionalProperties": {},
+                      "description": "Namespaced extension metadata. Ignored by core validation."
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "command"
+                    },
+                    "command": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "extensions": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                      },
+                      "additionalProperties": {},
+                      "description": "Namespaced extension metadata. Ignored by core validation."
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "other"
+                    },
+                    "protocol": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "extensions": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                      },
+                      "additionalProperties": {},
+                      "description": "Namespaced extension metadata. Ignored by core validation."
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "extensions": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+            },
+            "additionalProperties": {},
+            "description": "Namespaced extension metadata. Ignored by core validation."
+          }
+        },
+        "required": [
+          "operations"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+      },
+      "additionalProperties": {},
+      "description": "Namespaced extension metadata. Ignored by core validation."
+    }
+  },
+  "required": [
+    "version",
+    "services"
+  ],
+  "additionalProperties": false
+}

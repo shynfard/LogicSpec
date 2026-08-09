@@ -1,0 +1,912 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://logicspec.dev/schemas/v1/feature.schema.json",
+  "title": "LogicSpec Feature",
+  "description": "A LogicSpec feature specification (*.feature.yaml).",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1",
+      "description": "LogicSpec DSL version. Must be the string \"1\"."
+    },
+    "feature": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "extensions": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+          },
+          "additionalProperties": {},
+          "description": "Namespaced extension metadata. Ignored by core validation."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "start": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+      "description": "Id of the first step."
+    },
+    "actors": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "user",
+              "frontend",
+              "service",
+              "broker",
+              "external",
+              "system"
+            ],
+            "description": "What kind of participant this actor is."
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "context": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "string",
+              "number",
+              "boolean",
+              "object",
+              "array",
+              "date",
+              "datetime"
+            ],
+            "description": "Descriptive context variable type."
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "steps": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "page"
+              },
+              "label": {
+                "description": "Display label. Defaults to the step id.",
+                "type": "string"
+              },
+              "actor": {
+                "description": "Actor responsible for this step.",
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "notes": {
+                "type": "string"
+              },
+              "extensions": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                },
+                "additionalProperties": {},
+                "description": "Namespaced extension metadata. Ignored by core validation."
+              },
+              "route": {
+                "description": "Frontend route, e.g. /booking/checkout.",
+                "type": "string"
+              },
+              "requires": {
+                "description": "Context needed before entering.",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                }
+              },
+              "states": {
+                "description": "Local UI states (not workflow steps).",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                }
+              },
+              "load": {
+                "description": "Background data loads for this page.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "call": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*\\.[A-Za-z][A-Za-z0-9_-]*$",
+                      "description": "Operation used to load page data."
+                    },
+                    "on": {
+                      "description": "Maps load outcomes to LOCAL page states (not workflow steps).",
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                      },
+                      "additionalProperties": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                      }
+                    }
+                  },
+                  "required": [
+                    "call"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "actions": {
+                "description": "Things the user can do on this page.",
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "description": "Display label. Defaults to the action id.",
+                      "type": "string"
+                    },
+                    "requires": {
+                      "description": "Context needed for this action.",
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                      }
+                    },
+                    "produces": {
+                      "description": "Context produced by this action.",
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                      }
+                    },
+                    "next": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                      "description": "Target step id."
+                    }
+                  },
+                  "required": [
+                    "next"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "decision"
+              },
+              "label": {
+                "description": "Display label. Defaults to the step id.",
+                "type": "string"
+              },
+              "actor": {
+                "description": "Actor responsible for this step.",
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "notes": {
+                "type": "string"
+              },
+              "extensions": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                },
+                "additionalProperties": {},
+                "description": "Namespaced extension metadata. Ignored by core validation."
+              },
+              "expression": {
+                "description": "Descriptive expression. Never evaluated.",
+                "type": "string"
+              },
+              "cases": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "when": {
+                      "description": "Descriptive condition. Never evaluated.",
+                      "type": "string"
+                    },
+                    "next": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                    }
+                  },
+                  "required": [
+                    "next"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "default": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  },
+                  "next": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                    "description": "Target step id."
+                  }
+                },
+                "required": [
+                  "next"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "operation"
+              },
+              "label": {
+                "description": "Display label. Defaults to the step id.",
+                "type": "string"
+              },
+              "actor": {
+                "description": "Actor responsible for this step.",
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "notes": {
+                "type": "string"
+              },
+              "extensions": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                },
+                "additionalProperties": {},
+                "description": "Namespaced extension metadata. Ignored by core validation."
+              },
+              "call": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*\\.[A-Za-z][A-Za-z0-9_-]*$",
+                "description": "Service operation reference, e.g. \"booking.reserve-slot\"."
+              },
+              "requires": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                }
+              },
+              "produces": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                }
+              },
+              "next": {
+                "description": "Shorthand when there is a single outcome.",
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+              },
+              "on": {
+                "description": "Named outcomes, e.g. success / conflict / error.",
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "next": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                      "description": "Target step id."
+                    }
+                  },
+                  "required": [
+                    "next"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "event"
+              },
+              "label": {
+                "description": "Display label. Defaults to the step id.",
+                "type": "string"
+              },
+              "actor": {
+                "description": "Actor responsible for this step.",
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "notes": {
+                "type": "string"
+              },
+              "extensions": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                },
+                "additionalProperties": {},
+                "description": "Namespaced extension metadata. Ignored by core validation."
+              },
+              "direction": {
+                "type": "string",
+                "enum": [
+                  "publish",
+                  "wait"
+                ]
+              },
+              "event": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                "description": "Event name, resolved against the event catalog."
+              },
+              "next": {
+                "description": "Used with direction: publish.",
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+              },
+              "on": {
+                "description": "Used with direction: wait.",
+                "type": "object",
+                "properties": {
+                  "received": {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string"
+                      },
+                      "next": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                        "description": "Target step id."
+                      }
+                    },
+                    "required": [
+                      "next"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "timeout": {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string"
+                      },
+                      "next": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                        "description": "Target step id."
+                      }
+                    },
+                    "required": [
+                      "next"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "received"
+                ],
+                "additionalProperties": false
+              },
+              "timeout": {
+                "description": "How long to wait before the timeout outcome.",
+                "type": "string",
+                "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+              }
+            },
+            "required": [
+              "type",
+              "direction",
+              "event"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "wait"
+              },
+              "label": {
+                "description": "Display label. Defaults to the step id.",
+                "type": "string"
+              },
+              "actor": {
+                "description": "Actor responsible for this step.",
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "notes": {
+                "type": "string"
+              },
+              "extensions": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                },
+                "additionalProperties": {},
+                "description": "Namespaced extension metadata. Ignored by core validation."
+              },
+              "duration": {
+                "type": "string",
+                "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$",
+                "description": "Human-readable duration, e.g. \"10m\" or \"1h 30m\"."
+              },
+              "next": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+              }
+            },
+            "required": [
+              "type",
+              "duration",
+              "next"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "subflow"
+              },
+              "label": {
+                "description": "Display label. Defaults to the step id.",
+                "type": "string"
+              },
+              "actor": {
+                "description": "Actor responsible for this step.",
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "notes": {
+                "type": "string"
+              },
+              "extensions": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                },
+                "additionalProperties": {},
+                "description": "Namespaced extension metadata. Ignored by core validation."
+              },
+              "flow": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                "description": "Feature id of another *.feature.yaml in the workspace."
+              },
+              "requires": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                }
+              },
+              "produces": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                }
+              },
+              "next": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+              },
+              "on": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "next": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                      "description": "Target step id."
+                    }
+                  },
+                  "required": [
+                    "next"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "type",
+              "flow"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "parallel"
+              },
+              "label": {
+                "description": "Display label. Defaults to the step id.",
+                "type": "string"
+              },
+              "actor": {
+                "description": "Actor responsible for this step.",
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "notes": {
+                "type": "string"
+              },
+              "extensions": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                },
+                "additionalProperties": {},
+                "description": "Namespaced extension metadata. Ignored by core validation."
+              },
+              "branches": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "flow": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                      "description": "Feature id of the subflow this branch runs."
+                    }
+                  },
+                  "required": [
+                    "flow"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "wait": {
+                "description": "Join strategy. Defaults to \"all\".",
+                "type": "string",
+                "enum": [
+                  "all",
+                  "any"
+                ]
+              },
+              "next": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+              }
+            },
+            "required": [
+              "type",
+              "branches",
+              "next"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "error"
+              },
+              "label": {
+                "description": "Display label. Defaults to the step id.",
+                "type": "string"
+              },
+              "actor": {
+                "description": "Actor responsible for this step.",
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "notes": {
+                "type": "string"
+              },
+              "extensions": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                },
+                "additionalProperties": {},
+                "description": "Namespaced extension metadata. Ignored by core validation."
+              },
+              "message": {
+                "type": "string"
+              },
+              "actions": {
+                "description": "Recovery actions. An error without actions is terminal.",
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "next": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                    }
+                  },
+                  "required": [
+                    "next"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "final"
+              },
+              "label": {
+                "description": "Display label. Defaults to the step id.",
+                "type": "string"
+              },
+              "actor": {
+                "description": "Actor responsible for this step.",
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "notes": {
+                "type": "string"
+              },
+              "extensions": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                },
+                "additionalProperties": {},
+                "description": "Namespaced extension metadata. Ignored by core validation."
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "success",
+                  "failure",
+                  "cancelled"
+                ],
+                "description": "Outcome of a final step."
+              }
+            },
+            "required": [
+              "type",
+              "outcome"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+      },
+      "additionalProperties": {},
+      "description": "Namespaced extension metadata. Ignored by core validation."
+    }
+  },
+  "required": [
+    "version",
+    "feature",
+    "start",
+    "steps"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,123 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+import {
+  buildGraph,
+  type FeatureGraph,
+  type NormalizedFeature,
+  normalizeFeature,
+  parseFeature,
+  renderMermaid,
+} from "../../src/index.js";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+
+function bookingModel(): { feature: NormalizedFeature; graph: FeatureGraph } {
+  const source = fs.readFileSync(path.join(ROOT, "examples/booking/booking.feature.yaml"), "utf8");
+  const parsed = parseFeature(source);
+  if (!parsed.data) throw new Error("booking example must parse");
+  const feature = normalizeFeature(parsed.data);
+  return { feature, graph: buildGraph(feature) };
+}
+
+function modelOf(source: string): { feature: NormalizedFeature; graph: FeatureGraph } {
+  const parsed = parseFeature(source);
+  if (!parsed.data) throw new Error(`fixture must parse: ${JSON.stringify(parsed.diagnostics)}`);
+  const feature = normalizeFeature(parsed.data);
+  return { feature, graph: buildGraph(feature) };
+}
+
+describe("mermaid flowchart renderer", () => {
+  it("renders the booking example deterministically (golden)", () => {
+    const { feature, graph } = bookingModel();
+    const first = renderMermaid(feature, graph, { view: "flow", direction: "TD" });
+    const second = renderMermaid(feature, graph, { view: "flow", direction: "TD" });
+    expect(first).toBe(second);
+    expect(first).toMatchSnapshot();
+  });
+
+  it("honors the direction option", () => {
+    const { feature, graph } = bookingModel();
+    expect(renderMermaid(feature, graph, { direction: "LR" }).startsWith("flowchart LR")).toBe(
+      true,
+    );
+  });
+
+  it("escapes quotes, angle brackets, ampersands, hashes and unicode in labels", () => {
+    const { feature, graph } = modelOf(`
+version: "1"
+feature: { id: esc, name: Escapes }
+start: tricky
+steps:
+  tricky:
+    type: page
+    label: 'He said "hi" & left (fast) <b>#1</b> — café ⚡'
+    actions:
+      go:
+        label: 'Click "here" & <go>'
+        next: fin
+  fin:
+    type: final
+    outcome: success
+`);
+    const output = renderMermaid(feature, graph);
+    expect(output).toContain(
+      "He said #quot;hi#quot; #amp; left (fast) #lt;b#gt;#35;1#lt;/b#gt; — café ⚡",
+    );
+    expect(output).toContain('-- "Click #quot;here#quot; #amp; #lt;go#gt;" -->');
+    expect(output).not.toMatch(/[^#]"hi"/); // no raw unescaped quotes inside labels
+  });
+
+  it("never emits reserved words or unsafe characters as node ids", () => {
+    const { feature, graph } = modelOf(`
+version: "1"
+feature: { id: ids, name: Ids }
+start: end-of-flow
+steps:
+  end-of-flow:
+    type: page
+    actions:
+      go: { next: End }
+  End:
+    type: final
+    outcome: success
+`);
+    const output = renderMermaid(feature, graph);
+    // "end" is reserved in mermaid flowcharts; ids must be sanitized and unique.
+    const idLines = output
+      .split("\n")
+      .filter((line) => line.includes("PAGE") || line.includes("FINAL"));
+    expect(idLines.every((line) => !/^\s*end[\s[]/.test(line))).toBe(true);
+    expect(output).toContain("end_of_flow");
+  });
+
+  it("uses distinct shapes per step type", () => {
+    const { feature, graph } = modelOf(`
+version: "1"
+feature: { id: shapes, name: Shapes }
+start: p
+steps:
+  p: { type: page, actions: { go: { next: d } } }
+  d:
+    type: decision
+    cases: [{ when: ok, next: o }]
+  o: { type: operation, next: w }
+  w: { type: wait, duration: 5m, next: par }
+  par:
+    type: parallel
+    branches: { a: { flow: other } }
+    next: e
+  e: { type: error, actions: { retry: { next: p }, quit: { next: f } } }
+  f: { type: final, outcome: cancelled }
+`);
+    const output = renderMermaid(feature, graph);
+    expect(output).toContain('p["'); // rectangle
+    expect(output).toContain('d{"'); // diamond
+    expect(output).toContain('o[["'); // subroutine
+    expect(output).toContain('w(["'); // stadium
+    expect(output).toContain('par[/"'); // parallelogram
+    expect(output).toContain(":::error"); // marked error
+    expect(output).toContain('f((("'); // double circle
+  });
+});
