@@ -14,6 +14,7 @@ feature:
   actors: [customer]
 
   context:
+    bookings: BookingList
     booking: Booking
 
   start: select-booking
@@ -21,7 +22,11 @@ feature:
   steps:
     select-booking:
       type: page
-      description: Customer picks the booking to cancel.
+      description: Customer picks the booking to cancel from their booking list.
+      load:
+        call: booking-service.list-bookings
+        into:
+          bookings: bookings
       actions:
         next: confirm-cancel
         keep: kept
@@ -36,16 +41,22 @@ feature:
     cancel-with-refund:
       type: operation
       call: booking-service.cancel-booking
+      with:
+        booking: booking
       on-success: announce
 
     cancel-without-refund:
       type: operation
       call: booking-service.cancel-booking
+      with:
+        booking: booking
       on-success: announce
 
     announce:
       type: publish
       event: BookingCancelled
+      with:
+        bookingId: booking
       next: success
 
     success:

@@ -13,7 +13,7 @@ feature:
   actors: [system]
 
   context:
-    booking: Booking
+    bookingId: string
 
   start: await-booking
 
@@ -21,11 +21,15 @@ feature:
     await-booking:
       type: wait
       event: BookingCreated
+      into:
+        bookingId: bookingId
       next: send-confirmation
 
     send-confirmation:
       type: operation
       call: notification-service.send-confirmation
+      with:
+        bookingId: bookingId
       on-success: done
 
     done:

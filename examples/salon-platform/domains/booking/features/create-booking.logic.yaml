@@ -9,80 +9,187 @@ feature:
   id: create-booking
   name: Create Booking
   description: >
-    A customer selects a service, staff member and time slot, pays,
-    and receives a confirmed booking.
+    A customer selects a service, staff member and time slot, pays if the
+    service requires a deposit, and receives a confirmed booking. Every error
+    path leads to recovery, not a dead end.
   actors: [customer]
 
   context:
+    services: ServiceList
     service: Service
+    staffList: StaffList
     staff: Staff
+    holidays: HolidayList
+    slots: SlotList
     slot: Slot
+    reservation: Reservation
+    amount: Money
+    receiptId: string
+    booking: Booking
 
   start: select-service
 
   steps:
+    # ── Pages with visible data loading ──────────────────────────────
+
     select-service:
       type: page
-      description: Customer picks a salon service.
+      description: Customer picks a salon service from the loaded list.
+      load:
+        call: booking-service.list-services
+        into:
+          services: services
+        on-error:
+          service-unavailable: system-error
       actions:
         next: select-staff
         cancel: cancelled
 
     select-staff:
       type: page
-      description: Customer picks a staff member.
+      description: Customer picks a staff member offering the service.
+      load:
+        call: booking-service.list-staff
+        with:
+          service: service
+        into:
+          staffList: staff
       actions:
-        next: select-time
+        next: fetch-holidays
+        back: select-service
         cancel: cancelled
+
+    fetch-holidays:
+      type: operation
+      description: External public-holiday API — no service document, endpoint escape hatch.
+      endpoint:
+        method: GET
+        url: https://holidays.example.com/api/v1/holidays
+      into:
+        holidays: holidays
+      on-success: select-time
 
     select-time:
       type: page
-      description: Customer picks a date and time.
+      description: Customer picks a slot; availability loads for the chosen service and staff.
+      load:
+        call: booking-service.check-availability
+        with:
+          service: service
+          staff: staff
+        into:
+          slots: slots
+        on-error:
+          no-slots: no-slots
       actions:
-        next: check-availability
+        next: reserve-slot
+        back: select-staff
         cancel: cancelled
 
-    check-availability:
-      type: operation
-      call: booking-service.check-availability
-      on-success: reserve-slot
-      on-error:
-        no-slots: no-slots-error
+    # ── Backend operations with explicit data flow ───────────────────
 
     reserve-slot:
       type: operation
       call: booking-service.reserve-slot
-      on-success: checkout
+      with:
+        slot: slot
+      into:
+        reservation: reservation
+      on-success: check-deposit
       on-error:
-        slot-conflict: slot-conflict-error
+        slot-conflict: slot-taken
+
+    # ── Business rule ────────────────────────────────────────────────
+
+    check-deposit:
+      type: decision
+      when: selected service requires an upfront deposit
+      branches:
+        deposit-required: checkout
+        no-deposit: create-booking
 
     checkout:
       type: page
-      description: Customer reviews the reservation and confirms payment.
+      description: Customer reviews the reservation and confirms the deposit payment.
       actions:
-        confirm: request-payment
-        cancel: cancelled
+        pay: request-payment
+        back: select-time
+        cancel: release-reservation
+
+    # ── Pub/Sub + asynchronous workflow ──────────────────────────────
 
     request-payment:
       type: publish
       event: PaymentRequested
+      with:
+        bookingRef: reservation
+        amount: amount
       next: await-payment
 
     await-payment:
       type: wait
       event: PaymentCompleted
+      into:
+        receiptId: receiptId
       next: create-booking
-      timeout: payment-timeout-error
+      timeout: payment-timeout
 
     create-booking:
       type: operation
       call: booking-service.create-booking
+      with:
+        reservation: reservation
+      into:
+        booking: booking
       on-success: confirm-booking
 
     confirm-booking:
       type: publish
       event: BookingCreated
+      with:
+        bookingId: booking
       next: success
+
+    # ── Errors and recovery paths (never dead ends) ──────────────────
+
+    system-error:
+      type: page
+      description: Service list failed to load; customer may retry or give up.
+      actions:
+        retry: select-service
+        quit: failed
+
+    no-slots:
+      type: page
+      description: Nothing free for this combination; customer adjusts the search.
+      actions:
+        change-staff: select-staff
+        change-service: select-service
+        cancel: cancelled
+
+    slot-taken:
+      type: page
+      description: Slot was taken while deciding; customer picks another time.
+      actions:
+        pick-another: select-time
+        cancel: cancelled
+
+    payment-timeout:
+      type: page
+      description: Payment did not complete in time; customer retries or releases the slot.
+      actions:
+        retry-payment: request-payment
+        cancel: release-reservation
+
+    release-reservation:
+      type: operation
+      description: Clean up the held slot when the customer abandons checkout.
+      call: booking-service.release-reservation
+      with:
+        reservation: reservation
+      on-success: cancelled
+
+    # ── Outcomes ─────────────────────────────────────────────────────
 
     success:
       type: outcome
@@ -92,14 +199,6 @@ feature:
       type: outcome
       result: cancelled
 
-    no-slots-error:
-      type: outcome
-      result: failure
-
-    slot-conflict-error:
-      type: outcome
-      result: failure
-
-    payment-timeout-error:
+    failed:
       type: outcome
       result: failure

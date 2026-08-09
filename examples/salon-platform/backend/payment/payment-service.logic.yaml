@@ -14,8 +14,12 @@ service:
   operations:
     process-payment:
       description: Charge the customer for a requested payment.
+      http:
+        method: POST
+        path: /payments
       input:
-        payment: PaymentRequest
+        bookingRef: string
+        amount: Money
       output:
         receipt: Receipt
       errors: [payment-failed]

@@ -12,8 +12,38 @@ service:
     Owns availability, reservations and the booking lifecycle.
 
   operations:
+    list-services:
+      description: Return bookable salon services.
+      http:
+        method: GET
+        path: /services
+      output:
+        services: ServiceList
+      errors: [service-unavailable]
+
+    list-staff:
+      description: Return staff members offering a service.
+      http:
+        method: GET
+        path: /staff
+      input:
+        service: Service
+      output:
+        staff: StaffList
+
+    list-bookings:
+      description: Return the customer's existing bookings.
+      http:
+        method: GET
+        path: /bookings
+      output:
+        bookings: BookingList
+
     check-availability:
       description: Return available slots for a service and staff member.
+      http:
+        method: GET
+        path: /slots
       input:
         service: Service
         staff: Staff
@@ -23,14 +53,28 @@ service:
 
     reserve-slot:
       description: Temporarily reserve a time slot during checkout.
+      http:
+        method: POST
+        path: /reservations
       input:
         slot: Slot
       output:
         reservation: Reservation
       errors: [slot-conflict]
 
+    release-reservation:
+      description: Release a held slot that will not be booked.
+      http:
+        method: DELETE
+        path: /reservations
+      input:
+        reservation: Reservation
+
     create-booking:
       description: Turn a paid reservation into a confirmed booking.
+      http:
+        method: POST
+        path: /bookings
       input:
         reservation: Reservation
       output:
@@ -38,5 +82,8 @@ service:
 
     cancel-booking:
       description: Cancel an existing booking.
+      http:
+        method: POST
+        path: /booking-cancellations
       input:
         booking: Booking

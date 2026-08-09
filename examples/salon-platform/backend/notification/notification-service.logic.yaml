@@ -14,5 +14,8 @@ service:
   operations:
     send-confirmation:
       description: Send a booking confirmation message.
+      http:
+        method: POST
+        path: /notifications
       input:
-        booking: Booking
+        bookingId: string

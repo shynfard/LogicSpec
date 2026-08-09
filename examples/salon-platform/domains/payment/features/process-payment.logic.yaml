@@ -15,7 +15,9 @@ feature:
   actors: [system]
 
   context:
-    payment: PaymentRequest
+    bookingRef: string
+    amount: Money
+    receipt: Receipt
 
   start: await-request
 
@@ -23,11 +25,19 @@ feature:
     await-request:
       type: wait
       event: PaymentRequested
+      into:
+        bookingRef: bookingRef
+        amount: amount
       next: charge
 
     charge:
       type: operation
       call: payment-service.process-payment
+      with:
+        bookingRef: bookingRef
+        amount: amount
+      into:
+        receipt: receipt
       on-success: done
       on-error:
         payment-failed: failed
