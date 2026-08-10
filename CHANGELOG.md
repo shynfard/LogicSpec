@@ -3,6 +3,15 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.5.6
+
+- **Zoom & pan in the VS Code panels** (feature preview and workspace
+  graph): Ctrl/Cmd+wheel zooms at the cursor, drag pans, toolbar gains
+  − / % / + / Fit controls (% resets to 100%). Implemented by sizing the
+  SVG directly so native scrolling does the panning and node clicks keep
+  working; a drag suppresses the following click. Fit-to-panel remains
+  the default and re-fits on panel resize.
+
 ## 0.5.5
 
 - **Clickable diagrams in VS Code**: clicking a node in the feature preview

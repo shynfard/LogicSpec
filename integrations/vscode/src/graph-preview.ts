@@ -124,8 +124,10 @@ function nonce(): string {
 export function buildWebviewHtml(
   webview: vscode.Webview,
   context: vscode.ExtensionContext,
+  options: { bannerText?: string } = {},
 ): string {
   const scriptNonce = nonce();
+  const bannerText = options.bannerText ?? "Nothing to render yet.";
   const mermaidUri = webview.asWebviewUri(
     vscode.Uri.joinPath(context.extensionUri, "media", "mermaid.min.js"),
   );
@@ -144,13 +146,21 @@ export function buildWebviewHtml(
     `<link rel="stylesheet" href="${styleUri.toString()}">`,
     "</head>",
     "<body>",
-    '<div id="banner" hidden>Nothing to render yet.</div>',
-    '<div id="toolbar" hidden><label>View <select id="view">',
+    `<div id="banner" hidden>${bannerText}</div>`,
+    '<div id="toolbar">',
+    '<label id="view-label" hidden>View <select id="view">',
     '<option value="flow">flow</option>',
     '<option value="swimlane">swimlane</option>',
     '<option value="sequence">sequence</option>',
     '<option value="event-model">event-model</option>',
-    "</select></label></div>",
+    "</select></label>",
+    '<span id="zoom">',
+    '<button id="zoom-out" title="Zoom out">−</button>',
+    '<button id="zoom-level" title="Reset to 100%">100%</button>',
+    '<button id="zoom-in" title="Zoom in">+</button>',
+    '<button id="zoom-fit" title="Fit to panel">Fit</button>',
+    "</span>",
+    "</div>",
     '<div id="diagram"></div>',
     `<script nonce="${scriptNonce}" src="${mermaidUri.toString()}"></script>`,
     `<script nonce="${scriptNonce}" src="${previewUri.toString()}"></script>`,
