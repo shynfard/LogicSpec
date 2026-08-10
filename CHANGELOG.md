@@ -48,6 +48,11 @@ Roadmap milestones v0.2 through v0.5 in one release.
 - **Visual editor** (`integrations/editor/`, experimental): React Flow
   canvas with two-way YAML ↔ graph editing, node palette and inspector,
   backed by the new document-preserving edit API.
+- **Obsidian plugin** (`integrations/obsidian/`, experimental): renders
+  `logicspec` / `logicspec-file` code blocks as validated diagrams in notes.
+- **Claude Code plugin** (`integrations/claude-plugin/`): authoring skill,
+  `/logicspec:feature` and `/logicspec:check` commands, MCP wiring;
+  installable via the repo's plugin marketplace manifest.
 - New `logicspec/core` subpath export: the browser-safe, fs-free API
   surface used by web tooling.
 - New public edit API (`loadEditableFeature`, `addStep`, `renameStep`,

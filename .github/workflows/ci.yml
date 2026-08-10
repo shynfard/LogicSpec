@@ -81,6 +81,11 @@ jobs:
           node-version: 24.x
           cache: npm
 
+      # Integrations bundle the core FROM SOURCE (../../src), whose imports
+      # of yaml/zod resolve against the root node_modules — install it first.
+      - name: Core install
+        run: npm ci
+
       - name: VS Code extension — install
         working-directory: integrations/vscode
         run: npm ci

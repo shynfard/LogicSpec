@@ -73,6 +73,9 @@ jobs:
           node-version: 24.x
           cache: npm
 
+      - name: Core install (source-aliased deps)
+        run: npm ci
+
       - name: Build .vsix
         working-directory: integrations/vscode
         run: |
@@ -109,6 +112,9 @@ jobs:
             exit 1
           fi
 
+      - name: Core install (source-aliased deps)
+        run: npm ci
+
       - name: Build, package and publish
         working-directory: integrations/vscode
         env:
@@ -143,6 +149,9 @@ jobs:
             exit 1
           fi
           echo "releasing $GITHUB_REF_NAME"
+
+      - name: Core install (source-aliased deps)
+        run: npm ci
 
       - name: Build .vsix
         working-directory: integrations/vscode

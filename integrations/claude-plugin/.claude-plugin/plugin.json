@@ -1,0 +1,12 @@
+{
+  "name": "logicspec",
+  "version": "0.5.0",
+  "description": "LogicSpec authoring for AI agents: write and edit *.feature.yaml specs with the nine-step-type DSL, validate with stable LS diagnostics, render Mermaid views, and query workspaces over MCP.",
+  "author": {
+    "name": "LogicSpec contributors",
+    "url": "https://github.com/shynfard/LogicSpec"
+  },
+  "homepage": "https://github.com/shynfard/LogicSpec",
+  "license": "MIT",
+  "keywords": ["logicspec", "yaml", "dsl", "specification", "mermaid"]
+}

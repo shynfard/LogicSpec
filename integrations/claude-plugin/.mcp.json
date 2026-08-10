@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "logicspec": {
+      "command": "logicspec",
+      "args": ["mcp"],
+      "description": "LogicSpec workspace tools (list_features, get_feature, get_step, get_transitions, get_service_dependencies, get_events, validate_feature). Requires the logicspec CLI on PATH (npm install -g logicspec, or npm link from a checkout)."
+    }
+  }
+}

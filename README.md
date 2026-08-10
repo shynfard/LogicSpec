@@ -1,5 +1,9 @@
 # LogicSpec
 
+[![CI](https://github.com/shynfard/LogicSpec/actions/workflows/ci.yml/badge.svg)](https://github.com/shynfard/LogicSpec/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Node](https://img.shields.io/badge/node-%E2%89%A520-brightgreen)
+
 **Define the logic. Validate it. Visualize it. Then build it.**
 
 LogicSpec is a small, open-source YAML DSL for describing **application feature logic** — booking, checkout, authentication, onboarding, approval workflows — *before* you implement them.
@@ -68,7 +72,7 @@ Describe the feature once, in YAML, with a small closed vocabulary of nine step 
 > Until then, use the local development setup below.
 
 ```bash
-git clone <this repository>
+git clone https://github.com/shynfard/LogicSpec.git logicspec
 cd logicspec
 npm install
 npm run build
@@ -413,8 +417,9 @@ Seven tools: `list_features`, `get_feature`, `get_step`, `get_transitions`, `get
 * **VS Code extension** — [`integrations/vscode/`](integrations/vscode/): inline diagnostics with exact source ranges for feature files, catalogs and config, plus a live Mermaid preview panel (view selectable via `logicspec.preview.view`). Build and F5-launch inside that directory; package with `npx @vscode/vsce package`. Not on the marketplace.
 * **Visual editor** — [`integrations/editor/`](integrations/editor/): a React Flow canvas with two-way YAML ↔ graph editing — node palette for the nine step types, inspector for labels/actors/transitions, edits written back through a comment-preserving document API. `npm install && npm run dev` inside that directory.
 * **Obsidian plugin** — [`integrations/obsidian/`](integrations/obsidian/): renders ` ```logicspec ` blocks (inline feature YAML) and ` ```logicspec-file ` blocks (vault-relative references with `view:`/`direction:` overrides) as validated Mermaid diagrams inside notes, with the full diagnostics list under each diagram and auto re-render when referenced files change. Build inside that directory; copy `dist/` into `<vault>/.obsidian/plugins/logicspec/`.
+* **Claude Code plugin** — [`integrations/claude-plugin/`](integrations/claude-plugin/): an authoring skill (DSL rules, diagnostics reference, the validate-fix-render loop), `/logicspec:feature` and `/logicspec:check` commands, and MCP server wiring. Install with `/plugin marketplace add shynfard/LogicSpec` → `/plugin install logicspec@logicspec`.
 
-All three are self-contained packages that build against the core source; the core library never depends on them.
+All are self-contained; the core library never depends on any integration.
 
 ## Documentation
 
