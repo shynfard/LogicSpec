@@ -3,11 +3,16 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
-## Unreleased
+## 0.5.2
 
-- License changed from MIT to Apache-2.0 (applies from the next published
-  version; artifacts published as 0.5.x carry the license recorded at
-  their publish time).
+- **VS Code extension fix**: the 0.5.0/0.5.1 bundles crashed at load
+  ("command 'logicspec.previewFeature' not found") because a module-scope
+  `createRequire(import.meta.url)` in the bundled core became
+  `createRequire(undefined)` under esbuild's CJS lowering. Version lookup
+  is now lazy and guarded, and a bundle-load regression test activates the
+  real built bundle against a stubbed VS Code host in CI.
+- License changed from MIT to Apache-2.0 (artifacts published before
+  0.5.2 immutably carry the license recorded at their publish time).
 - README: Claude Code plugin installation guide.
 
 ## 0.5.1

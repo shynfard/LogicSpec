@@ -1,7 +1,7 @@
 {
   "id": "logicspec",
   "name": "LogicSpec",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "minAppVersion": "1.4.0",
   "description": "Render and validate LogicSpec feature specifications as Mermaid diagrams inside notes (experimental).",
   "author": "LogicSpec contributors",

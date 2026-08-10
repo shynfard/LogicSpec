@@ -3,7 +3,24 @@ import { createInterface } from "node:readline";
 import { ERROR_CODES, errorResponse } from "./protocol.js";
 import { createMcpHandler } from "./server.js";
 
-const require = createRequire(import.meta.url);
+/**
+ * Reads this package's version lazily and defensively. Bundlers that emit
+ * CJS replace `import.meta.url` with undefined, and `createRequire` throws
+ * on that — a top-level call here once crashed the entire VS Code extension
+ * bundle at load time. Never resolve module-relative paths at module scope.
+ */
+function ownVersion(): string {
+  try {
+    const url = import.meta.url;
+    if (typeof url === "string" && url.length > 0) {
+      const require = createRequire(url);
+      return (require("../../package.json") as { version: string }).version;
+    }
+  } catch {
+    // fall through
+  }
+  return "unknown";
+}
 
 /**
  * Runs the MCP server on stdio: newline-delimited JSON-RPC messages in on
@@ -11,7 +28,7 @@ const require = createRequire(import.meta.url);
  * written to stdout — logging goes to stderr.
  */
 export function runMcpServer(rootDir: string): void {
-  const { version } = require("../../package.json") as { version: string };
+  const version = ownVersion();
   const handler = createMcpHandler({ rootDir, serverVersion: version });
 
   const write = (payload: unknown) => {

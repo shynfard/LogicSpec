@@ -1,6 +1,6 @@
 {
   "name": "logicspec",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "LogicSpec authoring for AI agents: write and edit *.feature.yaml specs with the nine-step-type DSL, validate with stable LS diagnostics, render Mermaid views, and query workspaces over MCP.",
   "author": {
     "name": "LogicSpec contributors",
