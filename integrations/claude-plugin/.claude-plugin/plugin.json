@@ -7,7 +7,7 @@
     "url": "https://github.com/shynfard/LogicSpec"
   },
   "homepage": "https://github.com/shynfard/LogicSpec",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "keywords": [
     "logicspec",
     "yaml",

@@ -1,7 +1,7 @@
 # LogicSpec
 
 [![CI](https://github.com/shynfard/LogicSpec/actions/workflows/ci.yml/badge.svg)](https://github.com/shynfard/LogicSpec/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 ![Node](https://img.shields.io/badge/node-%E2%89%A520-brightgreen)
 
 **Define the logic. Validate it. Visualize it. Then build it.**
@@ -385,6 +385,25 @@ Browser and web tooling should import from **`logicspec/core`** — the same API
 
 ## Using with AI coding agents
 
+### Claude Code: install the LogicSpec plugin
+
+The fastest way to make Claude fluent in LogicSpec — inside Claude Code run:
+
+```
+/plugin marketplace add shynfard/LogicSpec
+/plugin install logicspec@logicspec
+```
+
+You get three things:
+
+* **The `logicspec-authoring` skill** — Claude learns the nine-step-type vocabulary, the transition rules, data-flow expectations and the validate → fix → render loop, with the full grammar and an LS-code fix table loaded on demand. It activates whenever you work on `*.feature.yaml`, catalogs, or ask to design a flow.
+* **Slash commands** — `/logicspec:feature <description>` designs a new spec end to end (sketch → YAML → catalogs → validate until clean → render); `/logicspec:check [path]` validates a workspace and repairs findings by LS code.
+* **MCP server** — `logicspec mcp` is registered automatically, so Claude can query `list_features`, `get_feature`, `get_step`, `get_transitions`, `get_service_dependencies`, `get_events` and `validate_feature` structurally instead of re-parsing YAML.
+
+Requires the CLI: `npm install -g logicspec`. Skill-only alternative (no plugin system): copy `integrations/claude-plugin/skills/logicspec-authoring/` into `~/.claude/skills/`.
+
+### Any agent: specs as the source of truth
+
 Feature YAML files make an excellent behavioral source of truth for AI agents. A `CLAUDE.md` (or equivalent) in your product repository might say:
 
 ```markdown
@@ -469,4 +488,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add step types, validation rul
 
 ## License
 
-[MIT](LICENSE)
+[Apache-2.0](LICENSE)

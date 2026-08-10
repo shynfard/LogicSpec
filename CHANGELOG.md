@@ -3,6 +3,13 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## Unreleased
+
+- License changed from MIT to Apache-2.0 (applies from the next published
+  version; artifacts published as 0.5.x carry the license recorded at
+  their publish time).
+- README: Claude Code plugin installation guide.
+
 ## 0.5.1
 
 - `logicspec export` — full workspace artifact build (per-feature Markdown

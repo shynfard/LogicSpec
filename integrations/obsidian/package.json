@@ -3,7 +3,7 @@
   "version": "0.5.1",
   "description": "Render and validate LogicSpec feature specifications inside Obsidian notes (experimental).",
   "private": true,
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "build": "node esbuild.mjs",
