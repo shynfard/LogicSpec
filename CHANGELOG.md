@@ -3,6 +3,20 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.5.1
+
+- `logicspec export` — full workspace artifact build (per-feature Markdown
+  and JSON models, dependency graph, workspace index, diagnostics) into the
+  output directory.
+- Output directory default changed from `./generated` to `./.logicspec`
+  (a root dot-folder in the `.next` tradition). Set
+  `output.directory: ./generated` in `logicspec.config.yaml` to keep the
+  old location.
+- VS Code extension: explorer/editor context-menu preview entries (working
+  on unopened files), `Ctrl+Shift+V` / `Cmd+Shift+V` preview keybinding
+  scoped to feature files.
+- Dev-dependency updates (esbuild ≥ 0.25 advisory).
+
 ## 0.5.0
 
 Roadmap milestones v0.2 through v0.5 in one release.
@@ -35,10 +49,6 @@ Roadmap milestones v0.2 through v0.5 in one release.
   transitions, actors, context, outcomes), `--json` for tooling.
 - `logicspec validate` with no paths validates the whole workspace;
   `--json` emits a stable machine-readable report.
-- `logicspec export` — full workspace artifact build (per-feature Markdown
-  and JSON models, dependency graph, workspace index, diagnostics) into the
-  output directory, which now defaults to `.logicspec/` (a root dot-folder
-  in the `.next` tradition; previously `./generated`).
 - `logicspec watch` re-renders subflow dependents of a changed feature.
 
 ### Integrations
