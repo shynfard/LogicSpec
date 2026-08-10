@@ -159,6 +159,7 @@ export function buildWebviewHtml(
     '<button id="zoom-level" title="Reset to 100%">100%</button>',
     '<button id="zoom-in" title="Zoom in">+</button>',
     '<button id="zoom-fit" title="Fit to panel">Fit</button>',
+    '<button id="layout-reset" title="Restore the automatic layout (positions are never saved)">Reset</button>',
     "</span>",
     "</div>",
     '<div id="diagram"></div>',

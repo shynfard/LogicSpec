@@ -3,6 +3,15 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.5.7
+
+- **Movable nodes in the VS Code panels** (n8n-style, view-only): drag any
+  step to reposition it — connected edges re-route as border-clipped
+  straight lines and their labels follow. Positions are never stored; the
+  new **Reset** button (or any re-render) restores Mermaid's automatic
+  layout. Node dragging, background panning, zooming and click-to-navigate
+  coexist via pointer-target routing and a shared drag threshold.
+
 ## 0.5.6
 
 - **Zoom & pan in the VS Code panels** (feature preview and workspace

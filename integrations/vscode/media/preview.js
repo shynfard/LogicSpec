@@ -98,14 +98,165 @@
     { passive: false },
   );
 
-  // Drag to pan (scrolls the container). A small threshold keeps node clicks
-  // working; after a real drag the next click is suppressed.
+  // ── Movable nodes (view-only, n8n-style) ──────────────────────────────────
+  // The rendered SVG is edited in place: node groups get an extra translate
+  // offset, connected edge paths become border-clipped straight lines, and
+  // edge labels re-center. Nothing is persisted — Reset (or any re-render)
+  // restores Mermaid's layout.
+  const layout = {
+    nodes: new Map(), // mermaid node id → {el, x0, y0, dx, dy, hw, hh}
+    edges: [], // {el, from, to, d0, labelEl, labelT0}
+  };
+
+  function parseTranslate(el) {
+    const match = /translate\(\s*([-\d.]+)[ ,]\s*([-\d.]+)/.exec(
+      el.getAttribute("transform") || "",
+    );
+    return match ? { x: Number(match[1]), y: Number(match[2]) } : { x: 0, y: 0 };
+  }
+
+  function buildLayoutRegistry() {
+    layout.nodes = new Map();
+    layout.edges = [];
+    const svg = currentSvg();
+    if (!svg) return;
+    for (const el of svg.querySelectorAll("g.node[id]")) {
+      const match = /^flowchart-(.+)-\d+$/.exec(el.id);
+      if (!match) continue;
+      const at = parseTranslate(el);
+      let hw = 40;
+      let hh = 20;
+      try {
+        const box = el.getBBox();
+        hw = box.width / 2 + 6;
+        hh = box.height / 2 + 6;
+      } catch {
+        // detached bbox; keep defaults
+      }
+      layout.nodes.set(match[1], { el, x0: at.x, y0: at.y, dx: 0, dy: 0, hw, hh });
+    }
+    const paths = [...svg.querySelectorAll("g.edgePaths path")];
+    const labels = [...svg.querySelectorAll("g.edgeLabels > g")];
+    paths.forEach((el, index) => {
+      let from;
+      let to;
+      for (const cls of el.classList) {
+        if (cls.startsWith("LS-")) from = cls.slice(3);
+        else if (cls.startsWith("LE-")) to = cls.slice(3);
+      }
+      if (from === undefined || to === undefined) return;
+      const labelEl = labels.length === paths.length ? labels[index] : undefined;
+      layout.edges.push({
+        el,
+        from,
+        to,
+        d0: el.getAttribute("d"),
+        labelEl,
+        labelT0: labelEl ? labelEl.getAttribute("transform") : undefined,
+      });
+    });
+  }
+
+  function nodeCenter(node) {
+    return { x: node.x0 + node.dx, y: node.y0 + node.dy };
+  }
+
+  // Where the segment from `fromPt` toward `toPt` exits `node`'s bounding
+  // rectangle — keeps arrowheads outside the shapes.
+  function clipToNode(fromPt, toPt, node) {
+    const dx = toPt.x - fromPt.x;
+    const dy = toPt.y - fromPt.y;
+    const tx = dx !== 0 ? node.hw / Math.abs(dx) : Infinity;
+    const ty = dy !== 0 ? node.hh / Math.abs(dy) : Infinity;
+    const t = Math.min(tx, ty, 1);
+    return { x: toPt.x - dx * t, y: toPt.y - dy * t };
+  }
+
+  function updateEdgesFor(nodeId) {
+    for (const edge of layout.edges) {
+      if (edge.from !== nodeId && edge.to !== nodeId) continue;
+      const fromNode = layout.nodes.get(edge.from);
+      const toNode = layout.nodes.get(edge.to);
+      if (!fromNode || !toNode) continue;
+      const a = nodeCenter(fromNode);
+      const b = nodeCenter(toNode);
+      const start = clipToNode(b, a, fromNode);
+      const end = clipToNode(a, b, toNode);
+      edge.el.setAttribute("d", `M${start.x},${start.y}L${end.x},${end.y}`);
+      if (edge.labelEl) {
+        edge.labelEl.setAttribute(
+          "transform",
+          `translate(${(start.x + end.x) / 2}, ${(start.y + end.y) / 2})`,
+        );
+      }
+    }
+  }
+
+  function resetLayout() {
+    for (const node of layout.nodes.values()) {
+      node.dx = 0;
+      node.dy = 0;
+      node.el.setAttribute("transform", `translate(${node.x0}, ${node.y0})`);
+    }
+    for (const edge of layout.edges) {
+      if (edge.d0 != null) edge.el.setAttribute("d", edge.d0);
+      if (edge.labelEl && edge.labelT0 != null) {
+        edge.labelEl.setAttribute("transform", edge.labelT0);
+      }
+    }
+  }
+
+  const layoutReset = document.getElementById("layout-reset");
+  if (layoutReset) layoutReset.addEventListener("click", resetLayout);
+
+  function renderScale() {
+    const svg = currentSvg();
+    if (!svg) return 1;
+    const viewBox = svg.viewBox && svg.viewBox.baseVal;
+    if (!viewBox || viewBox.width === 0) return 1;
+    return svg.clientWidth / viewBox.width || 1;
+  }
+
+  // ── Pointer interaction: node drag OR background pan ───────────────────────
+  // A 4px threshold keeps node clicks (navigation) working; after a real
+  // drag the next click is suppressed.
   let pan = null;
+  let nodeDrag = null;
   container.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) return;
+    const nodeEl = event.target instanceof Element ? event.target.closest("g.node[id]") : null;
+    const match = nodeEl ? /^flowchart-(.+)-\d+$/.exec(nodeEl.id) : null;
+    if (match && layout.nodes.has(match[1])) {
+      nodeDrag = {
+        nid: match[1],
+        x: event.clientX,
+        y: event.clientY,
+        moved: false,
+        id: event.pointerId,
+      };
+      return;
+    }
     pan = { x: event.clientX, y: event.clientY, moved: false, id: event.pointerId };
   });
   container.addEventListener("pointermove", (event) => {
+    if (nodeDrag && event.pointerId === nodeDrag.id) {
+      const dx = event.clientX - nodeDrag.x;
+      const dy = event.clientY - nodeDrag.y;
+      if (!nodeDrag.moved && Math.hypot(dx, dy) < 4) return;
+      if (!nodeDrag.moved) {
+        nodeDrag.moved = true;
+        container.setPointerCapture(nodeDrag.id);
+      }
+      const node = layout.nodes.get(nodeDrag.nid);
+      const factor = renderScale();
+      node.dx += dx / factor;
+      node.dy += dy / factor;
+      node.el.setAttribute("transform", `translate(${node.x0 + node.dx}, ${node.y0 + node.dy})`);
+      updateEdgesFor(nodeDrag.nid);
+      nodeDrag.x = event.clientX;
+      nodeDrag.y = event.clientY;
+      return;
+    }
     if (!pan || event.pointerId !== pan.id) return;
     const dx = event.clientX - pan.x;
     const dy = event.clientY - pan.y;
@@ -120,7 +271,19 @@
     pan.x = event.clientX;
     pan.y = event.clientY;
   });
-  function endPan(event) {
+  function endPointer(event) {
+    if (nodeDrag && event.pointerId === nodeDrag.id) {
+      if (nodeDrag.moved) {
+        suppressClick = true;
+        try {
+          container.releasePointerCapture(nodeDrag.id);
+        } catch {
+          // capture may already be gone
+        }
+      }
+      nodeDrag = null;
+      return;
+    }
     if (!pan || (event.pointerId !== undefined && event.pointerId !== pan.id)) return;
     if (pan.moved) {
       suppressClick = true;
@@ -133,8 +296,8 @@
     }
     pan = null;
   }
-  container.addEventListener("pointerup", endPan);
-  container.addEventListener("pointercancel", endPan);
+  container.addEventListener("pointerup", endPointer);
+  container.addEventListener("pointercancel", endPointer);
 
   // ── View switcher ──────────────────────────────────────────────────────────
   if (viewSelect) {
@@ -192,6 +355,7 @@
       }
       container.replaceChildren(document.importNode(root, true));
       applyZoom();
+      buildLayoutRegistry();
       vscode.setState({ source });
     } catch (error) {
       showError(String(error));
