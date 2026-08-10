@@ -133,9 +133,11 @@ async function drawResult(
       const mermaid = await loadMermaid();
       mermaidIdCounter += 1;
       const { svg } = await mermaid.render(`logicspec-mmd-${mermaidIdCounter}`, result.mermaid);
-      const parsed = new DOMParser().parseFromString(svg, "image/svg+xml");
-      const root = parsed.documentElement;
-      if (root.nodeName.toLowerCase() !== "svg") {
+      // Mermaid's htmlLabels output serializes as HTML (unclosed <br> etc.),
+      // which strict XML parsing rejects — parse as HTML, extract the svg.
+      const parsed = new DOMParser().parseFromString(svg, "text/html");
+      const root = parsed.body.querySelector("svg");
+      if (root === null) {
         throw new Error("mermaid did not return an SVG document");
       }
       holder.appendChild(document.importNode(root, true));

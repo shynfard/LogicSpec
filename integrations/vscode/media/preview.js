@@ -11,6 +11,10 @@
     startOnLoad: false,
     theme: "neutral",
     securityLevel: "strict",
+    // Pure-SVG labels: foreignObject HTML labels serialize as HTML (e.g.
+    // unclosed <br>), which is invalid strict XML and also renders blank
+    // under some webview CSPs.
+    flowchart: { htmlLabels: false },
   });
 
   function showError(message) {
@@ -27,9 +31,11 @@
       // Parse instead of innerHTML and only accept an <svg> root. Content is
       // locally generated (our renderer + mermaid strict mode) and the CSP
       // blocks non-nonce scripts, but defense in depth is cheap here.
-      const parsed = new DOMParser().parseFromString(svg, "image/svg+xml");
-      const root = parsed.documentElement;
-      if (root.nodeName.toLowerCase() !== "svg") {
+      // Mermaid output may contain HTML-serialized fragments that strict XML
+      // parsing rejects, so parse as HTML and extract the svg element.
+      const parsed = new DOMParser().parseFromString(svg, "text/html");
+      const root = parsed.body.querySelector("svg");
+      if (root === null) {
         showError("Renderer returned unexpected content.");
         return;
       }

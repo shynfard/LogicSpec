@@ -3,6 +3,16 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.5.3
+
+- **Preview rendering fix** (VS Code extension and Obsidian plugin): Mermaid's
+  HTML labels serialize as non-XML (`<foreignObject>` with unclosed `<br>`),
+  so the strict `image/svg+xml` safety parse rejected every diagram
+  ("Renderer returned unexpected content."). Output is now parsed as HTML
+  with the `<svg>` element extracted, and the VS Code preview additionally
+  renders with pure-SVG labels (`flowchart.htmlLabels: false`). A jsdom
+  regression test pins both halves of the failure mode.
+
 ## 0.5.2
 
 - **VS Code extension fix**: the 0.5.0/0.5.1 bundles crashed at load

@@ -1,6 +1,6 @@
 {
   "name": "logicspec-editor",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "private": true,
   "description": "Experimental React Flow visual editor for LogicSpec feature files (two-way YAML editing).",
   "type": "module",
