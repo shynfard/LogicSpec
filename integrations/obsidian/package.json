@@ -1,0 +1,25 @@
+{
+  "name": "logicspec-obsidian",
+  "version": "0.5.0",
+  "description": "Render and validate LogicSpec feature specifications inside Obsidian notes (experimental).",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "yaml": "^2.8.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.24.0",
+    "obsidian": "^1.7.2",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

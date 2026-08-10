@@ -63,6 +63,39 @@ npm run dev       # opens the Vite dev server
 
 Limitations (by design, for now): one file at a time via Open/Save/Copy; node positions are ephemeral; catalog-aware checks (LS104/LS105-class) don't run in-browser.
 
+## Obsidian plugin (`integrations/obsidian/`)
+
+**Experimental.** Renders LogicSpec features as diagrams inside Obsidian notes.
+
+Two code-block languages:
+
+- ` ```logicspec ` — the block body is a complete feature YAML. Valid specs
+  render as a Mermaid diagram (default view/direction from the plugin
+  settings) with any warnings/infos listed underneath; invalid specs show the
+  diagnostics list only — never a stale diagram.
+- ` ```logicspec-file ` — the block body references a vault file:
+
+  ```yaml
+  file: features/booking.feature.yaml
+  view: swimlane        # optional: flow | swimlane | sequence | event-model
+  direction: LR         # optional: TD | TB | LR | RL | BT
+  ```
+
+  Referenced files re-render automatically when they change in the vault.
+
+Also included: a settings tab (default view and direction) and an
+"Insert feature diagram block" command.
+
+Limitations: validation inside Obsidian is file-local — catalog, subflow and
+workspace checks (LS104/LS105/LS106-class) don't run; use `logicspec validate`
+for the full picture. Mermaid comes from Obsidian itself (`minAppVersion`
+1.4.0).
+
+Install: `npm install && npm run build` inside `integrations/obsidian/`, then
+copy `dist/` to `<vault>/.obsidian/plugins/logicspec/` and enable the plugin
+(or point BRAT at a release that carries `main.js`, `manifest.json`,
+`styles.css`).
+
 ## Edit API (for tool builders)
 
 The editor's write-path is public API, exported from both `logicspec` and `logicspec/core`:

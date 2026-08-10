@@ -102,3 +102,14 @@ jobs:
           npm run typecheck
           npm run build
           npm test
+
+      - name: Obsidian plugin — install
+        working-directory: integrations/obsidian
+        run: npm ci
+
+      - name: Obsidian plugin — typecheck, build, test
+        working-directory: integrations/obsidian
+        run: |
+          npm run typecheck
+          npm run build
+          npm test
