@@ -17,6 +17,7 @@ on:
           - npm
           - vsix-artifact
           - github-release
+          - vscode-marketplace
 
 permissions:
   contents: read
@@ -84,6 +85,40 @@ jobs:
           name: logicspec-vscode-vsix
           path: integrations/vscode/*.vsix
           retention-days: 90
+
+  # Publishes the extension to the VS Code Marketplace under the publisher
+  # configured in integrations/vscode/package.json. Requires the VSCE_PAT
+  # repository secret (Azure DevOps PAT, Marketplace → Manage, all orgs).
+  publish-vscode:
+    if: inputs.target == 'vscode-marketplace'
+    runs-on: ubuntu-latest
+    environment: vscode-marketplace
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Guard — run this on a vX.Y.Z release tag
+        run: |
+          if ! printf '%s' "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || \
+             [ "$GITHUB_REF" != "refs/tags/$GITHUB_REF_NAME" ]; then
+            echo "Pick a vX.Y.Z tag in 'Use workflow from' when dispatching (got $GITHUB_REF)."
+            exit 1
+          fi
+
+      - name: Build, package and publish
+        working-directory: integrations/vscode
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          npm ci
+          npm run typecheck
+          npm run build
+          npm test
+          npx --yes @vscode/vsce publish --no-dependencies -p "$VSCE_PAT"
 
   # No-marketplace distribution: attach the VS Code .vsix ("Install from
   # VSIX…") and the Obsidian plugin folder to a GitHub Release for the tag.
