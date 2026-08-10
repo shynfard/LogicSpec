@@ -15,7 +15,7 @@ npm run schemas     # regenerate schemas/*.schema.json (run after changing src/s
 node dist/cli/main.js <cmd>   # run the CLI without npm link
 ```
 
-CLI commands: `init` · `validate [paths...] [--strict] [--json]` (no paths = whole workspace) · `render <paths...> [--view flow|swimlane|sequence|event-model] [--format md|mermaid] [--direction TD|TB|LR|RL|BT] [--output]` · `inspect <paths...> [--json]` · `watch [dir]` (re-renders subflow dependents) · `graph [dir] [--services]` · `diff <before> <after> [--json]` · `mcp [dir]`. Exit codes: 0 ok, 1 validation errors, 2 parse/config/usage errors (diff: 0 even when different).
+CLI commands: `init` · `validate [paths...] [--strict] [--json]` (no paths = whole workspace) · `render <paths...> [--view flow|swimlane|sequence|event-model] [--format md|mermaid] [--direction TD|TB|LR|RL|BT] [--output]` · `export [dir]` (full artifact build into .logicspec/) · `inspect <paths...> [--json]` · `watch [dir]` (re-renders subflow dependents) · `graph [dir] [--services]` · `diff <before> <after> [--json]` · `mcp [dir]`. Exit codes: 0 ok, 1 validation errors, 2 parse/config/usage errors (diff: 0 even when different).
 
 ## Architecture (pipeline order)
 

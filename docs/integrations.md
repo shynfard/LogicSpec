@@ -32,9 +32,17 @@ Tool-level failures (unknown feature, unknown step) come back as `isError` tool 
 
 ## VS Code extension (`integrations/vscode/`)
 
+Published on the Marketplace as
+[`Shynfard.logicspec-vscode`](https://marketplace.visualstudio.com/items?itemName=Shynfard.logicspec-vscode);
+fully self-contained (the core is bundled — no CLI required).
+
 * Inline diagnostics for `*.feature.yaml`, `services.yaml`, `events.yaml` and `logicspec.config.yaml` — on open, change (debounced) and save, with exact source ranges and LS codes, validated against the surrounding workspace (catalogs, subflows).
-* **LogicSpec: Preview Feature** — a live Mermaid preview panel beside the editor. Re-renders on every valid change; while the spec is broken it keeps the last valid diagram and says so. The view is selectable via the `logicspec.preview.view` setting (`flow` | `swimlane` | `sequence` | `event-model`).
+* **Live preview** (editor-title icon, right-click, `Ctrl+Shift+V`) with an in-panel view switcher: the default **interactive** view is a React Flow canvas — drag nodes (edges follow), zoom/pan with minimap and controls, hover a step to spotlight it and its direct relations, stable per-actor colors with a hover-aware legend, requires/produces chips — plus the four Mermaid views (`flow` | `swimlane` | `sequence` | `event-model`). While the spec is broken the last valid render stays visible, flagged.
+* **Step inspector**: single-click a node for its complete data and links that open the exact `services.yaml` operation, `events.yaml` event, subflow feature files and transition targets; double-click jumps straight to the step's YAML.
+* **LogicSpec: Preview Workspace Graph** — a live feature/subflow/event dependency panel; clicking a feature opens its file.
 * **LogicSpec: Validate Workspace** — validates every feature file and summarizes.
+
+Positions on the interactive canvas are view-only — never persisted.
 
 Development loop:
 
@@ -45,7 +53,7 @@ npm run build     # esbuild bundle + bundled mermaid asset
 # open the folder in VS Code and press F5 (launch config included)
 ```
 
-Package a `.vsix` with `npx @vscode/vsce package`. The extension is not published to the marketplace. Validation runs in the extension host (no language server yet — a future refinement).
+Package a `.vsix` with `npx @vscode/vsce package --no-dependencies`. Validation runs in the extension host (no language server yet — a future refinement).
 
 ## Visual editor (`integrations/editor/`)
 

@@ -63,23 +63,9 @@ Describe the feature once, in YAML, with a small closed vocabulary of nine step 
 
 ## Quick start (30 seconds)
 
-> LogicSpec is not published to npm yet. Once published:
->
-> ```bash
-> npm install -g logicspec
-> ```
->
-> Until then, use the local development setup below.
-
 ```bash
-git clone https://github.com/shynfard/LogicSpec.git logicspec
-cd logicspec
-npm install
-npm run build
-npm link
+npm install -g logicspec
 ```
-
-Then:
 
 ```bash
 mkdir my-flows && cd my-flows
@@ -88,6 +74,18 @@ logicspec init                                  # scaffold config, catalogs, exa
 logicspec validate features/signup.feature.yaml # validate one file (or a directory)
 logicspec render features/signup.feature.yaml   # generate .logicspec/signup.md with a Mermaid diagram
 logicspec watch                                 # re-validate and re-render on every save
+```
+
+Prefer the editor? Install the **[LogicSpec VS Code extension](https://marketplace.visualstudio.com/items?itemName=Shynfard.logicspec-vscode)** — diagnostics as you type plus an interactive draggable canvas, no CLI required.
+
+### Working from source
+
+```bash
+git clone https://github.com/shynfard/LogicSpec.git logicspec
+cd logicspec
+npm install
+npm run build
+npm link      # exposes the logicspec CLI from your checkout
 ```
 
 ## A small example
@@ -448,7 +446,7 @@ Seven tools: `list_features`, `get_feature`, `get_step`, `get_transitions`, `get
 
 ## Integrations (experimental)
 
-* **VS Code extension** — [`integrations/vscode/`](integrations/vscode/): inline diagnostics with exact source ranges for feature files, catalogs and config, plus a live Mermaid preview panel (view selectable via `logicspec.preview.view`). Build and F5-launch inside that directory; package with `npx @vscode/vsce package`. Not on the marketplace.
+* **VS Code extension** — [install from the Marketplace](https://marketplace.visualstudio.com/items?itemName=Shynfard.logicspec-vscode) (source: [`integrations/vscode/`](integrations/vscode/)): diagnostics as you type with exact ranges, an **interactive React Flow canvas** (drag nodes, hover to spotlight relations, stable per-actor colors, minimap), four Mermaid views, a step inspector with cross-file links into catalogs and subflows, and a live workspace graph. Fully self-contained — no CLI needed.
 * **Visual editor** — [`integrations/editor/`](integrations/editor/): a React Flow canvas with two-way YAML ↔ graph editing — node palette for the nine step types, inspector for labels/actors/transitions, edits written back through a comment-preserving document API. `npm install && npm run dev` inside that directory.
 * **Obsidian plugin** — [`integrations/obsidian/`](integrations/obsidian/): renders ` ```logicspec ` blocks (inline feature YAML) and ` ```logicspec-file ` blocks (vault-relative references with `view:`/`direction:` overrides) as validated Mermaid diagrams inside notes, with the full diagnostics list under each diagram and auto re-render when referenced files change. Build inside that directory; copy `dist/` into `<vault>/.obsidian/plugins/logicspec/`.
 * **Claude Code plugin** — [`integrations/claude-plugin/`](integrations/claude-plugin/): an authoring skill (DSL rules, diagnostics reference, the validate-fix-render loop), `/logicspec:feature` and `/logicspec:check` commands, and MCP server wiring. Install with `/plugin marketplace add shynfard/LogicSpec` → `/plugin install logicspec@logicspec`.

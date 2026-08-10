@@ -15,7 +15,8 @@ Relevant threat model: maliciously crafted YAML files. Parsing is delegated to t
 
 | Version | Supported |
 |---------|-----------|
-| 0.1.x | ✅ |
+| 0.5.x | ✅ |
+| < 0.5 | ❌ |
 
 ## Reporting a vulnerability
 
