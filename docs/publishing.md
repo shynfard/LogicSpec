@@ -45,10 +45,9 @@ in GitLab.
 - The `vsix` job builds `logicspec-vscode-vX.Y.Z.vsix` as a pipeline
   artifact — installable via "Install from VSIX…" without any marketplace.
 - Marketplace publishing requires a one-time, manual publisher account whose
-  id matches `publisher` in `integrations/vscode/package.json` (currently
-  `logicspec` — create it, or change the field before the first publish).
-  The account lives on Azure DevOps; corporate tenants often block PAT
-  creation, so use a personal Microsoft account for it.
+  id matches `publisher` in `integrations/vscode/package.json` (set to
+  `Shynfard`). The account lives on Azure DevOps; corporate tenants often
+  block PAT creation, so use a personal Microsoft account for it.
 - **No PAT? Two PAT-free marketplace paths.** Creating the *publisher* is a
   plain signed-in web form (no token) at
   https://marketplace.visualstudio.com/manage — required once in every path.
