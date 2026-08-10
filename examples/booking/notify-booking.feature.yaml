@@ -1,0 +1,95 @@
+# yaml-language-server: $schema=../../schemas/feature.schema.json
+version: "1"
+
+feature:
+  id: notify-booking
+  name: Booking Notification
+  description: Sends the customer a confirmation after a booking is created.
+
+start: wait-booking
+
+actors:
+
+  notification:
+    kind: service
+    label: Notification Service
+
+  pubsub:
+    kind: broker
+    label: Pub/Sub
+
+context:
+
+  channelPreference:
+    type: string
+
+steps:
+
+  wait-booking:
+    type: event
+    label: Wait for Booking
+    actor: pubsub
+    direction: wait
+    event: BookingCreated
+    timeout: 1d
+    on:
+      received:
+        next: load-preference
+      timeout:
+        next: gave-up
+
+  load-preference:
+    type: operation
+    label: Load Channel Preference
+    actor: notification
+    produces:
+      - channelPreference
+    next: pick-channel
+
+  pick-channel:
+    type: decision
+    label: Preferred channel?
+    actor: notification
+    expression: channelPreference
+    cases:
+      - label: Email
+        when: channelPreference == "email"
+        next: send-confirmation
+    default:
+      label: Anything else
+      next: send-confirmation
+
+  send-confirmation:
+    type: operation
+    label: Send Confirmation
+    actor: notification
+    call: notification.send-confirmation
+    requires:
+      - channelPreference
+    on:
+      success:
+        next: notified
+      error:
+        next: notify-error
+
+  notify-error:
+    type: error
+    label: Notification Failed
+    message: The confirmation could not be delivered.
+    actions:
+      retry:
+        label: Retry delivery
+        next: send-confirmation
+      give-up:
+        label: Give up
+        next: gave-up
+
+  notified:
+    type: final
+    label: Customer Notified
+    outcome: success
+
+  gave-up:
+    type: final
+    label: Notification Abandoned
+    outcome: failure

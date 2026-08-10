@@ -52,9 +52,10 @@ but no small, machine-readable source of truth describing how a feature actually
 
 Describe the feature once, in YAML, with a small closed vocabulary of nine step types. Then:
 
-* **Validate** it — structural schema checks plus graph-aware semantic analysis (unknown transitions, unreachable steps, dead ends, loops that can never finish), with stable diagnostic codes and "did you mean" suggestions.
-* **Visualize** it — deterministic Mermaid flowcharts (and an experimental swimlane view) wrapped in Markdown that renders on GitHub and in VS Code.
-* **Query** it — `logicspec inspect --json` gives tools and AI agents a stable, machine-readable model of the feature.
+* **Validate** it — structural schema checks plus graph-aware semantic analysis: unknown transitions, unreachable steps, dead ends, loops that can never finish, and data-flow analysis proving every required context variable is produced on every path. Stable diagnostic codes, "did you mean" suggestions, per-workspace severity overrides.
+* **Visualize** it — deterministic Mermaid flowcharts, plus experimental swimlane, sequence and event-model views, and a workspace dependency graph — all wrapped in Markdown that renders on GitHub and in VS Code.
+* **Query** it — `logicspec inspect --json`, `logicspec validate --json` and the built-in MCP server give tools and AI agents a stable, machine-readable model of every feature.
+* **Compare** it — `logicspec diff` reports semantic changes between two versions of a flow, not textual ones.
 
 ## Quick start (30 seconds)
 
@@ -163,7 +164,7 @@ flowchart TD
 
 Shapes and the type marker in each label carry the meaning, so diagrams stay readable in light themes, dark themes, print, and monochrome.
 
-A complete workspace — pages, operations, events, error paths, retry loops, service and event catalogs — lives in [`examples/booking/`](examples/booking/).
+A complete workspace lives in [`examples/booking/`](examples/booking/): two features (a booking flow and an event-driven notification flow), service and event catalogs linked to OpenAPI/AsyncAPI documents, severity overrides in the config, and generated output including the [workspace dependency graph](examples/booking/generated/dependencies.md).
 
 ## The nine step types
 
@@ -187,9 +188,9 @@ The vocabulary is deliberately closed — no custom step types. Organization-spe
 
 Scaffolds a workspace: `logicspec.config.yaml`, `features/`, `services.yaml`, `events.yaml`, `generated/`, and a working example feature. Never overwrites existing files.
 
-### `logicspec validate <paths...>`
+### `logicspec validate [paths...]`
 
-Validates feature files or whole directories (recursively finds `*.feature.yaml`).
+Validates feature files or whole directories (recursively finds `*.feature.yaml`). With **no paths**, validates the entire surrounding workspace, including catalog-level checks (OpenAPI/AsyncAPI references).
 
 ```text
 Booking (examples/booking/booking.feature.yaml)
@@ -206,7 +207,16 @@ Booking (examples/booking/booking.feature.yaml)
 ✓ examples/booking/booking.feature.yaml is valid (0 errors, 0 warnings, 1 info)
 ```
 
-`--strict` treats warnings as errors.
+`--strict` treats warnings as errors. `--json` prints a stable machine-readable report instead:
+
+```json
+{
+  "valid": false,
+  "files": [{ "file": "…", "valid": false, "diagnostics": [], "stats": {} }],
+  "workspace": { "diagnostics": [] },
+  "summary": { "files": 2, "errors": 1, "warnings": 0, "info": 1 }
+}
+```
 
 ### `logicspec render <paths...>`
 
@@ -216,10 +226,12 @@ Options:
 
 | Flag | Values | Default |
 |------|--------|---------|
-| `--view` | `flow`, `swimlane` (experimental) | config `render.view`, else `flow` |
+| `--view` | `flow`; experimental: `swimlane`, `sequence`, `event-model` | config `render.view`, else `flow` |
 | `--format` | `md`, `mermaid` (bare `.mmd`) | `md` |
 | `--direction` | `TD`, `TB`, `LR`, `RL`, `BT` | config `render.direction`, else `TD` |
 | `--output` | file or directory | config `output.directory`, else `./generated` |
+
+The four views answer different questions — flow: *what happens*, swimlane: *who does it*, sequence: *how actors interact*, event-model: *interface / logic / events / outcomes*. See [docs/views.md](docs/views.md).
 
 ### `logicspec inspect <paths...>`
 
@@ -227,7 +239,29 @@ Human-readable summary of a feature: actors, steps by type, operations called, e
 
 ### `logicspec watch [dir]`
 
-Watches the workspace. On every save: parse → validate → print diagnostics → regenerate diagrams *only if valid*. Catalog or config changes re-render everything.
+Watches the workspace. On every save: parse → validate → print diagnostics → regenerate diagrams *only if valid*. Changing a feature also re-renders every feature that invokes it as a subflow; catalog or config changes re-render everything.
+
+### `logicspec graph [dir]`
+
+Renders the workspace dependency graph — features, their subflow relationships, and event publish/wait edges — to `generated/dependencies.md`. `--services` adds service nodes; `--format mermaid` writes a bare `.mmd`.
+
+```mermaid
+flowchart LR
+  feature_booking[["Booking<br/>FEATURE"]]
+  feature_notify_booking[["Booking Notification<br/>FEATURE"]]
+  event_BookingCreated>"BookingCreated<br/>EVENT"]
+
+  feature_booking -.-> event_BookingCreated
+  event_BookingCreated -.-> feature_notify_booking
+```
+
+### `logicspec diff <before> <after>`
+
+Semantic comparison of two feature files: added/removed/changed steps, transitions, actors, context variables and outcomes — not a text diff. `--json` emits the structured result for PR tooling. Exit code is `0` whether or not differences exist (`2` if an input does not parse).
+
+### `logicspec mcp [dir]`
+
+Runs the [MCP server](docs/integrations.md#mcp-server) over stdio, exposing the workspace to AI agents.
 
 ### Exit codes
 
@@ -255,11 +289,44 @@ output:
   directory: ./generated
 
 render:
-  view: flow
+  view: flow          # flow | swimlane | sequence | event-model
   direction: TD
+
+# Optional: promote, demote or disable any diagnostic per workspace.
+diagnostics:
+  LS200: "error"      # unreachable steps fail validation here
+  LS402: "off"        # unused-actor infos are silenced
 ```
 
-CLI flags override configuration. Without a config file, catalog and subflow checks are simply skipped.
+CLI flags override configuration. Without a config file, catalog and subflow checks are simply skipped. Severity overrides apply to feature and workspace-level diagnostics alike, and exit codes follow the *effective* severities.
+
+## Linking catalogs to OpenAPI and AsyncAPI
+
+LogicSpec catalogs identify operations and events; OpenAPI and AsyncAPI describe their contracts. Link them and the references are verified:
+
+```yaml
+# services.yaml
+services:
+  booking:
+    operations:
+      reserve-slot:
+        kind: http
+        method: POST
+        path: /reservations
+        openapi:
+          document: ./openapi.yaml     # resolved relative to this catalog
+          operationId: reserveSlot     # must exist (LS108); method/path cross-checked (LS403)
+
+# events.yaml
+events:
+  BookingCreated:
+    topic: booking.created
+    asyncapi:
+      document: ./asyncapi.yaml
+      channel: booking.created         # channel key or AsyncAPI 3 address (LS109)
+```
+
+Documents are read as plain YAML/JSON; `$ref` indirection is not resolved.
 
 ## Editor integration
 
@@ -295,6 +362,8 @@ if (result.valid && result.normalized && result.graph) {
 
 Renderers take objects and return strings — no file system access. Validation returns `Diagnostic[]` — no console output. Everything exported from the package root is public API; everything else is internal.
 
+Browser and web tooling should import from **`logicspec/core`** — the same API minus everything that touches the file system (workspace loading, CLI, MCP). The visual editor is built entirely on it, including the document-preserving edit API (`loadEditableFeature`, `addStep`, `renameStep`, `addTransition`, …).
+
 ## Using with AI coding agents
 
 Feature YAML files make an excellent behavioral source of truth for AI agents. A `CLAUDE.md` (or equivalent) in your product repository might say:
@@ -329,12 +398,32 @@ The YAML is authoritative.
 
 `logicspec inspect --json` gives agents the normalized model directly, without parsing YAML themselves.
 
+### MCP server
+
+Agents that speak the Model Context Protocol can query the workspace live — no YAML parsing, no shelling out:
+
+```bash
+claude mcp add logicspec -- logicspec mcp /path/to/your/workspace
+```
+
+Seven tools: `list_features`, `get_feature`, `get_step`, `get_transitions`, `get_service_dependencies`, `get_events`, `validate_feature`. Plain stdio JSON-RPC with zero extra dependencies — any MCP client works. Details in [docs/integrations.md](docs/integrations.md#mcp-server).
+
+## Integrations (experimental)
+
+* **VS Code extension** — [`integrations/vscode/`](integrations/vscode/): inline diagnostics with exact source ranges for feature files, catalogs and config, plus a live Mermaid preview panel (view selectable via `logicspec.preview.view`). Build and F5-launch inside that directory; package with `npx @vscode/vsce package`. Not on the marketplace.
+* **Visual editor** — [`integrations/editor/`](integrations/editor/): a React Flow canvas with two-way YAML ↔ graph editing — node palette for the nine step types, inspector for labels/actors/transitions, edits written back through a comment-preserving document API. `npm install && npm run dev` inside that directory.
+
+Both are self-contained packages that build against the core source; the core library never depends on them.
+
 ## Documentation
 
 * [Specification](docs/specification.md) — the language, precisely
 * [Step types](docs/step-types.md) — reference with examples
-* [Validation](docs/validation.md) — pipeline, diagnostics catalog, exit codes
-* [Roadmap](docs/roadmap.md) — where this is going
+* [Validation](docs/validation.md) — pipeline, diagnostics catalog, data-flow analysis, exit codes
+* [Views](docs/views.md) — the four feature views and the workspace graph
+* [Integrations](docs/integrations.md) — MCP server, VS Code extension, visual editor, edit API
+* [Roadmap](docs/roadmap.md) — what shipped in 0.5.0, what's next
+* [Changelog](CHANGELOG.md)
 
 ## Development
 

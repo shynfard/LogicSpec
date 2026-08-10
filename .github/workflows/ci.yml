@@ -34,8 +34,71 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: CLI smoke — validate booking example
-        run: node dist/cli/main.js validate examples/booking/booking.feature.yaml
+      - name: CLI smoke — validate example workspace
+        run: node dist/cli/main.js validate examples/booking
 
       - name: CLI smoke — render booking example
         run: node dist/cli/main.js render examples/booking/booking.feature.yaml --output /tmp/ls-ci
+
+      - name: CLI smoke — workspace graph
+        run: node dist/cli/main.js graph examples/booking --output /tmp/ls-ci
+
+      - name: CLI smoke — inspect JSON
+        run: node dist/cli/main.js inspect examples/booking/booking.feature.yaml --json > /dev/null
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: CLI smoke — validate example workspace
+        run: node dist/cli/main.js validate examples/booking
+
+  integrations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: VS Code extension — install
+        working-directory: integrations/vscode
+        run: npm ci
+
+      - name: VS Code extension — typecheck, build, test
+        working-directory: integrations/vscode
+        run: |
+          npm run typecheck
+          npm run build
+          npm test
+
+      - name: Visual editor — install
+        working-directory: integrations/editor
+        run: npm ci
+
+      - name: Visual editor — typecheck, build, test
+        working-directory: integrations/editor
+        run: |
+          npm run typecheck
+          npm run build
+          npm test

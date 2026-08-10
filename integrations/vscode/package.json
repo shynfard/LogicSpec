@@ -1,0 +1,78 @@
+{
+  "name": "logicspec-vscode",
+  "displayName": "LogicSpec",
+  "description": "Diagnostics and live Mermaid preview for LogicSpec feature specifications (experimental).",
+  "version": "0.5.0",
+  "private": true,
+  "publisher": "logicspec",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Linters",
+    "Visualization"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/logicspec.config.yaml",
+    "onLanguage:yaml"
+  ],
+  "main": "./dist/extension.cjs",
+  "contributes": {
+    "commands": [
+      {
+        "command": "logicspec.previewFeature",
+        "title": "LogicSpec: Preview Feature",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "logicspec.validateWorkspace",
+        "title": "LogicSpec: Validate Workspace"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "logicspec.previewFeature",
+          "when": "resourceFilename =~ /\\.feature\\.yaml$/",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "LogicSpec",
+      "properties": {
+        "logicspec.preview.view": {
+          "type": "string",
+          "enum": [
+            "flow",
+            "swimlane",
+            "sequence",
+            "event-model"
+          ],
+          "default": "flow",
+          "description": "Diagram view used by the feature preview."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "yaml": "^2.8.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.90.0",
+    "esbuild": "^0.24.0",
+    "mermaid": "^11.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

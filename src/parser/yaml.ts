@@ -52,7 +52,9 @@ export function loadYaml(source: string, file?: string): LoadedYaml {
     for (let end = path.length; end >= 0; end--) {
       const node = end === 0 ? document.contents : document.getIn(path.slice(0, end), true);
       if (isNode(node) && node.range) {
-        return offsetToLocation(node.range[0], lineStarts);
+        const start = offsetToLocation(node.range[0], lineStarts);
+        const endPos = offsetToLocation(node.range[1], lineStarts);
+        return { ...start, endLine: endPos.line, endColumn: endPos.column };
       }
     }
     return undefined;

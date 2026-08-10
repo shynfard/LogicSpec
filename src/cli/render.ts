@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { hasErrors } from "../diagnostics/diagnostic.js";
 import { renderMarkdown, renderMermaid } from "../renderers/markdown.js";
 import type { RenderDirection, RenderView } from "../schema/config.js";
 import { featureStem } from "../workspace/loader.js";
@@ -12,6 +13,7 @@ import {
   makeWorkspaceCache,
   resolveTargets,
   validateTarget,
+  workspaceDiagnostics,
 } from "./shared.js";
 
 export type RenderFormat = "md" | "mermaid";
@@ -53,10 +55,19 @@ export function runRender(paths: readonly string[], options: RenderCommandOption
   }
 
   const workspaceFor = makeWorkspaceCache();
+  const printedWorkspaces = new Set<string>();
   let sawFatal = false;
   let sawError = false;
 
   for (const target of targets) {
+    const workspace = workspaceFor(path.dirname(target.path));
+    if (!printedWorkspaces.has(workspace.root)) {
+      printedWorkspaces.add(workspace.root);
+      const findings = workspaceDiagnostics(workspace);
+      printDiagnostics(findings, io);
+      if (hasErrors(findings)) sawError = true;
+    }
+
     const { result, fatal } = validateTarget(target, workspaceFor);
     if (!result.valid || !result.normalized || !result.graph) {
       printDiagnostics(result.diagnostics, io);
@@ -68,7 +79,6 @@ export function runRender(paths: readonly string[], options: RenderCommandOption
       continue;
     }
 
-    const workspace = workspaceFor(path.dirname(target.path));
     const view = options.view ?? workspace.config.render.view;
     const direction = options.direction ?? workspace.config.render.direction;
 

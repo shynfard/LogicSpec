@@ -1,7 +1,9 @@
 import type { FeatureGraph } from "../graph/edges.js";
 import type { NormalizedFeature } from "../graph/normalize.js";
 import type { RenderDirection, RenderView } from "../schema/config.js";
+import { renderMermaidEventModel } from "./mermaid-event-model.js";
 import { renderMermaidFlowchart } from "./mermaid-flowchart.js";
+import { renderMermaidSequence } from "./mermaid-sequence.js";
 import { renderMermaidSwimlane } from "./mermaid-swimlane.js";
 
 export interface RenderOptions {
@@ -17,10 +19,16 @@ export function renderMermaid(
   graph: FeatureGraph,
   options: RenderOptions = {},
 ): string {
-  if (options.view === "swimlane") {
-    return renderMermaidSwimlane(feature, graph, { direction: options.direction });
+  switch (options.view) {
+    case "swimlane":
+      return renderMermaidSwimlane(feature, graph, { direction: options.direction });
+    case "sequence":
+      return renderMermaidSequence(feature, graph);
+    case "event-model":
+      return renderMermaidEventModel(feature, graph);
+    default:
+      return renderMermaidFlowchart(graph, { direction: options.direction });
   }
-  return renderMermaidFlowchart(graph, { direction: options.direction });
 }
 
 /**

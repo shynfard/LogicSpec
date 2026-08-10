@@ -1,3 +1,4 @@
+import type { Severity } from "../diagnostics/codes.js";
 import { type Diagnostic, hasErrors } from "../diagnostics/diagnostic.js";
 import { buildGraph, type FeatureGraph } from "../graph/edges.js";
 import { type NormalizedFeature, normalizeFeature } from "../graph/normalize.js";
@@ -6,7 +7,36 @@ import type { FeatureFile } from "../schema/feature.js";
 import { type SemanticContext, validateSemantics } from "./semantic.js";
 import { computeStats, type FeatureStats } from "./stats.js";
 
-export interface ValidateOptions extends Omit<SemanticContext, "locate"> {}
+/** Per-code severity overrides; "off" removes matching diagnostics entirely. */
+export type SeverityOverrides = Readonly<Record<string, Severity | "off">>;
+
+/**
+ * Applies configured severity overrides. Returns a new array; diagnostics
+ * mapped to "off" are dropped, all others keep their order.
+ */
+export function applySeverityOverrides(
+  diagnostics: readonly Diagnostic[],
+  overrides: SeverityOverrides | undefined,
+): Diagnostic[] {
+  if (overrides === undefined || Object.keys(overrides).length === 0) {
+    return [...diagnostics];
+  }
+  const result: Diagnostic[] = [];
+  for (const diagnostic of diagnostics) {
+    const override = overrides[diagnostic.code];
+    if (override === undefined) {
+      result.push(diagnostic);
+    } else if (override !== "off") {
+      result.push({ ...diagnostic, severity: override });
+    }
+  }
+  return result;
+}
+
+export interface ValidateOptions extends Omit<SemanticContext, "locate"> {
+  /** Per-code severity overrides, usually from logicspec.config.yaml. */
+  severityOverrides?: SeverityOverrides;
+}
 
 export interface ValidationResult {
   /** True when there are no error-severity diagnostics. */
@@ -56,13 +86,15 @@ export function validateFeature(
       services: options.services,
       events: options.events,
       knownFlows: options.knownFlows,
+      flowOutcomes: options.flowOutcomes,
       locate,
     }),
   );
 
+  const effective = applySeverityOverrides(diagnostics, options.severityOverrides);
   return {
-    valid: !hasErrors(diagnostics),
-    diagnostics,
+    valid: !hasErrors(effective),
+    diagnostics: effective,
     feature,
     normalized,
     graph,

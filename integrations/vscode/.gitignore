@@ -1,0 +1,5 @@
+node_modules/
+dist/
+media/mermaid.min.js
+*.vsix
+*.tsbuildinfo

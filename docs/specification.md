@@ -313,7 +313,21 @@ Operation kinds and their properties:
 | `command` | `command` (optional) |
 | `other` | `protocol` (optional) |
 
-All kinds accept `description` and `extensions`. Feature files reference operations as `call: booking.reserve-slot`; when a catalog is configured, both the service and the operation must exist (LS104). LogicSpec catalogs do not replace OpenAPI or AsyncAPI; later versions may reference them.
+All kinds accept `description`, `extensions`, and an optional `openapi` reference:
+
+```yaml
+      reserve-slot:
+        kind: http
+        method: POST
+        path: /reservations
+        openapi:
+          document: ./openapi.yaml   # resolved relative to this catalog file
+          operationId: reserveSlot
+```
+
+When present, the `operationId` must exist in the referenced document (LS108). For `kind: http`, the declared `method` and `path` are additionally cross-checked against the document's operation (LS403, warning). Documents are read as plain YAML/JSON; `$ref` indirection is not resolved.
+
+Feature files reference operations as `call: booking.reserve-slot`; when a catalog is configured, both the service and the operation must exist (LS104). LogicSpec catalogs do not replace OpenAPI or AsyncAPI — they identify operations and, optionally, point at the contract that describes them.
 
 ## Event catalog (`events.yaml`)
 
@@ -329,6 +343,16 @@ events:
     payload:
       schema: ./schemas/booking-created.json   # optional
 ```
+
+Events may carry an optional `asyncapi` reference:
+
+```yaml
+    asyncapi:
+      document: ./asyncapi.yaml    # resolved relative to this catalog file
+      channel: booking.created     # channel key, or an AsyncAPI 3 address
+```
+
+When present, the channel must exist in the referenced document (LS109) — matched against channel keys and, for AsyncAPI 3, channel `address` values.
 
 Feature files reference events by name (`event: BookingCreated`); when a catalog is configured, the name must exist (LS105).
 
@@ -348,11 +372,17 @@ output:
   directory: ./generated   # default
 
 render:
-  view: flow               # flow | swimlane, default flow
+  view: flow               # flow | swimlane | sequence | event-model, default flow
   direction: TD            # TD | TB | LR | RL | BT, default TD
+
+diagnostics:               # optional per-code severity overrides
+  LS200: "error"           # error | warning | info | off
+  LS402: "off"
 ```
 
 Tools locate the config by walking up from the file being processed. All config paths resolve relative to the config file's directory. CLI flags override configuration. Without a config file, defaults apply and catalog/subflow validation is skipped.
+
+`diagnostics` maps diagnostic codes (`LS` + three digits) to a replacement severity, or `"off"` to suppress the finding entirely. Overrides change presentation and outcome, never the code itself; see [validation.md](validation.md#severity-overrides).
 
 ## Renderer behavior
 
@@ -367,9 +397,13 @@ The flowchart renderer:
 * escapes all user text with Mermaid entity codes (`#quot;`, `#lt;`, `#gt;`, `#amp;`, `#35;`) — a label can never break diagram syntax;
 * keeps internal node ids independent from display labels.
 
-The swimlane renderer (experimental) groups steps into per-actor subgraphs, lanes ordered by actor declaration.
+Three further views exist, all experimental and all under the same determinism and escaping rules — swimlane (per-actor subgraph lanes), sequence (actor interaction map as a Mermaid `sequenceDiagram`), and event-model (Interface / Logic / Events / Outcomes lanes). A workspace-level dependency graph (`logicspec graph`) renders features, subflow edges and event publish/wait relationships. Details and examples: [views.md](views.md).
 
 Generated Markdown always carries a **GENERATED FILE — DO NOT EDIT** warning naming the source file. The YAML is authoritative; diagrams are documentation.
+
+### Source positions (tooling note, non-normative)
+
+Diagnostics resolve document paths to 1-based `line`/`column` positions and, where the underlying YAML node is known, `endLine`/`endColumn` — enough for editors to underline the exact offending range rather than a single character.
 
 ## What LogicSpec is not
 

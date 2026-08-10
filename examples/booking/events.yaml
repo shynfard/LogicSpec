@@ -10,9 +10,15 @@ events:
       - notification
       - calendar
     description: A booking has been successfully created.
+    asyncapi:
+      document: ./asyncapi.yaml
+      channel: booking.created
 
   PaymentCompleted:
     topic: payment.completed
     producer: payment
     consumers:
       - booking
+    asyncapi:
+      document: ./asyncapi.yaml
+      channel: payment.completed

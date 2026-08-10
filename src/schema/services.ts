@@ -3,8 +3,15 @@ import { extensionsSchema, identifierSchema, versionSchema } from "./common.js";
 
 const httpMethodSchema = z.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
 
+/** Link into an OpenAPI document; verified against the document when present. */
+const openApiRefSchema = z.strictObject({
+  document: z.string().describe("Path of the OpenAPI document, relative to this catalog."),
+  operationId: z.string().describe("operationId inside the document."),
+});
+
 const operationCommon = {
   description: z.string().optional(),
+  openapi: openApiRefSchema.optional(),
   extensions: extensionsSchema.optional(),
 };
 
@@ -61,6 +68,7 @@ export const servicesFileSchema = z.strictObject({
   extensions: extensionsSchema.optional(),
 });
 
+export type OpenApiRef = z.infer<typeof openApiRefSchema>;
 export type ServiceOperation = z.infer<typeof serviceOperationSchema>;
 export type Service = z.infer<typeof serviceSchema>;
 export type ServicesFile = z.infer<typeof servicesFileSchema>;

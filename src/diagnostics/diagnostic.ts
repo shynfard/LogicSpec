@@ -8,6 +8,10 @@ export interface SourceLocation {
   line: number;
   /** 1-based column. */
   column: number;
+  /** 1-based end line of the node, when known (exclusive-ish: end of value). */
+  endLine?: number;
+  /** 1-based end column of the node, when known. */
+  endColumn?: number;
 }
 
 /**

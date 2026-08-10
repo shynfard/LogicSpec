@@ -1,0 +1,51 @@
+openapi: 3.0.3
+info:
+  title: Salon Booking API
+  version: 1.0.0
+
+paths:
+  /availability:
+    get:
+      operationId: getAvailability
+      summary: List available slots
+      responses:
+        "200":
+          description: Available slots
+
+  /reservations:
+    post:
+      operationId: reserveSlot
+      summary: Temporarily reserve a slot
+      responses:
+        "201":
+          description: Reservation created
+    delete:
+      operationId: cancelReservation
+      summary: Release a reservation
+      responses:
+        "204":
+          description: Reservation released
+
+  /bookings:
+    post:
+      operationId: createBooking
+      summary: Confirm a booking
+      responses:
+        "201":
+          description: Booking created
+
+  /payments:
+    post:
+      operationId: createPayment
+      summary: Create a payment
+      responses:
+        "201":
+          description: Payment created
+
+  /notifications:
+    post:
+      operationId: sendConfirmation
+      summary: Send a booking confirmation
+      responses:
+        "202":
+          description: Notification queued

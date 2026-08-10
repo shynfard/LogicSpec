@@ -51,6 +51,24 @@
             ],
             "additionalProperties": false
           },
+          "asyncapi": {
+            "type": "object",
+            "properties": {
+              "document": {
+                "type": "string",
+                "description": "Path of the AsyncAPI document, relative to this catalog."
+              },
+              "channel": {
+                "type": "string",
+                "description": "Channel key (or address) inside the document."
+              }
+            },
+            "required": [
+              "document",
+              "channel"
+            ],
+            "additionalProperties": false
+          },
           "extensions": {
             "type": "object",
             "propertyNames": {

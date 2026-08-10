@@ -1,6 +1,7 @@
 import { CODES } from "../diagnostics/codes.js";
 import { type Diagnostic, type DocPath, makeDiagnostic } from "../diagnostics/diagnostic.js";
 import { suggest, withSuggestion } from "../diagnostics/suggest.js";
+import { analyzeDataflow } from "../graph/dataflow.js";
 import type { FeatureGraph } from "../graph/edges.js";
 import type { NormalizedFeature, NormalizedStep } from "../graph/normalize.js";
 import {
@@ -21,6 +22,8 @@ export interface SemanticContext {
   events?: EventsFile;
   /** Feature ids (and file stems) resolvable as subflows. Undefined = no workspace, skip. */
   knownFlows?: ReadonlySet<string>;
+  /** Final outcomes per resolvable flow, for subflow contract checking. */
+  flowOutcomes?: ReadonlyMap<string, ReadonlySet<string>>;
   locate?: PathLocator;
 }
 
@@ -77,11 +80,37 @@ export function validateSemantics(
     if (services) checkCalls(step, services, report);
     if (events) checkEvent(step, events, report);
     if (knownFlows) checkFlows(step, knownFlows, report);
+    if (context.flowOutcomes) checkSubflowOutcomes(step, context.flowOutcomes, report);
     checkPageStates(step, report);
   }
 
   // ── Graph analysis ─────────────────────────────────────────────────────────
   diagnostics.push(...analyzeGraph(feature, graph, context));
+
+  // ── Data flow: every requirement produced on every path ────────────────────
+  for (const issue of analyzeDataflow(feature)) {
+    const path: DocPath =
+      issue.via === "action" && issue.actionId !== undefined
+        ? ["steps", issue.stepId, "actions", issue.actionId, "requires"]
+        : ["steps", issue.stepId, "requires"];
+    const sample =
+      issue.samplePredecessor === undefined
+        ? ""
+        : ` (e.g. arriving from "${issue.samplePredecessor}")`;
+    diagnostics.push(
+      makeDiagnostic(CODES.CONTEXT_NOT_PRODUCED, {
+        message: `"${issue.variable}" is required by "${issue.stepId}"${
+          issue.actionId === undefined ? "" : ` action "${issue.actionId}"`
+        } but is not produced on every path from start${sample}.`,
+        file,
+        path,
+        location: locate(path),
+      }),
+    );
+  }
+
+  // ── Unused declarations ────────────────────────────────────────────────────
+  diagnostics.push(...checkUnusedDeclarations(feature, context));
 
   // ── Advisory ───────────────────────────────────────────────────────────────
   const outcomes = new Set<string>();
@@ -252,6 +281,82 @@ function checkFlows(step: NormalizedStep, knownFlows: ReadonlySet<string>, repor
       }
     }
   }
+}
+
+function checkSubflowOutcomes(
+  step: NormalizedStep,
+  flowOutcomes: ReadonlyMap<string, ReadonlySet<string>>,
+  report: Reporter,
+): void {
+  const def = step.def;
+  if (def.type !== "subflow" || def.on === undefined) return;
+  const outcomes = flowOutcomes.get(def.flow);
+  if (outcomes === undefined || outcomes.size === 0) return; // unknown flow → LS106 covers it
+  for (const outcomeKey of Object.keys(def.on)) {
+    if (!outcomes.has(outcomeKey)) {
+      report(
+        CODES.SUBFLOW_OUTCOME_MISMATCH,
+        `Subflow "${step.id}" handles outcome "${outcomeKey}" but feature "${def.flow}" only ends in: ${[...outcomes].join(", ")}.`,
+        ["steps", step.id, "on", outcomeKey],
+        suggest(outcomeKey, outcomes),
+      );
+    }
+  }
+}
+
+function checkUnusedDeclarations(
+  feature: NormalizedFeature,
+  context: SemanticContext,
+): Diagnostic[] {
+  const locate = context.locate ?? noLocation;
+  const diagnostics: Diagnostic[] = [];
+
+  const usedContext = new Set<string>();
+  const usedActors = new Set<string>();
+  for (const step of feature.steps) {
+    if (step.actor !== undefined) usedActors.add(step.actor);
+    const def = step.def;
+    const addAll = (names: readonly string[] | undefined) => {
+      for (const name of names ?? []) usedContext.add(name);
+    };
+    if (def.type === "page") {
+      addAll(def.requires);
+      for (const action of Object.values(def.actions ?? {})) {
+        addAll(action.requires);
+        addAll(action.produces);
+      }
+    } else if (def.type === "operation" || def.type === "subflow") {
+      addAll(def.requires);
+      addAll(def.produces);
+    }
+  }
+
+  for (const variable of feature.context) {
+    if (!usedContext.has(variable.name)) {
+      diagnostics.push(
+        makeDiagnostic(CODES.UNUSED_CONTEXT, {
+          message: `Context variable "${variable.name}" is declared but never required or produced.`,
+          file: context.file,
+          path: ["context", variable.name],
+          location: locate(["context", variable.name]),
+        }),
+      );
+    }
+  }
+  for (const actor of feature.actors) {
+    if (!usedActors.has(actor.id)) {
+      diagnostics.push(
+        makeDiagnostic(CODES.UNUSED_ACTOR, {
+          message: `Actor "${actor.id}" is declared but never assigned to a step.`,
+          file: context.file,
+          path: ["actors", actor.id],
+          location: locate(["actors", actor.id]),
+        }),
+      );
+    }
+  }
+
+  return diagnostics;
 }
 
 function checkPageStates(step: NormalizedStep, report: Reporter): void {

@@ -58,6 +58,24 @@
                     "description": {
                       "type": "string"
                     },
+                    "openapi": {
+                      "type": "object",
+                      "properties": {
+                        "document": {
+                          "type": "string",
+                          "description": "Path of the OpenAPI document, relative to this catalog."
+                        },
+                        "operationId": {
+                          "type": "string",
+                          "description": "operationId inside the document."
+                        }
+                      },
+                      "required": [
+                        "document",
+                        "operationId"
+                      ],
+                      "additionalProperties": false
+                    },
                     "extensions": {
                       "type": "object",
                       "propertyNames": {
@@ -91,6 +109,24 @@
                     "description": {
                       "type": "string"
                     },
+                    "openapi": {
+                      "type": "object",
+                      "properties": {
+                        "document": {
+                          "type": "string",
+                          "description": "Path of the OpenAPI document, relative to this catalog."
+                        },
+                        "operationId": {
+                          "type": "string",
+                          "description": "operationId inside the document."
+                        }
+                      },
+                      "required": [
+                        "document",
+                        "operationId"
+                      ],
+                      "additionalProperties": false
+                    },
                     "extensions": {
                       "type": "object",
                       "propertyNames": {
@@ -121,6 +157,24 @@
                     "description": {
                       "type": "string"
                     },
+                    "openapi": {
+                      "type": "object",
+                      "properties": {
+                        "document": {
+                          "type": "string",
+                          "description": "Path of the OpenAPI document, relative to this catalog."
+                        },
+                        "operationId": {
+                          "type": "string",
+                          "description": "operationId inside the document."
+                        }
+                      },
+                      "required": [
+                        "document",
+                        "operationId"
+                      ],
+                      "additionalProperties": false
+                    },
                     "extensions": {
                       "type": "object",
                       "propertyNames": {
@@ -149,6 +203,24 @@
                     "description": {
                       "type": "string"
                     },
+                    "openapi": {
+                      "type": "object",
+                      "properties": {
+                        "document": {
+                          "type": "string",
+                          "description": "Path of the OpenAPI document, relative to this catalog."
+                        },
+                        "operationId": {
+                          "type": "string",
+                          "description": "operationId inside the document."
+                        }
+                      },
+                      "required": [
+                        "document",
+                        "operationId"
+                      ],
+                      "additionalProperties": false
+                    },
                     "extensions": {
                       "type": "object",
                       "propertyNames": {
@@ -176,6 +248,24 @@
                     },
                     "description": {
                       "type": "string"
+                    },
+                    "openapi": {
+                      "type": "object",
+                      "properties": {
+                        "document": {
+                          "type": "string",
+                          "description": "Path of the OpenAPI document, relative to this catalog."
+                        },
+                        "operationId": {
+                          "type": "string",
+                          "description": "operationId inside the document."
+                        }
+                      },
+                      "required": [
+                        "document",
+                        "operationId"
+                      ],
+                      "additionalProperties": false
                     },
                     "extensions": {
                       "type": "object",

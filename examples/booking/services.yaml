@@ -11,21 +11,33 @@ services:
         kind: http
         method: GET
         path: /availability
+        openapi:
+          document: ./openapi.yaml
+          operationId: getAvailability
 
       reserve-slot:
         kind: http
         method: POST
         path: /reservations
+        openapi:
+          document: ./openapi.yaml
+          operationId: reserveSlot
 
       create-booking:
         kind: http
         method: POST
         path: /bookings
+        openapi:
+          document: ./openapi.yaml
+          operationId: createBooking
 
       cancel-reservation:
         kind: http
         method: DELETE
         path: /reservations
+        openapi:
+          document: ./openapi.yaml
+          operationId: cancelReservation
 
   payment:
     name: Payment Service
@@ -35,3 +47,18 @@ services:
         kind: http
         method: POST
         path: /payments
+        openapi:
+          document: ./openapi.yaml
+          operationId: createPayment
+
+  notification:
+    name: Notification Service
+    operations:
+
+      send-confirmation:
+        kind: http
+        method: POST
+        path: /notifications
+        openapi:
+          document: ./openapi.yaml
+          operationId: sendConfirmation

@@ -58,6 +58,18 @@ export const CODES = {
     "error",
     "A page load outcome targets a state the page does not declare.",
   ),
+  UNKNOWN_OPENAPI_OPERATION: code(
+    "LS108",
+    "UNKNOWN_OPENAPI_OPERATION",
+    "error",
+    "An openapi reference points to an operationId missing from the OpenAPI document.",
+  ),
+  UNKNOWN_ASYNCAPI_CHANNEL: code(
+    "LS109",
+    "UNKNOWN_ASYNCAPI_CHANNEL",
+    "error",
+    "An asyncapi reference points to a channel missing from the AsyncAPI document.",
+  ),
 
   // ── Graph analysis ────────────────────────────────────────────────────────
   UNREACHABLE_STEP: code(
@@ -72,6 +84,12 @@ export const CODES = {
     "CLOSED_LOOP",
     "error",
     "A cycle has no path to any terminal outcome.",
+  ),
+  CONTEXT_NOT_PRODUCED: code(
+    "LS203",
+    "CONTEXT_NOT_PRODUCED",
+    "warning",
+    "A required context variable is not produced on every path from start.",
   ),
 
   // ── Step structure ────────────────────────────────────────────────────────
@@ -112,6 +130,30 @@ export const CODES = {
     "NO_FAILURE_OUTCOME",
     "info",
     "The feature declares no failure outcome.",
+  ),
+  UNUSED_CONTEXT: code(
+    "LS401",
+    "UNUSED_CONTEXT",
+    "info",
+    "A declared context variable is never required or produced.",
+  ),
+  UNUSED_ACTOR: code(
+    "LS402",
+    "UNUSED_ACTOR",
+    "info",
+    "A declared actor is never assigned to a step.",
+  ),
+  OPENAPI_MISMATCH: code(
+    "LS403",
+    "OPENAPI_MISMATCH",
+    "warning",
+    "The catalog operation's method or path disagrees with the OpenAPI document.",
+  ),
+  SUBFLOW_OUTCOME_MISMATCH: code(
+    "LS404",
+    "SUBFLOW_OUTCOME_MISMATCH",
+    "warning",
+    "A subflow outcome does not match any final outcome of the target feature.",
   ),
 } as const;
 

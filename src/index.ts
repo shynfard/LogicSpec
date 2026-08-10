@@ -15,8 +15,32 @@ export {
   hasErrors,
   type SourceLocation,
 } from "./diagnostics/diagnostic.js";
+// Semantic diff
+export {
+  diffFeatures,
+  type EdgeRef,
+  type FeatureDiff,
+  type FieldChange,
+  formatFeatureDiff,
+  type StepChange,
+} from "./diff/diff.js";
+// Editing (document-preserving mutations for two-way YAML ↔ visual tooling)
+export {
+  type AddedTransition,
+  addStep,
+  addTransition,
+  deleteStep,
+  type EditableFeature,
+  type EditableStepField,
+  loadEditableFeature,
+  removeTransitionAt,
+  renameStep,
+  reparse,
+  serializeFeature,
+  setStepField,
+} from "./edit/mutations.js";
+export { analyzeDataflow, type DataflowIssue } from "./graph/dataflow.js";
 export { buildGraph, type FeatureGraph, type GraphEdge, type GraphNode } from "./graph/edges.js";
-
 // Normalized model and graph
 export {
   type EdgeKind,
@@ -29,12 +53,23 @@ export {
 } from "./graph/normalize.js";
 // Inspection
 export { type InspectReport, inspectFeature } from "./inspect.js";
+// MCP server (Node-only)
+export { createMcpHandler, type McpServerOptions } from "./mcp/server.js";
+export { runMcpServer } from "./mcp/stdio.js";
 export { parseEvents } from "./parser/parse-events.js";
 // Parsing
 export { type ParseOptions, type ParseResult, parseFeature } from "./parser/parse-feature.js";
 export { parseServices } from "./parser/parse-services.js";
 // Rendering (pure: objects in, strings out — no file system access)
 export { type RenderOptions, renderMarkdown, renderMermaid } from "./renderers/markdown.js";
+export { renderMermaidEventModel } from "./renderers/mermaid-event-model.js";
+// Additional renderers (sequence / event-model are experimental views)
+export { renderMermaidSequence } from "./renderers/mermaid-sequence.js";
+export {
+  renderWorkspaceGraph,
+  type WorkspaceFeatureSummary,
+  type WorkspaceGraphOptions,
+} from "./renderers/workspace-graph.js";
 export type { LogicSpecConfig, RenderDirection, RenderView } from "./schema/config.js";
 export { CONFIG_FILE_NAME } from "./schema/config.js";
 export type { EventDefinition, EventsFile } from "./schema/events.js";
@@ -42,9 +77,12 @@ export type { EventDefinition, EventsFile } from "./schema/events.js";
 export type { Actor, ContextVar, FeatureFile, Step, StepType } from "./schema/feature.js";
 export { generateJsonSchemas } from "./schema/json-schema.js";
 export type { Service, ServiceOperation, ServicesFile } from "./schema/services.js";
+export { validateCatalogs } from "./validator/catalogs.js";
 export { computeStats, type FeatureStats } from "./validator/stats.js";
 // Validation
 export {
+  applySeverityOverrides,
+  type SeverityOverrides,
   type ValidateOptions,
   type ValidationResult,
   validateFeature,
@@ -52,8 +90,10 @@ export {
 export { DEFAULT_CONFIG, findConfigPath, loadConfig } from "./workspace/config.js";
 // Workspace
 export {
+  featureDependents,
   featureStem,
   findFeatureFiles,
   loadWorkspace,
   type Workspace,
+  type WorkspaceFeatureRef,
 } from "./workspace/loader.js";

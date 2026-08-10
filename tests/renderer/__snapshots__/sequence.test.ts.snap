@@ -1,0 +1,40 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`mermaid sequence renderer (experimental) > renders the booking example deterministically (golden) 1`] = `
+"sequenceDiagram
+  participant frontend as Web App
+  participant booking as Booking Service
+  participant payment as Payment Service
+  participant n__unassigned as Unassigned
+
+  frontend->>frontend: Select service
+  frontend->>frontend: select
+  frontend->>frontend: Any Staff
+  frontend->>booking: select
+  booking->>frontend: available
+  booking->>n__unassigned: empty
+  booking->>n__unassigned: error
+  frontend->>booking: select
+  frontend->>frontend: back
+  booking->>frontend: success
+  booking->>n__unassigned: conflict
+  booking->>n__unassigned: error
+  n__unassigned->>frontend: choose-another
+  frontend->>payment: pay
+  frontend->>booking: cancel
+  payment->>booking: success
+  payment->>n__unassigned: failure
+  booking->>booking: success
+  booking->>n__unassigned: error
+  Note over booking: publishes BookingCreated
+  booking->>n__unassigned: Booking Confirmed
+  booking->>n__unassigned: Booking Cancelled
+  n__unassigned->>frontend: change-date
+  n__unassigned->>frontend: change-staff
+  n__unassigned->>booking: retry
+  n__unassigned->>booking: retry
+  n__unassigned->>payment: retry
+  n__unassigned->>booking: cancel
+  n__unassigned->>booking: retry
+"
+`;

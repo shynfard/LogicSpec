@@ -257,4 +257,3 @@ steps:
     type: final
     label: Booking Cancelled
     outcome: cancelled
-

@@ -1,0 +1,33 @@
+body {
+  padding: 0.5rem 1rem;
+  font-family: var(--vscode-font-family);
+  color: var(--vscode-foreground);
+}
+
+#banner {
+  position: sticky;
+  top: 0;
+  padding: 0.35rem 0.75rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--vscode-editorWarning-foreground, #bf8803);
+  border-radius: 4px;
+  background: var(--vscode-inputValidation-warningBackground, rgba(191, 136, 3, 0.15));
+  font-size: 0.85rem;
+}
+
+#diagram {
+  overflow: auto;
+}
+
+#diagram svg {
+  max-width: 100%;
+  height: auto;
+  background: transparent;
+}
+
+.error {
+  white-space: pre-wrap;
+  color: var(--vscode-errorForeground, #f14c4c);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.85rem;
+}

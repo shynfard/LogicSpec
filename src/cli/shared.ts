@@ -2,7 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { CODES } from "../diagnostics/codes.js";
 import { type Diagnostic, makeDiagnostic } from "../diagnostics/diagnostic.js";
-import { type ValidationResult, validateFeature } from "../validator/validate.js";
+import { validateCatalogs } from "../validator/catalogs.js";
+import {
+  applySeverityOverrides,
+  type ValidationResult,
+  validateFeature,
+} from "../validator/validate.js";
 import {
   FEATURE_FILE_SUFFIX,
   findFeatureFiles,
@@ -127,10 +132,48 @@ export function validateTarget(
     services: workspace.services,
     events: workspace.events,
     knownFlows: workspace.knownFlows,
+    flowOutcomes: workspace.flowOutcomes,
+    severityOverrides: workspace.config.diagnostics,
   });
 
   const fatal = result.diagnostics.some(
     (d) => d.code === CODES.YAML_PARSE_ERROR.code || d.code === CODES.FILE_ERROR.code,
   );
   return { target, result, fatal };
+}
+
+const workspaceDiagnosticsCache = new WeakMap<Workspace, Diagnostic[]>();
+
+/**
+ * Workspace-level findings: catalog parse problems plus OpenAPI/AsyncAPI
+ * reference checks (LS108/LS109/LS403). Computed once per workspace and
+ * subject to the same severity overrides as feature diagnostics.
+ */
+export function workspaceDiagnostics(workspace: Workspace): Diagnostic[] {
+  const cached = workspaceDiagnosticsCache.get(workspace);
+  if (cached !== undefined) return cached;
+  const diagnostics = applySeverityOverrides(
+    [...workspace.diagnostics, ...validateCatalogs(workspace)],
+    workspace.config.diagnostics,
+  );
+  workspaceDiagnosticsCache.set(workspace, diagnostics);
+  return diagnostics;
+}
+
+/** Resolves the workspace for bare commands (no paths) from the cwd. */
+export function requireWorkspace(
+  cwd: string,
+): { workspace: Workspace; featuresDir: string } | { error: Diagnostic } {
+  const workspace = loadWorkspace(cwd);
+  if (workspace.configPath === undefined) {
+    return {
+      error: makeDiagnostic(CODES.CONFIG_ERROR, {
+        message: `No logicspec.config.yaml found from ${cwd} upward. Pass explicit paths or run "logicspec init".`,
+      }),
+    };
+  }
+  return {
+    workspace,
+    featuresDir: path.resolve(workspace.root, workspace.config.features.directory),
+  };
 }

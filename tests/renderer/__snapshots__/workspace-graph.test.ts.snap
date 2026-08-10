@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`workspace graph renderer > renders features, events and dangling subflow targets (golden) 1`] = `
+"flowchart LR
+  feature_booking[["Booking<br/>FEATURE"]]
+  feature_notify[["Notify<br/>FEATURE"]]
+  feature_payment_flow["payment-flow<br/>FEATURE?"]
+  event_BookingCreated>"BookingCreated<br/>EVENT"]
+
+  feature_booking -- "subflow" --> feature_payment_flow
+  feature_booking -.-> event_BookingCreated
+  event_BookingCreated -.-> feature_notify
+"
+`;

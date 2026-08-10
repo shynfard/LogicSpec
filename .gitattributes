@@ -1,0 +1,3 @@
+# Keep LF everywhere so snapshot tests and byte-identical YAML round-trips
+# behave the same on every platform, including Windows checkouts.
+* text=auto eol=lf

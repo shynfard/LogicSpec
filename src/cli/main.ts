@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 import { createRequire } from "node:module";
 import { Command, CommanderError } from "commander";
+import { runMcpServer } from "../mcp/stdio.js";
 import type { RenderDirection, RenderView } from "../schema/config.js";
+import { runDiff } from "./diff.js";
+import { runGraph } from "./graph.js";
 import { runInit } from "./init.js";
 import { runInspect } from "./inspect.js";
 import { type RenderFormat, runRender } from "./render.js";
@@ -12,7 +15,7 @@ import { runWatch } from "./watch.js";
 const require = createRequire(import.meta.url);
 const { version } = require("../../package.json") as { version: string };
 
-const VIEWS: readonly RenderView[] = ["flow", "swimlane"];
+const VIEWS: readonly RenderView[] = ["flow", "swimlane", "sequence", "event-model"];
 const FORMATS: readonly RenderFormat[] = ["md", "mermaid"];
 const DIRECTIONS: readonly RenderDirection[] = ["TD", "TB", "LR", "RL", "BT"];
 
@@ -45,11 +48,12 @@ export function buildProgram(): Command {
 
   program
     .command("validate")
-    .description("validate feature files or directories")
-    .argument("<paths...>", "feature files or directories")
+    .description("validate feature files or directories (no paths = whole workspace)")
+    .argument("[paths...]", "feature files or directories")
     .option("--strict", "treat warnings as errors")
-    .action((paths: string[], options: { strict?: boolean }) => {
-      process.exitCode = runValidate(paths, { strict: options.strict });
+    .option("--json", "print machine-readable JSON instead of text")
+    .action((paths: string[], options: { strict?: boolean; json?: boolean }) => {
+      process.exitCode = runValidate(paths, { strict: options.strict, json: options.json });
     });
 
   program
@@ -93,6 +97,50 @@ export function buildProgram(): Command {
     .argument("[dir]", "directory to watch (default: current workspace)")
     .action((dir: string | undefined) => {
       process.exitCode = runWatch(dir);
+    });
+
+  program
+    .command("graph")
+    .description("render the workspace dependency graph (features, subflows, events)")
+    .argument("[dir]", "workspace directory (default: current)")
+    .option("--format <format>", `output format: ${FORMATS.join(" | ")}`, choice("format", FORMATS))
+    .option(
+      "--direction <direction>",
+      `flow direction: ${DIRECTIONS.join(" | ")}`,
+      choice("direction", DIRECTIONS),
+    )
+    .option("--services", "include service nodes")
+    .option("--output <path>", "output directory (default: workspace output directory)")
+    .action(
+      (
+        dir: string | undefined,
+        options: {
+          format?: RenderFormat;
+          direction?: RenderDirection;
+          services?: boolean;
+          output?: string;
+        },
+      ) => {
+        process.exitCode = runGraph(dir, options);
+      },
+    );
+
+  program
+    .command("diff")
+    .description("semantically compare two feature files")
+    .argument("<before>", "feature file before the change")
+    .argument("<after>", "feature file after the change")
+    .option("--json", "print machine-readable JSON instead of text")
+    .action((before: string, after: string, options: { json?: boolean }) => {
+      process.exitCode = runDiff(before, after, options);
+    });
+
+  program
+    .command("mcp")
+    .description("run the MCP stdio server exposing this workspace to AI agents")
+    .argument("[dir]", "workspace directory (default: current)")
+    .action((dir: string | undefined) => {
+      runMcpServer(dir ?? process.cwd());
     });
 
   return program;

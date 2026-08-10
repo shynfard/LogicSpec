@@ -1,0 +1,17 @@
+asyncapi: 3.0.0
+info:
+  title: Salon Booking Events
+  version: 1.0.0
+
+channels:
+  booking.created:
+    address: booking.created
+    messages:
+      bookingCreated:
+        summary: A booking has been successfully created.
+
+  payment.completed:
+    address: payment.completed
+    messages:
+      paymentCompleted:
+        summary: A payment finished processing.

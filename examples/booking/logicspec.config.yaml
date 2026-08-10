@@ -13,3 +13,8 @@ output:
 render:
   view: flow
   direction: TD
+
+# The customer and pubsub actors document responsibility without owning steps;
+# silence the unused-actor info for this workspace.
+diagnostics:
+  LS402: "off"
