@@ -49,10 +49,22 @@ in GitLab.
   `logicspec` — create it, or change the field before the first publish).
   The account lives on Azure DevOps; corporate tenants often block PAT
   creation, so use a personal Microsoft account for it.
-- **No Azure DevOps available?** Use the GitHub `Release` workflow's
+- **No PAT? Two PAT-free marketplace paths.** Creating the *publisher* is a
+  plain signed-in web form (no token) at
+  https://marketplace.visualstudio.com/manage — required once in every path.
+  Then either:
+  1. **Manual web upload**: publisher page → "+ New extension" →
+     "Visual Studio Code" → upload the `.vsix` (the vsix's `publisher`
+     field must match the publisher id, or the upload is rejected).
+     Updates work the same way via the extension's "…" → Update.
+  2. **Azure CLI auth**: `az login` with the publisher's account, then
+     `npx @vscode/vsce publish --azure-credential --packagePath <file>.vsix`
+     — vsce takes an Entra token from the az session instead of a PAT.
+- **No Azure account at all?** Use the GitHub `Release` workflow's
   `github-release` target instead: it attaches the `.vsix` and the Obsidian
-  plugin zip to the tag's GitHub Release. Open VSX (`publish-openvsx`)
-  also needs no Azure — GitHub login plus the Eclipse publisher agreement.
+  plugin zip to the tag's GitHub Release ("Install from VSIX…").
+  Open VSX (`publish-openvsx`) also needs no Azure — GitHub login plus the
+  Eclipse publisher agreement.
 - `--no-dependencies` is correct: esbuild bundles the core into the extension.
 
 ### Obsidian plugin
