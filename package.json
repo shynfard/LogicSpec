@@ -40,8 +40,12 @@
     "CHANGELOG.md",
     "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run typecheck && npm run lint && npm test",
     "typecheck": "tsc --noEmit",
     "lint": "biome check src tests scripts",
     "lint:fix": "biome check --write src tests scripts",
