@@ -3,6 +3,16 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.5.4
+
+- VS Code extension is now a complete no-files experience:
+  - view switcher inside the preview panel (flow / swimlane / sequence /
+    event-model) — per-panel, no settings editing;
+  - `LogicSpec: Preview Workspace Graph` — live dependency graph panel
+    (subflow + event edges), refreshed on save, never written to disk;
+  - README states the extension is fully self-contained (core bundled;
+    the npm CLI is only for terminal/CI/MCP use).
+
 ## 0.5.3
 
 - **Preview rendering fix** (VS Code extension and Obsidian plugin): Mermaid's

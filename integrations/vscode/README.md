@@ -1,9 +1,12 @@
 # LogicSpec for VS Code
 
-> **EXPERIMENTAL** — developed in-repo, not published to the marketplace.
-
-Diagnostics and a live Mermaid preview for [LogicSpec](../../README.md) feature
+Diagnostics and live Mermaid previews for [LogicSpec](../../README.md) feature
 specifications.
+
+**Fully self-contained**: the entire LogicSpec core is bundled into the
+extension — no `npm install`, no CLI, no generated files required. Everything
+renders live in panels; writing Markdown to disk (`logicspec render/export`)
+stays optional, for committed GitHub docs.
 
 ## Features
 
@@ -12,14 +15,19 @@ specifications.
   validation — schema, structure, references against the surrounding
   workspace's catalogs, graph analysis — with `LS###` codes, precise ranges
   and "did you mean" suggestions.
-- **Live preview** (`LogicSpec: Preview Feature`, or the editor-title button on
-  feature files): renders the current feature as a Mermaid diagram beside the
-  editor and re-renders on every change. An invalid spec never replaces the
-  last good diagram — a banner appears instead.
+- **Live preview** — the editor-title button on feature files, right-click in
+  the Explorer/editor, or `Ctrl+Shift+V` (`Cmd+Shift+V`): renders the feature
+  as a Mermaid diagram beside the editor and re-renders on every change. An
+  invalid spec never replaces the last good diagram — a banner appears
+  instead. A **view switcher inside the panel** flips between `flow`,
+  `swimlane`, `sequence` and `event-model` without touching settings
+  (`logicspec.preview.view` sets the default).
+- **Workspace graph** (`LogicSpec: Preview Workspace Graph`, or the
+  editor-title button on `logicspec.config.yaml`): a live dependency graph of
+  every feature — subflow edges and event publish/wait edges — refreshed on
+  each save. Rendered virtually; nothing written to disk.
 - **`LogicSpec: Validate Workspace`**: validates every feature file in the
   workspace and reports a summary.
-- Preview view is configurable: `logicspec.preview.view` —
-  `flow` (default), `swimlane`, `sequence`, `event-model`.
 
 ## Development
 

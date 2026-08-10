@@ -5,7 +5,15 @@
   const vscode = acquireVsCodeApi();
   const banner = document.getElementById("banner");
   const container = document.getElementById("diagram");
+  const toolbar = document.getElementById("toolbar");
+  const viewSelect = document.getElementById("view");
   let counter = 0;
+
+  if (viewSelect) {
+    viewSelect.addEventListener("change", () => {
+      vscode.postMessage({ type: "setView", view: viewSelect.value });
+    });
+  }
 
   mermaid.initialize({
     startOnLoad: false,
@@ -51,6 +59,12 @@
     if (!message || typeof message !== "object") return;
     if (message.type === "render" && typeof message.source === "string") {
       banner.hidden = true;
+      // Feature previews send the active view; the workspace graph does not
+      // (its view is fixed), so the switcher only appears when meaningful.
+      if (typeof message.view === "string" && toolbar && viewSelect) {
+        toolbar.hidden = false;
+        viewSelect.value = message.view;
+      }
       void render(message.source);
     } else if (message.type === "stale") {
       banner.hidden = !message.stale;

@@ -3,6 +3,7 @@ import { findFeatureFiles, loadWorkspace } from "logicspec";
 import * as vscode from "vscode";
 import { debounce, type Debounced } from "./debounce.js";
 import type { MappedDiagnostic } from "./mapping.js";
+import { graphStartDir, WorkspaceGraphPreview } from "./graph-preview.js";
 import { FeaturePreview } from "./preview.js";
 import { clearWorkspaceCache, fileKind, validateContent } from "./validation.js";
 
@@ -91,6 +92,16 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
       FeaturePreview.show(context, document);
+    }),
+    vscode.commands.registerCommand("logicspec.previewWorkspaceGraph", () => {
+      const startDir = graphStartDir();
+      if (startDir === undefined) {
+        void vscode.window.showWarningMessage(
+          "LogicSpec: open a folder or file inside a LogicSpec workspace first.",
+        );
+        return;
+      }
+      WorkspaceGraphPreview.show(context, startDir);
     }),
     vscode.commands.registerCommand("logicspec.validateWorkspace", () => {
       validateWorkspace(collection);

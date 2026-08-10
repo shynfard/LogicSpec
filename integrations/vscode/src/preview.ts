@@ -4,6 +4,12 @@ import * as vscode from "vscode";
 import { debounce, type Debounced } from "./debounce.js";
 import { workspaceFor } from "./validation.js";
 
+const RENDER_VIEWS: readonly RenderView[] = ["flow", "swimlane", "sequence", "event-model"];
+
+function isRenderView(value: unknown): value is RenderView {
+  return typeof value === "string" && (RENDER_VIEWS as readonly string[]).includes(value);
+}
+
 function nonce(): string {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   let value = "";
@@ -35,6 +41,8 @@ export class FeaturePreview {
   private readonly update: Debounced<[]>;
   private document: vscode.TextDocument;
   private ready = false;
+  /** Per-panel view override; falls back to the logicspec.preview.view setting. */
+  private view: RenderView | undefined;
 
   private constructor(context: vscode.ExtensionContext, document: vscode.TextDocument) {
     this.document = document;
@@ -52,12 +60,13 @@ export class FeaturePreview {
 
     this.disposables.push(
       this.panel.webview.onDidReceiveMessage((message: unknown) => {
-        if (
-          typeof message === "object" &&
-          message !== null &&
-          (message as { type?: string }).type === "ready"
-        ) {
+        if (typeof message !== "object" || message === null) return;
+        const typed = message as { type?: string; view?: string };
+        if (typed.type === "ready") {
           this.ready = true;
+          this.render();
+        } else if (typed.type === "setView" && isRenderView(typed.view)) {
+          this.view = typed.view;
           this.render();
         }
       }),
@@ -98,16 +107,17 @@ export class FeaturePreview {
     });
 
     if (result.valid && result.normalized !== undefined && result.graph !== undefined) {
-      const view = vscode.workspace
+      const configured = vscode.workspace
         .getConfiguration("logicspec")
         .get<string>("preview.view", "flow");
+      const view = this.view ?? (isRenderView(configured) ? configured : "flow");
       let mermaid: string;
       try {
-        mermaid = renderMermaid(result.normalized, result.graph, { view: view as RenderView });
+        mermaid = renderMermaid(result.normalized, result.graph, { view });
       } catch {
         mermaid = renderMermaid(result.normalized, result.graph, { view: "flow" });
       }
-      void this.panel.webview.postMessage({ type: "render", source: mermaid });
+      void this.panel.webview.postMessage({ type: "render", source: mermaid, view });
       void this.panel.webview.postMessage({ type: "stale", stale: false });
     } else {
       void this.panel.webview.postMessage({ type: "stale", stale: true });
@@ -136,6 +146,12 @@ export class FeaturePreview {
       "</head>",
       "<body>",
       '<div id="banner" hidden>Spec invalid — showing last valid render.</div>',
+      '<div id="toolbar" hidden><label>View <select id="view">',
+      '<option value="flow">flow</option>',
+      '<option value="swimlane">swimlane</option>',
+      '<option value="sequence">sequence</option>',
+      '<option value="event-model">event-model</option>',
+      "</select></label></div>",
       '<div id="diagram"></div>',
       `<script nonce="${scriptNonce}" src="${mermaidUri.toString()}"></script>`,
       `<script nonce="${scriptNonce}" src="${previewUri.toString()}"></script>`,

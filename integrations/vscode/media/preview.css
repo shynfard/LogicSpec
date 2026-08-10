@@ -31,3 +31,21 @@ body {
   font-family: var(--vscode-editor-font-family, monospace);
   font-size: 0.85rem;
 }
+
+#toolbar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.15rem 0;
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+#toolbar select {
+  margin-left: 0.4rem;
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  border: 1px solid var(--vscode-dropdown-border, transparent);
+  border-radius: 3px;
+}

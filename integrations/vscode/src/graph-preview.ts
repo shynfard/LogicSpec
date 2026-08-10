@@ -1,0 +1,146 @@
+import path from "node:path";
+import { featureStem, renderWorkspaceGraph, type WorkspaceFeatureSummary } from "logicspec";
+import * as vscode from "vscode";
+import { debounce, type Debounced } from "./debounce.js";
+import { workspaceFor } from "./validation.js";
+
+/**
+ * Live workspace dependency graph: features, subflow edges, event
+ * publish/wait edges. Rendered entirely in the panel — no files written.
+ */
+export class WorkspaceGraphPreview {
+  private static current: WorkspaceGraphPreview | undefined;
+
+  static show(context: vscode.ExtensionContext, startDir: string): void {
+    if (WorkspaceGraphPreview.current !== undefined) {
+      WorkspaceGraphPreview.current.startDir = startDir;
+      WorkspaceGraphPreview.current.panel.reveal(vscode.ViewColumn.Beside, true);
+      WorkspaceGraphPreview.current.render();
+      return;
+    }
+    WorkspaceGraphPreview.current = new WorkspaceGraphPreview(context, startDir);
+  }
+
+  private readonly panel: vscode.WebviewPanel;
+  private readonly disposables: vscode.Disposable[] = [];
+  private readonly update: Debounced<[]>;
+  private startDir: string;
+  private ready = false;
+
+  private constructor(context: vscode.ExtensionContext, startDir: string) {
+    this.startDir = startDir;
+    this.update = debounce(() => this.render(), 500);
+    this.panel = vscode.window.createWebviewPanel(
+      "logicspecWorkspaceGraph",
+      "LogicSpec: Workspace Graph",
+      { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
+      {
+        enableScripts: true,
+        localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, "media")],
+      },
+    );
+    this.panel.webview.html = buildWebviewHtml(this.panel.webview, context);
+
+    this.disposables.push(
+      this.panel.webview.onDidReceiveMessage((message: unknown) => {
+        if (
+          typeof message === "object" &&
+          message !== null &&
+          (message as { type?: string }).type === "ready"
+        ) {
+          this.ready = true;
+          this.render();
+        }
+      }),
+      // Any saved YAML may change the graph (features, catalogs, config).
+      vscode.workspace.onDidSaveTextDocument((document) => {
+        if (document.uri.fsPath.endsWith(".yaml") || document.uri.fsPath.endsWith(".yml")) {
+          this.update();
+        }
+      }),
+    );
+
+    this.panel.onDidDispose(() => {
+      this.update.cancel();
+      for (const disposable of this.disposables) disposable.dispose();
+      WorkspaceGraphPreview.current = undefined;
+    });
+  }
+
+  private render(): void {
+    if (!this.ready) return;
+    const workspace = workspaceFor(this.startDir);
+    const summaries: WorkspaceFeatureSummary[] = workspace.features
+      .map((ref) => ({
+        id: ref.id ?? featureStem(ref.path),
+        name: ref.name ?? ref.id ?? featureStem(ref.path),
+        subflows: [...ref.flows].sort(),
+        publishes: [...ref.publishes].sort(),
+        waitsFor: [...ref.waitsFor].sort(),
+        services: [...ref.services].sort(),
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+
+    if (summaries.length === 0) {
+      void this.panel.webview.postMessage({ type: "stale", stale: true });
+      return;
+    }
+    const mermaid = renderWorkspaceGraph(summaries, { direction: "LR" });
+    void this.panel.webview.postMessage({ type: "render", source: mermaid });
+    void this.panel.webview.postMessage({ type: "stale", stale: false });
+  }
+}
+
+function nonce(): string {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let value = "";
+  for (let i = 0; i < 32; i++) {
+    value += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+  }
+  return value;
+}
+
+/** Shared webview shell: strict CSP, bundled mermaid, preview script. */
+export function buildWebviewHtml(
+  webview: vscode.Webview,
+  context: vscode.ExtensionContext,
+): string {
+  const scriptNonce = nonce();
+  const mermaidUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(context.extensionUri, "media", "mermaid.min.js"),
+  );
+  const previewUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(context.extensionUri, "media", "preview.js"),
+  );
+  const styleUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(context.extensionUri, "media", "preview.css"),
+  );
+  return [
+    "<!DOCTYPE html>",
+    '<html lang="en">',
+    "<head>",
+    '<meta charset="UTF-8">',
+    `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data:; style-src ${webview.cspSource} 'unsafe-inline'; font-src ${webview.cspSource}; script-src 'nonce-${scriptNonce}';">`,
+    `<link rel="stylesheet" href="${styleUri.toString()}">`,
+    "</head>",
+    "<body>",
+    '<div id="banner" hidden>Nothing to render yet.</div>',
+    '<div id="toolbar" hidden><label>View <select id="view">',
+    '<option value="flow">flow</option>',
+    '<option value="swimlane">swimlane</option>',
+    '<option value="sequence">sequence</option>',
+    '<option value="event-model">event-model</option>',
+    "</select></label></div>",
+    '<div id="diagram"></div>',
+    `<script nonce="${scriptNonce}" src="${mermaidUri.toString()}"></script>`,
+    `<script nonce="${scriptNonce}" src="${previewUri.toString()}"></script>`,
+    "</body>",
+    "</html>",
+  ].join("\n");
+}
+
+export function graphStartDir(): string | undefined {
+  const active = vscode.window.activeTextEditor?.document.uri.fsPath;
+  if (active !== undefined) return path.dirname(active);
+  return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+}
