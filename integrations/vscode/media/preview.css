@@ -188,3 +188,118 @@ body {
 #details button.link:hover {
   text-decoration: underline;
 }
+
+/* ── Interactive canvas ───────────────────────────────────────────────────── */
+
+#canvas {
+  flex: 1;
+  min-height: 0;
+}
+
+.ls-node {
+  width: 200px;
+  box-sizing: border-box;
+  padding: 0.4rem 0.55rem 0.45rem;
+  border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.4));
+  border-left-width: 4px;
+  border-radius: 6px;
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  transition: opacity 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ls-node:hover {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.ls-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.15rem;
+}
+
+.ls-type {
+  font-size: 0.58rem;
+  letter-spacing: 0.07em;
+  opacity: 0.65;
+}
+
+.ls-actor {
+  margin-left: auto;
+  padding: 0.02rem 0.35rem;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.6rem;
+}
+
+.ls-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.ls-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  margin-top: 0.25rem;
+}
+
+.ls-chip {
+  padding: 0 0.3rem;
+  border-radius: 3px;
+  font-size: 0.58rem;
+  font-family: var(--vscode-editor-font-family, monospace);
+  background: rgba(128, 128, 128, 0.18);
+  opacity: 0.9;
+}
+
+.ls-error .ls-label {
+  color: var(--vscode-errorForeground, #f14c4c);
+}
+
+.ls-final {
+  border-style: double;
+  border-width: 3px 3px 3px 4px;
+}
+
+.react-flow__node.ls-dim {
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.react-flow__edge.ls-dim {
+  opacity: 0.08;
+}
+
+.react-flow__edge.ls-focus path {
+  stroke: var(--vscode-textLink-foreground, #3794ff);
+}
+
+.ls-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  border-radius: 6px;
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+  font-size: 0.72rem;
+}
+
+.ls-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: default;
+}
+
+.ls-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}

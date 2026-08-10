@@ -2,7 +2,7 @@
   "name": "logicspec-vscode",
   "displayName": "LogicSpec",
   "description": "Diagnostics and live Mermaid preview for LogicSpec feature specifications (experimental).",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "private": true,
   "publisher": "Shynfard",
   "license": "Apache-2.0",
@@ -70,13 +70,14 @@
         "logicspec.preview.view": {
           "type": "string",
           "enum": [
+            "interactive",
             "flow",
             "swimlane",
             "sequence",
             "event-model"
           ],
-          "default": "flow",
-          "description": "Diagram view used by the feature preview."
+          "default": "interactive",
+          "description": "Default preview view. interactive = draggable React Flow canvas; the rest are Mermaid renderings."
         }
       }
     },
@@ -100,11 +101,17 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@dagrejs/dagre": "^3.1.1",
     "@types/node": "^22.0.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
     "@types/vscode": "^1.90.0",
+    "@xyflow/react": "^12.11.2",
     "esbuild": "^0.28.2",
     "jsdom": "^29.1.1",
     "mermaid": "^11.0.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   },

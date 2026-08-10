@@ -30,10 +30,19 @@ interface StepDetails {
   links: DetailsLink[];
 }
 
-const RENDER_VIEWS: readonly RenderView[] = ["flow", "swimlane", "sequence", "event-model"];
+/** Panel views: the interactive React Flow canvas plus the Mermaid views. */
+type PanelView = RenderView | "interactive";
 
-function isRenderView(value: unknown): value is RenderView {
-  return typeof value === "string" && (RENDER_VIEWS as readonly string[]).includes(value);
+const PANEL_VIEWS: readonly PanelView[] = [
+  "interactive",
+  "flow",
+  "swimlane",
+  "sequence",
+  "event-model",
+];
+
+function isPanelView(value: unknown): value is PanelView {
+  return typeof value === "string" && (PANEL_VIEWS as readonly string[]).includes(value);
 }
 
 /**
@@ -59,7 +68,7 @@ export class FeaturePreview {
   private document: vscode.TextDocument;
   private ready = false;
   /** Per-panel view override; falls back to the logicspec.preview.view setting. */
-  private view: RenderView | undefined;
+  private view: PanelView | undefined;
   /** Mermaid node id → step id for the last rendered diagram. */
   private nodeMap: Map<string, string> = new Map();
   /** Normalized model of the last valid render, for the details drawer. */
@@ -88,7 +97,7 @@ export class FeaturePreview {
         if (typed.type === "ready") {
           this.ready = true;
           this.render();
-        } else if (typed.type === "setView" && isRenderView(typed.view)) {
+        } else if (typed.type === "setView" && isPanelView(typed.view)) {
           this.view = typed.view;
           this.render();
         } else if (typed.type === "nodeClick" && typeof typed.node === "string") {
@@ -138,8 +147,41 @@ export class FeaturePreview {
     if (result.valid && result.normalized !== undefined && result.graph !== undefined) {
       const configured = vscode.workspace
         .getConfiguration("logicspec")
-        .get<string>("preview.view", "flow");
-      const view = this.view ?? (isRenderView(configured) ? configured : "flow");
+        .get<string>("preview.view", "interactive");
+      const view = this.view ?? (isPanelView(configured) ? configured : "interactive");
+      this.lastNormalized = result.normalized;
+
+      if (view === "interactive") {
+        // Canvas nodes address steps by their real ids — no Mermaid id map.
+        this.nodeMap = new Map();
+        void this.panel.webview.postMessage({
+          type: "canvas",
+          nodes: result.normalized.steps.map((step) => {
+            const def = step.def as { requires?: string[]; produces?: string[] };
+            return {
+              id: step.id,
+              label: step.label,
+              type: step.type,
+              actor: step.actor,
+              requires: def.requires ?? [],
+              produces: def.produces ?? [],
+            };
+          }),
+          edges: result.graph.edges.map((edge) => ({
+            from: edge.from,
+            to: edge.to,
+            label: edge.label,
+            kind: edge.kind,
+          })),
+          actors: result.normalized.actors.map((actor) => ({
+            id: actor.id,
+            label: actor.label,
+          })),
+        });
+        void this.panel.webview.postMessage({ type: "stale", stale: false });
+        return;
+      }
+
       let mermaid: string;
       try {
         mermaid = renderMermaid(result.normalized, result.graph, { view });
@@ -147,7 +189,6 @@ export class FeaturePreview {
         mermaid = renderMermaid(result.normalized, result.graph, { view: "flow" });
       }
       this.nodeMap = mermaidNodeIdMap(result.graph);
-      this.lastNormalized = result.normalized;
       void this.panel.webview.postMessage({ type: "render", source: mermaid, view });
       void this.panel.webview.postMessage({ type: "stale", stale: false });
     } else {

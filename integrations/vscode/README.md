@@ -15,6 +15,7 @@ stays optional, for committed GitHub docs.
   validation — schema, structure, references against the surrounding
   workspace's catalogs, graph analysis — with `LS###` codes, precise ranges
   and "did you mean" suggestions.
+- **Interactive canvas (default view)** — a React Flow board: drag nodes freely (edges follow), zoom/pan with minimap and controls, **hover a step to spotlight it and its direct relations** (everything unrelated fades), stable **per-actor colors** with a hover-aware legend, and requires/produces context chips on each node. Positions are view-only — never saved.
 - **Live preview** — the editor-title button on feature files, right-click in
   the Explorer/editor, or `Ctrl+Shift+V` (`Cmd+Shift+V`): renders the feature
   as a Mermaid diagram beside the editor and re-renders on every change. An

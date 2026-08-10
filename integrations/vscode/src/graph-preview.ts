@@ -139,8 +139,14 @@ export function buildWebviewHtml(
   const previewUri = webview.asWebviewUri(
     vscode.Uri.joinPath(context.extensionUri, "media", "preview.js"),
   );
+  const canvasUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(context.extensionUri, "media", "canvas.js"),
+  );
   const styleUri = webview.asWebviewUri(
     vscode.Uri.joinPath(context.extensionUri, "media", "preview.css"),
+  );
+  const canvasStyleUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(context.extensionUri, "media", "canvas.css"),
   );
   return [
     "<!DOCTYPE html>",
@@ -149,11 +155,13 @@ export function buildWebviewHtml(
     '<meta charset="UTF-8">',
     `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data:; style-src ${webview.cspSource} 'unsafe-inline'; font-src ${webview.cspSource}; script-src 'nonce-${scriptNonce}';">`,
     `<link rel="stylesheet" href="${styleUri.toString()}">`,
+    `<link rel="stylesheet" href="${canvasStyleUri.toString()}">`,
     "</head>",
     "<body>",
     `<div id="banner" hidden>${bannerText}</div>`,
     '<div id="toolbar">',
     '<label id="view-label" hidden>View <select id="view">',
+    '<option value="interactive">interactive</option>',
     '<option value="flow">flow</option>',
     '<option value="swimlane">swimlane</option>',
     '<option value="sequence">sequence</option>',
@@ -164,12 +172,13 @@ export function buildWebviewHtml(
     '<button id="zoom-level" title="Reset to 100%">100%</button>',
     '<button id="zoom-in" title="Zoom in">+</button>',
     '<button id="zoom-fit" title="Fit to panel">Fit</button>',
-    '<button id="layout-reset" title="Restore the automatic layout (positions are never saved)">Reset</button>',
     "</span>",
     "</div>",
     '<div id="diagram"></div>',
+    '<div id="canvas" hidden></div>',
     `<script nonce="${scriptNonce}" src="${mermaidUri.toString()}"></script>`,
     `<script nonce="${scriptNonce}" src="${previewUri.toString()}"></script>`,
+    `<script nonce="${scriptNonce}" src="${canvasUri.toString()}"></script>`,
     "</body>",
     "</html>",
   ].join("\n");

@@ -1,26 +1,28 @@
 // Webview side of the LogicSpec previews (feature preview + workspace graph).
-// Receives { type: "render", source, view? } messages with Mermaid text and
-// { type: "stale", stale } messages toggling the banner. Sends
-// { type: "ready" | "setView" | "nodeClick" } back to the extension.
+// Mermaid views render here; the "interactive" view is handled by canvas.js
+// (React Flow) — this script coordinates visibility and shared UI (banner,
+// view switcher, details drawer).
 (function () {
   const vscode = acquireVsCodeApi();
+  // canvas.js must reuse the same API object (acquireVsCodeApi is once-only).
+  window.__logicspecVsCode = vscode;
+
   const banner = document.getElementById("banner");
   const container = document.getElementById("diagram");
+  const canvasHost = document.getElementById("canvas");
   const viewLabel = document.getElementById("view-label");
   const viewSelect = document.getElementById("view");
+  const zoomControls = document.getElementById("zoom");
   const zoomIn = document.getElementById("zoom-in");
   const zoomOut = document.getElementById("zoom-out");
   const zoomFit = document.getElementById("zoom-fit");
   const zoomLevel = document.getElementById("zoom-level");
   let counter = 0;
 
-  // ── Zoom & pan ─────────────────────────────────────────────────────────────
-  // The SVG's layout width is set directly (natural size × scale), so the
-  // container's native scrollbars do the panning and node clicks stay plain
-  // DOM clicks. scale === null means "fit to panel width".
+  // ── Zoom & pan (Mermaid views only; the interactive view has its own) ─────
   const MIN_SCALE = 0.2;
   const MAX_SCALE = 5;
-  let scale = null;
+  let scale = null; // null = fit to panel width
   let suppressClick = false;
 
   function currentSvg() {
@@ -44,6 +46,11 @@
     return natural > 0 ? Math.min(1, available / natural) : 1;
   }
 
+  function effectiveScaleSafe() {
+    const svg = currentSvg();
+    return svg ? effectiveScale(svg) : 1;
+  }
+
   function applyZoom() {
     const svg = currentSvg();
     if (!svg) return;
@@ -59,7 +66,6 @@
     if (!svg) return;
     const previous = effectiveScale(svg);
     const clamped = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next));
-    // Keep the pivot point (viewport coordinates) visually stable.
     const rect = container.getBoundingClientRect();
     const px = (pivot ? pivot.x : rect.left + rect.width / 2) - rect.left;
     const py = (pivot ? pivot.y : rect.top + rect.height / 2) - rect.top;
@@ -82,15 +88,10 @@
     });
   }
 
-  function effectiveScaleSafe() {
-    const svg = currentSvg();
-    return svg ? effectiveScale(svg) : 1;
-  }
-
   container.addEventListener(
     "wheel",
     (event) => {
-      if (!event.ctrlKey && !event.metaKey) return; // plain wheel = scroll
+      if (!event.ctrlKey && !event.metaKey) return;
       event.preventDefault();
       const factor = event.deltaY < 0 ? 1.1 : 1 / 1.1;
       setScale(effectiveScaleSafe() * factor, { x: event.clientX, y: event.clientY });
@@ -98,165 +99,13 @@
     { passive: false },
   );
 
-  // ── Movable nodes (view-only, n8n-style) ──────────────────────────────────
-  // The rendered SVG is edited in place: node groups get an extra translate
-  // offset, connected edge paths become border-clipped straight lines, and
-  // edge labels re-center. Nothing is persisted — Reset (or any re-render)
-  // restores Mermaid's layout.
-  const layout = {
-    nodes: new Map(), // mermaid node id → {el, x0, y0, dx, dy, hw, hh}
-    edges: [], // {el, from, to, d0, labelEl, labelT0}
-  };
-
-  function parseTranslate(el) {
-    const match = /translate\(\s*([-\d.]+)[ ,]\s*([-\d.]+)/.exec(
-      el.getAttribute("transform") || "",
-    );
-    return match ? { x: Number(match[1]), y: Number(match[2]) } : { x: 0, y: 0 };
-  }
-
-  function buildLayoutRegistry() {
-    layout.nodes = new Map();
-    layout.edges = [];
-    const svg = currentSvg();
-    if (!svg) return;
-    for (const el of svg.querySelectorAll("g.node[id]")) {
-      const match = /^flowchart-(.+)-\d+$/.exec(el.id);
-      if (!match) continue;
-      const at = parseTranslate(el);
-      let hw = 40;
-      let hh = 20;
-      try {
-        const box = el.getBBox();
-        hw = box.width / 2 + 6;
-        hh = box.height / 2 + 6;
-      } catch {
-        // detached bbox; keep defaults
-      }
-      layout.nodes.set(match[1], { el, x0: at.x, y0: at.y, dx: 0, dy: 0, hw, hh });
-    }
-    const paths = [...svg.querySelectorAll("g.edgePaths path")];
-    const labels = [...svg.querySelectorAll("g.edgeLabels > g")];
-    paths.forEach((el, index) => {
-      let from;
-      let to;
-      for (const cls of el.classList) {
-        if (cls.startsWith("LS-")) from = cls.slice(3);
-        else if (cls.startsWith("LE-")) to = cls.slice(3);
-      }
-      if (from === undefined || to === undefined) return;
-      const labelEl = labels.length === paths.length ? labels[index] : undefined;
-      layout.edges.push({
-        el,
-        from,
-        to,
-        d0: el.getAttribute("d"),
-        labelEl,
-        labelT0: labelEl ? labelEl.getAttribute("transform") : undefined,
-      });
-    });
-  }
-
-  function nodeCenter(node) {
-    return { x: node.x0 + node.dx, y: node.y0 + node.dy };
-  }
-
-  // Where the segment from `fromPt` toward `toPt` exits `node`'s bounding
-  // rectangle — keeps arrowheads outside the shapes.
-  function clipToNode(fromPt, toPt, node) {
-    const dx = toPt.x - fromPt.x;
-    const dy = toPt.y - fromPt.y;
-    const tx = dx !== 0 ? node.hw / Math.abs(dx) : Infinity;
-    const ty = dy !== 0 ? node.hh / Math.abs(dy) : Infinity;
-    const t = Math.min(tx, ty, 1);
-    return { x: toPt.x - dx * t, y: toPt.y - dy * t };
-  }
-
-  function updateEdgesFor(nodeId) {
-    for (const edge of layout.edges) {
-      if (edge.from !== nodeId && edge.to !== nodeId) continue;
-      const fromNode = layout.nodes.get(edge.from);
-      const toNode = layout.nodes.get(edge.to);
-      if (!fromNode || !toNode) continue;
-      const a = nodeCenter(fromNode);
-      const b = nodeCenter(toNode);
-      const start = clipToNode(b, a, fromNode);
-      const end = clipToNode(a, b, toNode);
-      edge.el.setAttribute("d", `M${start.x},${start.y}L${end.x},${end.y}`);
-      if (edge.labelEl) {
-        edge.labelEl.setAttribute(
-          "transform",
-          `translate(${(start.x + end.x) / 2}, ${(start.y + end.y) / 2})`,
-        );
-      }
-    }
-  }
-
-  function resetLayout() {
-    for (const node of layout.nodes.values()) {
-      node.dx = 0;
-      node.dy = 0;
-      node.el.setAttribute("transform", `translate(${node.x0}, ${node.y0})`);
-    }
-    for (const edge of layout.edges) {
-      if (edge.d0 != null) edge.el.setAttribute("d", edge.d0);
-      if (edge.labelEl && edge.labelT0 != null) {
-        edge.labelEl.setAttribute("transform", edge.labelT0);
-      }
-    }
-  }
-
-  const layoutReset = document.getElementById("layout-reset");
-  if (layoutReset) layoutReset.addEventListener("click", resetLayout);
-
-  function renderScale() {
-    const svg = currentSvg();
-    if (!svg) return 1;
-    const viewBox = svg.viewBox && svg.viewBox.baseVal;
-    if (!viewBox || viewBox.width === 0) return 1;
-    return svg.clientWidth / viewBox.width || 1;
-  }
-
-  // ── Pointer interaction: node drag OR background pan ───────────────────────
-  // A 4px threshold keeps node clicks (navigation) working; after a real
-  // drag the next click is suppressed.
+  // Background drag pans via native scrolling; 4px threshold keeps clicks.
   let pan = null;
-  let nodeDrag = null;
   container.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) return;
-    const nodeEl = event.target instanceof Element ? event.target.closest("g.node[id]") : null;
-    const match = nodeEl ? /^flowchart-(.+)-\d+$/.exec(nodeEl.id) : null;
-    if (match && layout.nodes.has(match[1])) {
-      nodeDrag = {
-        nid: match[1],
-        x: event.clientX,
-        y: event.clientY,
-        moved: false,
-        id: event.pointerId,
-      };
-      return;
-    }
     pan = { x: event.clientX, y: event.clientY, moved: false, id: event.pointerId };
   });
   container.addEventListener("pointermove", (event) => {
-    if (nodeDrag && event.pointerId === nodeDrag.id) {
-      const dx = event.clientX - nodeDrag.x;
-      const dy = event.clientY - nodeDrag.y;
-      if (!nodeDrag.moved && Math.hypot(dx, dy) < 4) return;
-      if (!nodeDrag.moved) {
-        nodeDrag.moved = true;
-        container.setPointerCapture(nodeDrag.id);
-      }
-      const node = layout.nodes.get(nodeDrag.nid);
-      const factor = renderScale();
-      node.dx += dx / factor;
-      node.dy += dy / factor;
-      node.el.setAttribute("transform", `translate(${node.x0 + node.dx}, ${node.y0 + node.dy})`);
-      updateEdgesFor(nodeDrag.nid);
-      nodeDrag.x = event.clientX;
-      nodeDrag.y = event.clientY;
-      return;
-    }
     if (!pan || event.pointerId !== pan.id) return;
     const dx = event.clientX - pan.x;
     const dy = event.clientY - pan.y;
@@ -271,19 +120,7 @@
     pan.x = event.clientX;
     pan.y = event.clientY;
   });
-  function endPointer(event) {
-    if (nodeDrag && event.pointerId === nodeDrag.id) {
-      if (nodeDrag.moved) {
-        suppressClick = true;
-        try {
-          container.releasePointerCapture(nodeDrag.id);
-        } catch {
-          // capture may already be gone
-        }
-      }
-      nodeDrag = null;
-      return;
-    }
+  function endPan(event) {
     if (!pan || (event.pointerId !== undefined && event.pointerId !== pan.id)) return;
     if (pan.moved) {
       suppressClick = true;
@@ -296,8 +133,8 @@
     }
     pan = null;
   }
-  container.addEventListener("pointerup", endPointer);
-  container.addEventListener("pointercancel", endPointer);
+  container.addEventListener("pointerup", endPan);
+  container.addEventListener("pointercancel", endPan);
 
   // ── View switcher ──────────────────────────────────────────────────────────
   if (viewSelect) {
@@ -306,9 +143,7 @@
     });
   }
 
-  // ── Node clicks ────────────────────────────────────────────────────────────
-  // Single click → details drawer (nodeDetails); double click → jump to the
-  // YAML definition (nodeClick). A short timer disambiguates the two.
+  // ── Node clicks (Mermaid views): single → details, double → jump ──────────
   function nodeIdFromEvent(event) {
     const nodeEl = event.target instanceof Element ? event.target.closest("g.node[id]") : null;
     if (!nodeEl) return null;
@@ -339,7 +174,7 @@
     vscode.postMessage({ type: "nodeClick", node });
   });
 
-  // ── Details drawer ─────────────────────────────────────────────────────────
+  // ── Details drawer (shared by Mermaid and interactive views) ───────────────
   const drawer = document.createElement("aside");
   drawer.id = "details";
   drawer.hidden = true;
@@ -432,14 +267,11 @@
     drawer.hidden = false;
   }
 
-  // ── Rendering ──────────────────────────────────────────────────────────────
+  // ── Mermaid rendering ──────────────────────────────────────────────────────
   mermaid.initialize({
     startOnLoad: false,
     theme: "neutral",
     securityLevel: "strict",
-    // Pure-SVG labels: foreignObject HTML labels serialize as HTML (e.g.
-    // unclosed <br>), which is invalid strict XML and also renders blank
-    // under some webview CSPs.
     flowchart: { htmlLabels: false },
   });
 
@@ -454,11 +286,6 @@
   async function render(source) {
     try {
       const { svg } = await mermaid.render(`logicspec-${++counter}`, source);
-      // Parse instead of innerHTML and only accept an <svg> root. Content is
-      // locally generated (our renderer + mermaid strict mode) and the CSP
-      // blocks non-nonce scripts, but defense in depth is cheap here.
-      // Mermaid output may contain HTML-serialized fragments that strict XML
-      // parsing rejects, so parse as HTML and extract the svg element.
       const parsed = new DOMParser().parseFromString(svg, "text/html");
       const root = parsed.body.querySelector("svg");
       if (root === null) {
@@ -467,10 +294,16 @@
       }
       container.replaceChildren(document.importNode(root, true));
       applyZoom();
-      buildLayoutRegistry();
       vscode.setState({ source });
     } catch (error) {
       showError(String(error));
+    }
+  }
+
+  function syncView(view) {
+    if (typeof view === "string" && viewLabel && viewSelect) {
+      viewLabel.hidden = false;
+      viewSelect.value = view;
     }
   }
 
@@ -479,16 +312,23 @@
     if (!message || typeof message !== "object") return;
     if (message.type === "render" && typeof message.source === "string") {
       banner.hidden = true;
-      // Feature previews send the active view; the workspace graph does not
-      // (its view is fixed), so the switcher only appears when meaningful.
-      if (typeof message.view === "string" && viewLabel && viewSelect) {
-        viewLabel.hidden = false;
-        viewSelect.value = message.view;
-      }
+      syncView(message.view);
+      if (zoomControls) zoomControls.hidden = false;
+      if (canvasHost) canvasHost.setAttribute("hidden", "true");
+      container.removeAttribute("hidden");
       void render(message.source);
+    } else if (message.type === "canvas") {
+      banner.hidden = true;
+      syncView("interactive");
+      // React Flow brings its own controls; the SVG zoom bar is meaningless.
+      if (zoomControls) zoomControls.hidden = true;
     } else if (message.type === "stale") {
       banner.hidden = !message.stale;
-    } else if (message.type === "details" && message.details && typeof message.details === "object") {
+    } else if (
+      message.type === "details" &&
+      message.details &&
+      typeof message.details === "object"
+    ) {
       showDetails(message.details);
     }
   });

@@ -3,6 +3,18 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.5.9
+
+- **Interactive canvas view in VS Code (new default)**: the preview's
+  "interactive" view renders on React Flow + dagre — professional node
+  dragging (edges follow properly), zoom/pan, minimap and controls.
+  Hovering a step spotlights it and its direct relations while everything
+  unrelated fades; actors get stable deterministic colors (node accent,
+  pill, minimap and a hover-aware legend); nodes carry requires/produces
+  context chips. Single/double click semantics and the details drawer
+  carry over. Positions remain view-only. The hand-rolled SVG node-drag
+  from 0.5.7 is removed. Mermaid views stay available in the switcher.
+
 ## 0.5.8
 
 - **Step inspector in the VS Code preview**: single-clicking a node opens a

@@ -42,9 +42,30 @@ const options = {
   },
 };
 
+/**
+ * Interactive canvas webview: React Flow + dagre bundled as a single IIFE
+ * with its stylesheet emitted next to it (media/canvas.js + media/canvas.css).
+ */
+/** @type {import("esbuild").BuildOptions} */
+const canvasOptions = {
+  entryPoints: [path.join(root, "src", "webview", "canvas.tsx")],
+  bundle: true,
+  outfile: path.join(root, "media", "canvas.js"),
+  format: "iife",
+  platform: "browser",
+  target: "es2022",
+  jsx: "automatic",
+  sourcemap: false,
+  minify: true,
+  logLevel: "info",
+  define: { "process.env.NODE_ENV": '"production"' },
+};
+
 if (watch) {
   const context = await esbuild.context(options);
-  await context.watch();
+  const canvasContext = await esbuild.context(canvasOptions);
+  await Promise.all([context.watch(), canvasContext.watch()]);
 } else {
   await esbuild.build(options);
+  await esbuild.build(canvasOptions);
 }

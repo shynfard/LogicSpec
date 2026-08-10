@@ -3,3 +3,5 @@ dist/
 media/mermaid.min.js
 *.vsix
 *.tsbuildinfo
+media/canvas.js
+media/canvas.css
