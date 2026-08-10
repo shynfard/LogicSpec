@@ -96,6 +96,24 @@ copy `dist/` to `<vault>/.obsidian/plugins/logicspec/` and enable the plugin
 (or point BRAT at a release that carries `main.js`, `manifest.json`,
 `styles.css`).
 
+## Claude Code plugin (`integrations/claude-plugin/`)
+
+Teaches AI agents the DSL instead of letting them guess it.
+
+- **Skill `logicspec-authoring`**: the closed nine-type vocabulary, transition
+  rules (`next` XOR `on`, event directions, final terminality), context
+  data-flow expectations, catalog linking, and the mandatory
+  validate-fix-render loop — with condensed grammar and per-LS-code fix
+  references loaded on demand.
+- **Commands**: `/logicspec:feature <description>` designs a spec end to end;
+  `/logicspec:check [path]` validates and repairs a workspace by LS code.
+- **MCP**: registers `logicspec mcp` so agents can query features/steps/
+  transitions/dependencies structurally instead of re-parsing YAML.
+
+Install: `/plugin marketplace add shynfard/LogicSpec`, then
+`/plugin install logicspec@logicspec`. Requires the `logicspec` CLI on PATH
+for validation and MCP (falls back to `npx logicspec`).
+
 ## Edit API (for tool builders)
 
 The editor's write-path is public API, exported from both `logicspec` and `logicspec/core`:

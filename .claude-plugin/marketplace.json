@@ -1,0 +1,14 @@
+{
+  "name": "logicspec",
+  "owner": {
+    "name": "Shynfard",
+    "url": "https://github.com/shynfard"
+  },
+  "plugins": [
+    {
+      "name": "logicspec",
+      "source": "./integrations/claude-plugin",
+      "description": "Author, validate and visualize LogicSpec feature specifications (*.feature.yaml) — skill, slash commands and MCP server wiring."
+    }
+  ]
+}
