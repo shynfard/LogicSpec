@@ -38,6 +38,20 @@
           "when": "resourceFilename =~ /\\.feature\\.yaml$/",
           "group": "navigation"
         }
+      ],
+      "explorer/context": [
+        {
+          "command": "logicspec.previewFeature",
+          "when": "resourceFilename =~ /\\.feature\\.yaml$/",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "logicspec.previewFeature",
+          "when": "resourceFilename =~ /\\.feature\\.yaml$/",
+          "group": "navigation"
+        }
       ]
     },
     "configuration": {
@@ -55,7 +69,15 @@
           "description": "Diagram view used by the feature preview."
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "command": "logicspec.previewFeature",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "editorTextFocus && resourceFilename =~ /\\.feature\\.yaml$/"
+      }
+    ]
   },
   "scripts": {
     "build": "node esbuild.mjs",

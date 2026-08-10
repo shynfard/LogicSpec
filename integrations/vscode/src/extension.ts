@@ -77,15 +77,20 @@ export function activate(context: vscode.ExtensionContext): void {
   for (const document of vscode.workspace.textDocuments) refresh(document);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("logicspec.previewFeature", () => {
-      const editor = vscode.window.activeTextEditor;
-      if (editor === undefined || fileKind(editor.document.uri.fsPath) !== "feature") {
+    vscode.commands.registerCommand("logicspec.previewFeature", async (uri?: vscode.Uri) => {
+      // Invoked from the editor-title icon / keybinding (no argument) or
+      // from an explorer/editor context menu (clicked resource URI).
+      let document = vscode.window.activeTextEditor?.document;
+      if (uri instanceof vscode.Uri) {
+        document = await vscode.workspace.openTextDocument(uri);
+      }
+      if (document === undefined || fileKind(document.uri.fsPath) !== "feature") {
         void vscode.window.showWarningMessage(
           "LogicSpec: open a *.feature.yaml file to preview it.",
         );
         return;
       }
-      FeaturePreview.show(context, editor.document);
+      FeaturePreview.show(context, document);
     }),
     vscode.commands.registerCommand("logicspec.validateWorkspace", () => {
       validateWorkspace(collection);
