@@ -1,5 +1,9 @@
 # LogicSpec
 
+[![CI](https://github.com/shynfard/LogicSpec/actions/workflows/ci.yml/badge.svg)](https://github.com/shynfard/LogicSpec/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Node](https://img.shields.io/badge/node-%E2%89%A520-brightgreen)
+
 **Define the logic. Validate it. Visualize it. Then build it.**
 
 LogicSpec is a small, open-source YAML DSL for describing **application feature logic** — booking, checkout, authentication, onboarding, approval workflows — *before* you implement them.
@@ -68,7 +72,7 @@ Describe the feature once, in YAML, with a small closed vocabulary of nine step 
 > Until then, use the local development setup below.
 
 ```bash
-git clone <this repository>
+git clone https://github.com/shynfard/LogicSpec.git logicspec
 cd logicspec
 npm install
 npm run build
