@@ -3,6 +3,17 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.5.8
+
+- **Step inspector in the VS Code preview**: single-clicking a node opens a
+  details drawer with the step's complete data (actor, call, event, flow,
+  requires/produces, durations, tags, …) and every outgoing transition.
+  Cross-file links open the exact location: the `services.yaml` operation,
+  the `events.yaml` event, or the referenced subflow's feature file;
+  transition entries jump to their target step. Double-click keeps the
+  direct jump-to-definition. In the workspace graph, single and double
+  click both open the feature's file.
+
 ## 0.5.7
 
 - **Movable nodes in the VS Code panels** (n8n-style, view-only): drag any

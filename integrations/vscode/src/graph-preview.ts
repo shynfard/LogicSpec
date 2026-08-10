@@ -55,7 +55,12 @@ export class WorkspaceGraphPreview {
         if (typed.type === "ready") {
           this.ready = true;
           this.render();
-        } else if (typed.type === "nodeClick" && typeof typed.node === "string") {
+        } else if (
+          (typed.type === "nodeClick" || typed.type === "nodeDetails") &&
+          typeof typed.node === "string"
+        ) {
+          // Feature nodes have no drawer here — single and double click both
+          // open the feature's file.
           const file = this.nodeToFile.get(typed.node);
           if (file !== undefined) {
             void vscode.window.showTextDocument(vscode.Uri.file(file), {

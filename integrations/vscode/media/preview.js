@@ -306,19 +306,131 @@
     });
   }
 
-  // ── Node clicks → extension navigation ─────────────────────────────────────
+  // ── Node clicks ────────────────────────────────────────────────────────────
+  // Single click → details drawer (nodeDetails); double click → jump to the
+  // YAML definition (nodeClick). A short timer disambiguates the two.
+  function nodeIdFromEvent(event) {
+    const nodeEl = event.target instanceof Element ? event.target.closest("g.node[id]") : null;
+    if (!nodeEl) return null;
+    const match = /^flowchart-(.+)-\d+$/.exec(nodeEl.id);
+    return match ? match[1] : null;
+  }
+  let clickTimer = null;
   container.addEventListener("click", (event) => {
     if (suppressClick) {
       suppressClick = false;
       return;
     }
-    const nodeEl = event.target instanceof Element ? event.target.closest("g.node[id]") : null;
-    if (!nodeEl) return;
-    const match = /^flowchart-(.+)-\d+$/.exec(nodeEl.id);
-    if (match) {
-      vscode.postMessage({ type: "nodeClick", node: match[1] });
-    }
+    const node = nodeIdFromEvent(event);
+    if (node === null) return;
+    if (clickTimer !== null) clearTimeout(clickTimer);
+    clickTimer = setTimeout(() => {
+      clickTimer = null;
+      vscode.postMessage({ type: "nodeDetails", node });
+    }, 220);
   });
+  container.addEventListener("dblclick", (event) => {
+    const node = nodeIdFromEvent(event);
+    if (node === null) return;
+    if (clickTimer !== null) {
+      clearTimeout(clickTimer);
+      clickTimer = null;
+    }
+    vscode.postMessage({ type: "nodeClick", node });
+  });
+
+  // ── Details drawer ─────────────────────────────────────────────────────────
+  const drawer = document.createElement("aside");
+  drawer.id = "details";
+  drawer.hidden = true;
+  document.body.appendChild(drawer);
+
+  function hideDetails() {
+    drawer.hidden = true;
+  }
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") hideDetails();
+  });
+
+  function addRow(parent, key, value) {
+    const dt = document.createElement("dt");
+    dt.textContent = key;
+    const dd = document.createElement("dd");
+    dd.textContent = value;
+    parent.append(dt, dd);
+  }
+
+  function showDetails(details) {
+    drawer.replaceChildren();
+
+    const header = document.createElement("header");
+    const title = document.createElement("strong");
+    title.textContent = details.label;
+    const badge = document.createElement("span");
+    badge.className = "badge";
+    badge.textContent = details.type.toUpperCase();
+    const close = document.createElement("button");
+    close.textContent = "×";
+    close.title = "Close (Esc)";
+    close.addEventListener("click", hideDetails);
+    header.append(title, badge, close);
+    drawer.appendChild(header);
+
+    const idLine = document.createElement("div");
+    idLine.className = "step-id";
+    idLine.textContent = details.id;
+    drawer.appendChild(idLine);
+
+    if (details.fields.length > 0) {
+      const dl = document.createElement("dl");
+      for (const field of details.fields) addRow(dl, field.key, field.value);
+      drawer.appendChild(dl);
+    }
+
+    if (details.transitions.length > 0) {
+      const heading = document.createElement("h4");
+      heading.textContent = "Transitions";
+      drawer.appendChild(heading);
+      const list = document.createElement("ul");
+      for (const transition of details.transitions) {
+        const item = document.createElement("li");
+        const button = document.createElement("button");
+        button.className = "link";
+        button.textContent = `${transition.label} → ${transition.to}`;
+        button.title = `Go to step "${transition.to}"`;
+        button.addEventListener("click", () => {
+          vscode.postMessage({
+            type: "openLink",
+            link: { kind: "step", label: transition.to, step: transition.to },
+          });
+        });
+        item.appendChild(button);
+        list.appendChild(item);
+      }
+      drawer.appendChild(list);
+    }
+
+    if (details.links.length > 0) {
+      const heading = document.createElement("h4");
+      heading.textContent = "Open";
+      drawer.appendChild(heading);
+      const list = document.createElement("ul");
+      for (const link of details.links) {
+        const item = document.createElement("li");
+        const button = document.createElement("button");
+        button.className = "link";
+        button.textContent = link.label;
+        button.addEventListener("click", () => {
+          vscode.postMessage({ type: "openLink", link });
+        });
+        item.appendChild(button);
+        list.appendChild(item);
+      }
+      drawer.appendChild(list);
+    }
+
+    drawer.hidden = false;
+  }
 
   // ── Rendering ──────────────────────────────────────────────────────────────
   mermaid.initialize({
@@ -376,6 +488,8 @@
       void render(message.source);
     } else if (message.type === "stale") {
       banner.hidden = !message.stale;
+    } else if (message.type === "details" && message.details && typeof message.details === "object") {
+      showDetails(message.details);
     }
   });
 
