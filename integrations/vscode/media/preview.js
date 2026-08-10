@@ -15,6 +15,17 @@
     });
   }
 
+  // Diagram clicks: mermaid gives flowchart nodes DOM ids like
+  // "flowchart-<nodeId>-<n>"; map them back and let the extension navigate.
+  container.addEventListener("click", (event) => {
+    const nodeEl = event.target instanceof Element ? event.target.closest("g.node[id]") : null;
+    if (!nodeEl) return;
+    const match = /^flowchart-(.+)-\d+$/.exec(nodeEl.id);
+    if (match) {
+      vscode.postMessage({ type: "nodeClick", node: match[1] });
+    }
+  });
+
   mermaid.initialize({
     startOnLoad: false,
     theme: "neutral",

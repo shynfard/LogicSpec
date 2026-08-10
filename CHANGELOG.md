@@ -3,6 +3,15 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.5.5
+
+- **Clickable diagrams in VS Code**: clicking a node in the feature preview
+  jumps to (and selects) that step's YAML definition; clicking a feature in
+  the workspace graph opens its file. Implemented with a strict-CSP-safe
+  delegated listener — no Mermaid `securityLevel: loose`.
+- New public helpers `mermaidNodeIdMap` and `workspaceGraphNodeIdMap`
+  expose the renderers' node-id allocation for interactive hosts.
+
 ## 0.5.4
 
 - VS Code extension is now a complete no-files experience:

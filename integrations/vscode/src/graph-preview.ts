@@ -1,5 +1,10 @@
 import path from "node:path";
-import { featureStem, renderWorkspaceGraph, type WorkspaceFeatureSummary } from "logicspec";
+import {
+  featureStem,
+  renderWorkspaceGraph,
+  workspaceGraphNodeIdMap,
+  type WorkspaceFeatureSummary,
+} from "logicspec";
 import * as vscode from "vscode";
 import { debounce, type Debounced } from "./debounce.js";
 import { workspaceFor } from "./validation.js";
@@ -26,6 +31,8 @@ export class WorkspaceGraphPreview {
   private readonly update: Debounced<[]>;
   private startDir: string;
   private ready = false;
+  /** Mermaid node id → absolute feature file path for the last render. */
+  private nodeToFile: Map<string, string> = new Map();
 
   private constructor(context: vscode.ExtensionContext, startDir: string) {
     this.startDir = startDir;
@@ -43,13 +50,18 @@ export class WorkspaceGraphPreview {
 
     this.disposables.push(
       this.panel.webview.onDidReceiveMessage((message: unknown) => {
-        if (
-          typeof message === "object" &&
-          message !== null &&
-          (message as { type?: string }).type === "ready"
-        ) {
+        if (typeof message !== "object" || message === null) return;
+        const typed = message as { type?: string; node?: string };
+        if (typed.type === "ready") {
           this.ready = true;
           this.render();
+        } else if (typed.type === "nodeClick" && typeof typed.node === "string") {
+          const file = this.nodeToFile.get(typed.node);
+          if (file !== undefined) {
+            void vscode.window.showTextDocument(vscode.Uri.file(file), {
+              viewColumn: vscode.ViewColumn.One,
+            });
+          }
         }
       }),
       // Any saved YAML may change the graph (features, catalogs, config).
@@ -84,6 +96,14 @@ export class WorkspaceGraphPreview {
     if (summaries.length === 0) {
       void this.panel.webview.postMessage({ type: "stale", stale: true });
       return;
+    }
+    const idMap = workspaceGraphNodeIdMap(summaries);
+    this.nodeToFile = new Map();
+    for (const [mermaidId, featureId] of idMap) {
+      const ref = workspace.features.find(
+        (candidate) => (candidate.id ?? featureStem(candidate.path)) === featureId,
+      );
+      if (ref !== undefined) this.nodeToFile.set(mermaidId, ref.path);
     }
     const mermaid = renderWorkspaceGraph(summaries, { direction: "LR" });
     void this.panel.webview.postMessage({ type: "render", source: mermaid });

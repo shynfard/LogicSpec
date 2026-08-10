@@ -114,4 +114,24 @@ export function startDeclaration(): string {
 /** Shared, theme-neutral class definitions (shapes carry the meaning). */
 export const CLASS_DEFS = ["classDef error stroke-width:2px,stroke-dasharray:4 3;"];
 
+/**
+ * Mermaid node id → step id for a feature graph, matching the allocation the
+ * flowchart renderer performs. Used by interactive hosts (e.g. the VS Code
+ * preview) to map diagram clicks back to YAML steps.
+ *
+ * Caveat: allocation is order-sensitive only when two step ids sanitize to
+ * the same candidate (collision suffixes); for such pathological ids the
+ * swimlane/event-model views may disagree on the suffixed entries.
+ */
+export function mermaidNodeIdMap(graph: {
+  nodes: ReadonlyArray<{ id: string }>;
+}): Map<string, string> {
+  const ids = new NodeIdAllocator();
+  const map = new Map<string, string>();
+  for (const node of graph.nodes) {
+    map.set(ids.id(node.id), node.id);
+  }
+  return map;
+}
+
 export type { StepType };

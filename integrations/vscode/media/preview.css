@@ -49,3 +49,7 @@ body {
   border: 1px solid var(--vscode-dropdown-border, transparent);
   border-radius: 3px;
 }
+
+#diagram g.node {
+  cursor: pointer;
+}

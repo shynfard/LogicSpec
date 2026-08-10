@@ -1,5 +1,11 @@
 import path from "node:path";
-import { renderMermaid, validateFeature, type RenderView } from "logicspec";
+import {
+  mermaidNodeIdMap,
+  parseFeature,
+  renderMermaid,
+  validateFeature,
+  type RenderView,
+} from "logicspec";
 import * as vscode from "vscode";
 import { debounce, type Debounced } from "./debounce.js";
 import { workspaceFor } from "./validation.js";
@@ -43,6 +49,8 @@ export class FeaturePreview {
   private ready = false;
   /** Per-panel view override; falls back to the logicspec.preview.view setting. */
   private view: RenderView | undefined;
+  /** Mermaid node id → step id for the last rendered diagram. */
+  private nodeMap: Map<string, string> = new Map();
 
   private constructor(context: vscode.ExtensionContext, document: vscode.TextDocument) {
     this.document = document;
@@ -61,13 +69,15 @@ export class FeaturePreview {
     this.disposables.push(
       this.panel.webview.onDidReceiveMessage((message: unknown) => {
         if (typeof message !== "object" || message === null) return;
-        const typed = message as { type?: string; view?: string };
+        const typed = message as { type?: string; view?: string; node?: string };
         if (typed.type === "ready") {
           this.ready = true;
           this.render();
         } else if (typed.type === "setView" && isRenderView(typed.view)) {
           this.view = typed.view;
           this.render();
+        } else if (typed.type === "nodeClick" && typeof typed.node === "string") {
+          void this.revealStep(typed.node);
         }
       }),
       vscode.workspace.onDidChangeTextDocument((event) => {
@@ -117,11 +127,35 @@ export class FeaturePreview {
       } catch {
         mermaid = renderMermaid(result.normalized, result.graph, { view: "flow" });
       }
+      this.nodeMap = mermaidNodeIdMap(result.graph);
       void this.panel.webview.postMessage({ type: "render", source: mermaid, view });
       void this.panel.webview.postMessage({ type: "stale", stale: false });
     } else {
       void this.panel.webview.postMessage({ type: "stale", stale: true });
     }
+  }
+
+  /** Diagram click → reveal and select the step's definition in the editor. */
+  private async revealStep(mermaidNodeId: string): Promise<void> {
+    const stepId = this.nodeMap.get(mermaidNodeId);
+    if (stepId === undefined) return;
+    const parsed = parseFeature(this.document.getText(), { file: this.document.uri.fsPath });
+    const location = parsed.locate(["steps", stepId]);
+    if (location === undefined) return;
+
+    const start = new vscode.Position(location.line - 1, location.column - 1);
+    const end =
+      location.endLine !== undefined && location.endColumn !== undefined
+        ? new vscode.Position(location.endLine - 1, location.endColumn - 1)
+        : start;
+    const editor = await vscode.window.showTextDocument(this.document, {
+      viewColumn:
+        vscode.window.visibleTextEditors.find((e) => e.document === this.document)?.viewColumn ??
+        vscode.ViewColumn.One,
+      preserveFocus: false,
+    });
+    editor.selection = new vscode.Selection(start, start);
+    editor.revealRange(new vscode.Range(start, end), vscode.TextEditorRevealType.InCenter);
   }
 
   private html(context: vscode.ExtensionContext): string {

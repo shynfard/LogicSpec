@@ -106,3 +106,20 @@ export function renderWorkspaceGraph(
 
   return `${lines.join("\n")}\n`;
 }
+
+/**
+ * Mermaid node id → feature id for the workspace graph's feature nodes,
+ * matching renderWorkspaceGraph's allocation (`feature:<id>` namespace,
+ * features first, in the given order). Interactive hosts use this to open
+ * the clicked feature's file.
+ */
+export function workspaceGraphNodeIdMap(
+  features: ReadonlyArray<Pick<WorkspaceFeatureSummary, "id">>,
+): Map<string, string> {
+  const ids = new NodeIdAllocator();
+  const map = new Map<string, string>();
+  for (const feature of features) {
+    map.set(ids.id(`feature:${feature.id}`), feature.id);
+  }
+  return map;
+}

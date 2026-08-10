@@ -62,6 +62,7 @@ export { type ParseOptions, type ParseResult, parseFeature } from "./parser/pars
 export { parseServices } from "./parser/parse-services.js";
 // Rendering (pure: objects in, strings out — no file system access)
 export { type RenderOptions, renderMarkdown, renderMermaid } from "./renderers/markdown.js";
+export { mermaidNodeIdMap } from "./renderers/mermaid-common.js";
 export { renderMermaidEventModel } from "./renderers/mermaid-event-model.js";
 // Additional renderers (sequence / event-model are experimental views)
 export { renderMermaidSequence } from "./renderers/mermaid-sequence.js";
@@ -69,6 +70,7 @@ export {
   renderWorkspaceGraph,
   type WorkspaceFeatureSummary,
   type WorkspaceGraphOptions,
+  workspaceGraphNodeIdMap,
 } from "./renderers/workspace-graph.js";
 export type { LogicSpecConfig, RenderDirection, RenderView } from "./schema/config.js";
 export { CONFIG_FILE_NAME } from "./schema/config.js";

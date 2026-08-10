@@ -33,6 +33,7 @@ export { type ParseOptions, type ParseResult, parseFeature } from "./parser/pars
 export { parseServices } from "./parser/parse-services.js";
 
 export { type RenderOptions, renderMarkdown, renderMermaid } from "./renderers/markdown.js";
+export { mermaidNodeIdMap } from "./renderers/mermaid-common.js";
 export type { RenderDirection, RenderView } from "./schema/config.js";
 export type { EventDefinition, EventsFile } from "./schema/events.js";
 
