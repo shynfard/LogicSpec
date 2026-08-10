@@ -16,6 +16,7 @@ on:
         options:
           - npm
           - vsix-artifact
+          - github-release
 
 permissions:
   contents: read
@@ -83,3 +84,52 @@ jobs:
           name: logicspec-vscode-vsix
           path: integrations/vscode/*.vsix
           retention-days: 90
+
+  # No-marketplace distribution: attach the VS Code .vsix ("Install from
+  # VSIX…") and the Obsidian plugin folder to a GitHub Release for the tag.
+  github-release:
+    if: inputs.target == 'github-release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Guard — run this on a vX.Y.Z release tag
+        run: |
+          if ! printf '%s' "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || \
+             [ "$GITHUB_REF" != "refs/tags/$GITHUB_REF_NAME" ]; then
+            echo "Pick a vX.Y.Z tag in 'Use workflow from' when dispatching (got $GITHUB_REF)."
+            exit 1
+          fi
+          echo "releasing $GITHUB_REF_NAME"
+
+      - name: Build .vsix
+        working-directory: integrations/vscode
+        run: |
+          npm ci
+          npm run build
+          npx --yes @vscode/vsce package --no-dependencies -o "logicspec-vscode-$GITHUB_REF_NAME.vsix"
+
+      - name: Build Obsidian plugin
+        working-directory: integrations/obsidian
+        run: |
+          npm ci
+          npm run build
+          cd dist && zip -r "../logicspec-obsidian-$GITHUB_REF_NAME.zip" .
+
+      - name: Create or update the release with assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ASSETS="integrations/vscode/logicspec-vscode-$GITHUB_REF_NAME.vsix integrations/obsidian/logicspec-obsidian-$GITHUB_REF_NAME.zip"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" $ASSETS --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" $ASSETS --verify-tag --generate-notes
+          fi

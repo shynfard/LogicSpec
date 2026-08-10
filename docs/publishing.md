@@ -47,6 +47,12 @@ in GitLab.
 - Marketplace publishing requires a one-time, manual publisher account whose
   id matches `publisher` in `integrations/vscode/package.json` (currently
   `logicspec` — create it, or change the field before the first publish).
+  The account lives on Azure DevOps; corporate tenants often block PAT
+  creation, so use a personal Microsoft account for it.
+- **No Azure DevOps available?** Use the GitHub `Release` workflow's
+  `github-release` target instead: it attaches the `.vsix` and the Obsidian
+  plugin zip to the tag's GitHub Release. Open VSX (`publish-openvsx`)
+  also needs no Azure — GitHub login plus the Eclipse publisher agreement.
 - `--no-dependencies` is correct: esbuild bundles the core into the extension.
 
 ### Obsidian plugin
