@@ -2,7 +2,7 @@
   "name": "logicspec-vscode",
   "displayName": "LogicSpec",
   "description": "Diagnostics and live Mermaid preview for LogicSpec feature specifications (experimental).",
-  "version": "0.5.9",
+  "version": "0.5.10",
   "private": true,
   "publisher": "Shynfard",
   "license": "Apache-2.0",
@@ -122,5 +122,10 @@
   "homepage": "https://github.com/shynfard/LogicSpec#readme",
   "bugs": {
     "url": "https://github.com/shynfard/LogicSpec/issues"
+  },
+  "icon": "media/logo-icon.png",
+  "galleryBanner": {
+    "color": "#f7f8fa",
+    "theme": "light"
   }
 }

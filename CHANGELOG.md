@@ -3,6 +3,11 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.5.10
+
+- Project logo: banner in the README, square icon and light gallery banner
+  on the VS Code Marketplace listing.
+
 ## 0.5.9
 
 - **Interactive canvas view in VS Code (new default)**: the preview's
