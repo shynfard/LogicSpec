@@ -63,6 +63,11 @@ Describe the feature once, in YAML, with a small closed vocabulary of nine step 
 * **Query** it — `logicspec inspect --json`, `logicspec validate --json` and the built-in MCP server give tools and AI agents a stable, machine-readable model of every feature.
 * **Compare** it — `logicspec diff` reports semantic changes between two versions of a flow, not textual ones.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/shynfard/LogicSpec/main/assets/canvas-example.png" alt="A real appointment-booking feature on the LogicSpec interactive canvas in VS Code" width="900">
+</p>
+<p align="center"><em>A real booking flow on the VS Code interactive canvas — per-actor colors with legend, ↓requires/↑produces data-flow chips, hover relation-tracing, minimap. All from plain YAML.</em></p>
+
 ## Quick start (30 seconds)
 
 ```bash

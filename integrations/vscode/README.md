@@ -8,6 +8,11 @@ extension — no `npm install`, no CLI, no generated files required. Everything
 renders live in panels; writing Markdown to disk (`logicspec render/export`)
 stays optional, for committed GitHub docs.
 
+![A real appointment-booking feature on the LogicSpec interactive canvas](https://raw.githubusercontent.com/shynfard/LogicSpec/main/assets/canvas-example.png)
+
+*A real booking flow on the interactive canvas — per-actor colors with legend,
+↓requires/↑produces chips, hover relation-tracing, minimap.*
+
 ## Features
 
 - **Diagnostics as you type** for `*.feature.yaml`, `services.yaml`,

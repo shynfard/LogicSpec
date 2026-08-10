@@ -3,6 +3,11 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.5.11
+
+- Showcase screenshot (a real booking flow on the interactive canvas) in
+  the README and the Marketplace listing.
+
 ## 0.5.10
 
 - Project logo: banner in the README, square icon and light gallery banner
