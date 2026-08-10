@@ -1,0 +1,340 @@
+{
+  "feature": "booking",
+  "name": "Booking",
+  "description": "Customer books and pays for a service.",
+  "start": "select-service",
+  "actors": [
+    "customer",
+    "frontend",
+    "booking",
+    "payment",
+    "pubsub"
+  ],
+  "context": [
+    "selectedService",
+    "selectedStaff",
+    "selectedDate",
+    "selectedSlot",
+    "reservationId",
+    "bookingId"
+  ],
+  "steps": [
+    {
+      "id": "select-service",
+      "type": "page",
+      "label": "Select Service",
+      "actor": "frontend"
+    },
+    {
+      "id": "select-staff",
+      "type": "page",
+      "label": "Select Staff",
+      "actor": "frontend"
+    },
+    {
+      "id": "select-date",
+      "type": "page",
+      "label": "Select Date",
+      "actor": "frontend"
+    },
+    {
+      "id": "check-availability",
+      "type": "operation",
+      "label": "Check Availability",
+      "actor": "booking"
+    },
+    {
+      "id": "select-time",
+      "type": "page",
+      "label": "Select Time",
+      "actor": "frontend"
+    },
+    {
+      "id": "reserve-slot",
+      "type": "operation",
+      "label": "Reserve Slot",
+      "actor": "booking"
+    },
+    {
+      "id": "slot-conflict",
+      "type": "error",
+      "label": "Slot No Longer Available"
+    },
+    {
+      "id": "checkout",
+      "type": "page",
+      "label": "Checkout",
+      "actor": "frontend"
+    },
+    {
+      "id": "create-payment",
+      "type": "operation",
+      "label": "Create Payment",
+      "actor": "payment"
+    },
+    {
+      "id": "create-booking",
+      "type": "operation",
+      "label": "Confirm Booking",
+      "actor": "booking"
+    },
+    {
+      "id": "booking-created",
+      "type": "event",
+      "label": "Booking Created",
+      "actor": "booking"
+    },
+    {
+      "id": "cancel-booking",
+      "type": "operation",
+      "label": "Cancel Reservation",
+      "actor": "booking"
+    },
+    {
+      "id": "no-slots",
+      "type": "error",
+      "label": "No Slots Available"
+    },
+    {
+      "id": "availability-error",
+      "type": "error",
+      "label": "Availability Error"
+    },
+    {
+      "id": "reservation-error",
+      "type": "error",
+      "label": "Reservation Error"
+    },
+    {
+      "id": "payment-error",
+      "type": "error",
+      "label": "Payment Failed"
+    },
+    {
+      "id": "booking-error",
+      "type": "error",
+      "label": "Booking Error"
+    },
+    {
+      "id": "success",
+      "type": "final",
+      "label": "Booking Confirmed"
+    },
+    {
+      "id": "cancelled",
+      "type": "final",
+      "label": "Booking Cancelled"
+    }
+  ],
+  "edges": [
+    {
+      "from": "select-service",
+      "to": "select-staff",
+      "kind": "action",
+      "label": "Select service"
+    },
+    {
+      "from": "select-staff",
+      "to": "select-date",
+      "kind": "action",
+      "label": "select"
+    },
+    {
+      "from": "select-staff",
+      "to": "select-date",
+      "kind": "action",
+      "label": "Any Staff"
+    },
+    {
+      "from": "select-date",
+      "to": "check-availability",
+      "kind": "action",
+      "label": "select"
+    },
+    {
+      "from": "check-availability",
+      "to": "select-time",
+      "kind": "outcome",
+      "label": "available"
+    },
+    {
+      "from": "check-availability",
+      "to": "no-slots",
+      "kind": "outcome",
+      "label": "empty"
+    },
+    {
+      "from": "check-availability",
+      "to": "availability-error",
+      "kind": "outcome",
+      "label": "error"
+    },
+    {
+      "from": "select-time",
+      "to": "reserve-slot",
+      "kind": "action",
+      "label": "select"
+    },
+    {
+      "from": "select-time",
+      "to": "select-date",
+      "kind": "action",
+      "label": "back"
+    },
+    {
+      "from": "reserve-slot",
+      "to": "checkout",
+      "kind": "outcome",
+      "label": "success"
+    },
+    {
+      "from": "reserve-slot",
+      "to": "slot-conflict",
+      "kind": "outcome",
+      "label": "conflict"
+    },
+    {
+      "from": "reserve-slot",
+      "to": "reservation-error",
+      "kind": "outcome",
+      "label": "error"
+    },
+    {
+      "from": "slot-conflict",
+      "to": "select-time",
+      "kind": "action",
+      "label": "choose-another"
+    },
+    {
+      "from": "checkout",
+      "to": "create-payment",
+      "kind": "action",
+      "label": "pay"
+    },
+    {
+      "from": "checkout",
+      "to": "cancel-booking",
+      "kind": "action",
+      "label": "cancel"
+    },
+    {
+      "from": "create-payment",
+      "to": "create-booking",
+      "kind": "outcome",
+      "label": "success"
+    },
+    {
+      "from": "create-payment",
+      "to": "payment-error",
+      "kind": "outcome",
+      "label": "failure"
+    },
+    {
+      "from": "create-booking",
+      "to": "booking-created",
+      "kind": "outcome",
+      "label": "success"
+    },
+    {
+      "from": "create-booking",
+      "to": "booking-error",
+      "kind": "outcome",
+      "label": "error"
+    },
+    {
+      "from": "booking-created",
+      "to": "success",
+      "kind": "next"
+    },
+    {
+      "from": "cancel-booking",
+      "to": "cancelled",
+      "kind": "next"
+    },
+    {
+      "from": "no-slots",
+      "to": "select-date",
+      "kind": "action",
+      "label": "change-date"
+    },
+    {
+      "from": "no-slots",
+      "to": "select-staff",
+      "kind": "action",
+      "label": "change-staff"
+    },
+    {
+      "from": "availability-error",
+      "to": "check-availability",
+      "kind": "action",
+      "label": "retry"
+    },
+    {
+      "from": "reservation-error",
+      "to": "reserve-slot",
+      "kind": "action",
+      "label": "retry"
+    },
+    {
+      "from": "payment-error",
+      "to": "create-payment",
+      "kind": "action",
+      "label": "retry"
+    },
+    {
+      "from": "payment-error",
+      "to": "cancel-booking",
+      "kind": "action",
+      "label": "cancel"
+    },
+    {
+      "from": "booking-error",
+      "to": "create-booking",
+      "kind": "action",
+      "label": "retry"
+    }
+  ],
+  "terminals": [
+    "success",
+    "cancelled"
+  ],
+  "finalOutcomes": [
+    "success",
+    "cancelled"
+  ],
+  "services": [
+    "booking",
+    "payment"
+  ],
+  "operations": [
+    "booking.get-availability",
+    "booking.reserve-slot",
+    "payment.create-payment",
+    "booking.create-booking",
+    "booking.cancel-reservation"
+  ],
+  "events": [
+    "BookingCreated"
+  ],
+  "subflows": [],
+  "stats": {
+    "steps": 19,
+    "byType": {
+      "page": 5,
+      "decision": 0,
+      "operation": 5,
+      "event": 1,
+      "wait": 0,
+      "subflow": 0,
+      "parallel": 0,
+      "error": 6,
+      "final": 2
+    },
+    "transitions": 28,
+    "actors": 5,
+    "finalOutcomes": [
+      "success",
+      "cancelled"
+    ]
+  }
+}

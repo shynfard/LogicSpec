@@ -369,7 +369,7 @@ catalogs:
   events: ./events.yaml
 
 output:
-  directory: ./generated   # default
+  directory: ./.logicspec   # default
 
 render:
   view: flow               # flow | swimlane | sequence | event-model, default flow

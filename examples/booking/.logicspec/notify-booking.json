@@ -1,0 +1,147 @@
+{
+  "feature": "notify-booking",
+  "name": "Booking Notification",
+  "description": "Sends the customer a confirmation after a booking is created.",
+  "start": "wait-booking",
+  "actors": [
+    "notification",
+    "pubsub"
+  ],
+  "context": [
+    "channelPreference"
+  ],
+  "steps": [
+    {
+      "id": "wait-booking",
+      "type": "event",
+      "label": "Wait for Booking",
+      "actor": "pubsub"
+    },
+    {
+      "id": "load-preference",
+      "type": "operation",
+      "label": "Load Channel Preference",
+      "actor": "notification"
+    },
+    {
+      "id": "pick-channel",
+      "type": "decision",
+      "label": "Preferred channel?",
+      "actor": "notification"
+    },
+    {
+      "id": "send-confirmation",
+      "type": "operation",
+      "label": "Send Confirmation",
+      "actor": "notification"
+    },
+    {
+      "id": "notify-error",
+      "type": "error",
+      "label": "Notification Failed"
+    },
+    {
+      "id": "notified",
+      "type": "final",
+      "label": "Customer Notified"
+    },
+    {
+      "id": "gave-up",
+      "type": "final",
+      "label": "Notification Abandoned"
+    }
+  ],
+  "edges": [
+    {
+      "from": "wait-booking",
+      "to": "load-preference",
+      "kind": "event",
+      "label": "received"
+    },
+    {
+      "from": "wait-booking",
+      "to": "gave-up",
+      "kind": "event",
+      "label": "timeout 1d"
+    },
+    {
+      "from": "load-preference",
+      "to": "pick-channel",
+      "kind": "next"
+    },
+    {
+      "from": "pick-channel",
+      "to": "send-confirmation",
+      "kind": "decision",
+      "label": "Email"
+    },
+    {
+      "from": "pick-channel",
+      "to": "send-confirmation",
+      "kind": "default",
+      "label": "Anything else"
+    },
+    {
+      "from": "send-confirmation",
+      "to": "notified",
+      "kind": "outcome",
+      "label": "success"
+    },
+    {
+      "from": "send-confirmation",
+      "to": "notify-error",
+      "kind": "outcome",
+      "label": "error"
+    },
+    {
+      "from": "notify-error",
+      "to": "send-confirmation",
+      "kind": "action",
+      "label": "Retry delivery"
+    },
+    {
+      "from": "notify-error",
+      "to": "gave-up",
+      "kind": "action",
+      "label": "Give up"
+    }
+  ],
+  "terminals": [
+    "notified",
+    "gave-up"
+  ],
+  "finalOutcomes": [
+    "success",
+    "failure"
+  ],
+  "services": [
+    "notification"
+  ],
+  "operations": [
+    "notification.send-confirmation"
+  ],
+  "events": [
+    "BookingCreated"
+  ],
+  "subflows": [],
+  "stats": {
+    "steps": 7,
+    "byType": {
+      "page": 0,
+      "decision": 1,
+      "operation": 2,
+      "event": 1,
+      "wait": 0,
+      "subflow": 0,
+      "parallel": 0,
+      "error": 1,
+      "final": 2
+    },
+    "transitions": 9,
+    "actors": 2,
+    "finalOutcomes": [
+      "success",
+      "failure"
+    ]
+  }
+}

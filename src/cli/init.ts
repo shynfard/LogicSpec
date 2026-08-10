@@ -19,7 +19,7 @@ catalogs:
   events: ./events.yaml
 
 output:
-  directory: ./generated
+  directory: ./.logicspec
 
 render:
   view: flow
@@ -142,7 +142,7 @@ export function runInit(options: InitCommandOptions = {}): number {
     ["services.yaml", SERVICES_TEMPLATE],
     ["events.yaml", EVENTS_TEMPLATE],
     [path.join("features", "signup.feature.yaml"), FEATURE_TEMPLATE],
-    [path.join("generated", ".gitkeep"), ""],
+    [path.join(".logicspec", ".gitkeep"), ""],
   ];
 
   for (const [relative, content] of files) {

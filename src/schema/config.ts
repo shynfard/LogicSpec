@@ -22,9 +22,9 @@ export const configSchema = z.strictObject({
     .optional(),
   output: z
     .strictObject({
-      directory: z.string().default("./generated"),
+      directory: z.string().default("./.logicspec"),
     })
-    .default({ directory: "./generated" }),
+    .default({ directory: "./.logicspec" }),
   render: z
     .strictObject({
       view: renderViewSchema.default("flow"),

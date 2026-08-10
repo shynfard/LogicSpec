@@ -4,6 +4,7 @@ import { Command, CommanderError } from "commander";
 import { runMcpServer } from "../mcp/stdio.js";
 import type { RenderDirection, RenderView } from "../schema/config.js";
 import { runDiff } from "./diff.js";
+import { runExport } from "./export.js";
 import { runGraph } from "./graph.js";
 import { runInit } from "./init.js";
 import { runInspect } from "./inspect.js";
@@ -97,6 +98,15 @@ export function buildProgram(): Command {
     .argument("[dir]", "directory to watch (default: current workspace)")
     .action((dir: string | undefined) => {
       process.exitCode = runWatch(dir);
+    });
+
+  program
+    .command("export")
+    .description("build the full workspace artifact set into the output directory (.logicspec/)")
+    .argument("[dir]", "workspace directory (default: current)")
+    .option("--output <path>", "output directory (default: workspace output directory)")
+    .action((dir: string | undefined, options: { output?: string }) => {
+      process.exitCode = runExport(dir, options);
     });
 
   program

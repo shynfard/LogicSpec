@@ -43,6 +43,9 @@ jobs:
       - name: CLI smoke — workspace graph
         run: node dist/cli/main.js graph examples/booking --output /tmp/ls-ci
 
+      - name: CLI smoke — workspace export
+        run: node dist/cli/main.js export examples/booking --output /tmp/ls-ci-export
+
       - name: CLI smoke — inspect JSON
         run: node dist/cli/main.js inspect examples/booking/booking.feature.yaml --json > /dev/null
 

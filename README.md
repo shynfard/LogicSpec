@@ -86,7 +86,7 @@ mkdir my-flows && cd my-flows
 
 logicspec init                                  # scaffold config, catalogs, example feature
 logicspec validate features/signup.feature.yaml # validate one file (or a directory)
-logicspec render features/signup.feature.yaml   # generate generated/signup.md with a Mermaid diagram
+logicspec render features/signup.feature.yaml   # generate .logicspec/signup.md with a Mermaid diagram
 logicspec watch                                 # re-validate and re-render on every save
 ```
 
@@ -168,7 +168,7 @@ flowchart TD
 
 Shapes and the type marker in each label carry the meaning, so diagrams stay readable in light themes, dark themes, print, and monochrome.
 
-A complete workspace lives in [`examples/booking/`](examples/booking/): two features (a booking flow and an event-driven notification flow), service and event catalogs linked to OpenAPI/AsyncAPI documents, severity overrides in the config, and generated output including the [workspace dependency graph](examples/booking/generated/dependencies.md).
+A complete workspace lives in [`examples/booking/`](examples/booking/): two features (a booking flow and an event-driven notification flow), service and event catalogs linked to OpenAPI/AsyncAPI documents, severity overrides in the config, and generated output including the [workspace dependency graph](examples/booking/.logicspec/dependencies.md).
 
 ## The nine step types
 
@@ -190,7 +190,7 @@ The vocabulary is deliberately closed — no custom step types. Organization-spe
 
 ### `logicspec init`
 
-Scaffolds a workspace: `logicspec.config.yaml`, `features/`, `services.yaml`, `events.yaml`, `generated/`, and a working example feature. Never overwrites existing files.
+Scaffolds a workspace: `logicspec.config.yaml`, `features/`, `services.yaml`, `events.yaml`, `.logicspec/`, and a working example feature. Never overwrites existing files.
 
 ### `logicspec validate [paths...]`
 
@@ -233,7 +233,7 @@ Options:
 | `--view` | `flow`; experimental: `swimlane`, `sequence`, `event-model` | config `render.view`, else `flow` |
 | `--format` | `md`, `mermaid` (bare `.mmd`) | `md` |
 | `--direction` | `TD`, `TB`, `LR`, `RL`, `BT` | config `render.direction`, else `TD` |
-| `--output` | file or directory | config `output.directory`, else `./generated` |
+| `--output` | file or directory | config `output.directory`, else `./.logicspec` |
 
 The four views answer different questions — flow: *what happens*, swimlane: *who does it*, sequence: *how actors interact*, event-model: *interface / logic / events / outcomes*. See [docs/views.md](docs/views.md).
 
@@ -245,9 +245,24 @@ Human-readable summary of a feature: actors, steps by type, operations called, e
 
 Watches the workspace. On every save: parse → validate → print diagnostics → regenerate diagrams *only if valid*. Changing a feature also re-renders every feature that invokes it as a subflow; catalog or config changes re-render everything.
 
+### `logicspec export [dir]`
+
+Builds the complete workspace artifact set into the output directory (default `.logicspec/` — the project's build folder, like `.next`):
+
+```text
+.logicspec/
+  booking.md          rendered diagram per feature
+  booking.json        stable machine-readable model per feature
+  dependencies.md     workspace dependency graph
+  workspace.json      index: features, validity, services, events
+  diagnostics.json    every finding across the workspace
+```
+
+Invalid features never overwrite their previous artifacts; their findings land in `diagnostics.json` and the exit code. Commit the folder if you want the diagrams reviewable on GitHub, or ignore it like any build output — both work.
+
 ### `logicspec graph [dir]`
 
-Renders the workspace dependency graph — features, their subflow relationships, and event publish/wait edges — to `generated/dependencies.md`. `--services` adds service nodes; `--format mermaid` writes a bare `.mmd`.
+Renders the workspace dependency graph — features, their subflow relationships, and event publish/wait edges — to `.logicspec/dependencies.md`. `--services` adds service nodes; `--format mermaid` writes a bare `.mmd`.
 
 ```mermaid
 flowchart LR
@@ -290,7 +305,7 @@ catalogs:
   events: ./events.yaml
 
 output:
-  directory: ./generated
+  directory: ./.logicspec
 
 render:
   view: flow          # flow | swimlane | sequence | event-model

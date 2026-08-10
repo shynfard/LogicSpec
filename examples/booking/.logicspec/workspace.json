@@ -1,0 +1,25 @@
+{
+  "features": [
+    {
+      "id": "booking",
+      "file": "examples/booking/booking.feature.yaml",
+      "valid": true,
+      "name": "Booking"
+    },
+    {
+      "id": "notify-booking",
+      "file": "examples/booking/notify-booking.feature.yaml",
+      "valid": true,
+      "name": "Booking Notification"
+    }
+  ],
+  "services": [
+    "booking",
+    "payment",
+    "notification"
+  ],
+  "events": [
+    "BookingCreated",
+    "PaymentCompleted"
+  ]
+}

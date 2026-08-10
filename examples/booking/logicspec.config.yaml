@@ -8,7 +8,7 @@ catalogs:
   events: ./events.yaml
 
 output:
-  directory: ./generated
+  directory: ./.logicspec
 
 render:
   view: flow

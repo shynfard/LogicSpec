@@ -1,0 +1,33 @@
+{
+  "files": [
+    {
+      "file": "/home/sfard/Codes/Private/LogicSpec/examples/booking/logicspec.config.yaml",
+      "diagnostics": []
+    },
+    {
+      "file": "examples/booking/booking.feature.yaml",
+      "diagnostics": [
+        {
+          "code": "LS400",
+          "name": "NO_FAILURE_OUTCOME",
+          "severity": "info",
+          "message": "Feature \"booking\" declares no failure outcome. Consider whether every path really ends in success/cancelled.",
+          "file": "examples/booking/booking.feature.yaml",
+          "path": [
+            "steps"
+          ],
+          "location": {
+            "line": 55,
+            "column": 3,
+            "endLine": 260,
+            "endColumn": 1
+          }
+        }
+      ]
+    },
+    {
+      "file": "examples/booking/notify-booking.feature.yaml",
+      "diagnostics": []
+    }
+  ]
+}

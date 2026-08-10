@@ -2,7 +2,7 @@
 
 > **GENERATED FILE — DO NOT EDIT.**
 >
-> Regenerate with `logicspec graph`.
+> Regenerate with `logicspec export`.
 
 ```mermaid
 flowchart LR

@@ -99,7 +99,7 @@ events:
 version: "1"
 features: { directory: ./features }
 catalogs: { services: ./services.yaml, events: ./events.yaml }
-output: { directory: ./generated }
+output: { directory: ./.logicspec }
 render: { view: flow, direction: TD }   # views: flow swimlane sequence event-model
 diagnostics: { LS402: "off" }           # per-code: error|warning|info|off
 ```
@@ -108,6 +108,7 @@ diagnostics: { LS402: "off" }           # per-code: error|warning|info|off
 
 `logicspec init` · `validate [paths] [--strict] [--json]` (no paths = whole
 workspace) · `render <paths> [--view] [--format md|mermaid] [--direction]
-[--output]` · `inspect <paths> [--json]` · `watch [dir]` · `graph [dir]` ·
+[--output]` · `export [dir]` (full artifact build into `.logicspec/`) ·
+`inspect <paths> [--json]` · `watch [dir]` · `graph [dir]` ·
 `diff <before> <after> [--json]` · `mcp [dir]`.
 Exit codes: 0 ok · 1 validation errors · 2 parse/config/usage.

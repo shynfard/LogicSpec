@@ -35,6 +35,10 @@ Roadmap milestones v0.2 through v0.5 in one release.
   transitions, actors, context, outcomes), `--json` for tooling.
 - `logicspec validate` with no paths validates the whole workspace;
   `--json` emits a stable machine-readable report.
+- `logicspec export` — full workspace artifact build (per-feature Markdown
+  and JSON models, dependency graph, workspace index, diagnostics) into the
+  output directory, which now defaults to `.logicspec/` (a root dot-folder
+  in the `.next` tradition; previously `./generated`).
 - `logicspec watch` re-renders subflow dependents of a changed feature.
 
 ### Integrations
