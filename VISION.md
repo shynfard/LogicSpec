@@ -32,7 +32,7 @@ tool, not a workflow engine.
 Each milestone is **evidence-gated**: the next one starts when the current one's gate
 is met, not when the calendar says so.
 
-### M0 — Drift gate (repo: [`logicspec-action`](https://github.com/LogicSpec-io/logicspec-action))
+### M0 — Drift gate (repo: `logicspec-action`, created when M0 starts)
 
 The validator in every PR. A GitHub Action that discovers `features/**/*.feature.yaml`,
 runs `validate --strict` and semantic `diff` against the base branch, posts one PR
@@ -65,7 +65,7 @@ commercial features under a separate license, gated by a signed license key.
 
 *Gate:* external self-host deployments + a team asking for hosted.
 
-### M2 — Cloud (repos: `platform/ee`, private [`cloud`](https://github.com/LogicSpec-io/cloud))
+### M2 — Cloud (repos: `platform/ee`, plus a private `cloud` repo created when M2 starts)
 
 The hosted product at app.logicspec.io: multi-tenant orgs and roles, spec review flow
 (propose → semantic diff → approve → merge PR), hosted git for teams without a remote,
@@ -90,12 +90,12 @@ A public spec registry, Artifact Hub model — metadata-only, links back to sour
 
 | Repo | Role | License | When |
 |---|---|---|---|
-| `logicspec` | Core toolchain (this repo; transfer into the org planned) | Apache-2.0 | shipped |
-| `website` | logicspec.io — landing + docs (docs sourced from this repo) | Apache-2.0 | now |
-| `logicspec-action` | PR drift gate | Apache-2.0 | M0 |
-| `platform` | Self-host CE + `ee/` commercial | AGPL-3.0 proposed | M1 |
-| `cloud` | IaC/secrets for app.logicspec.io — zero app code | private | M2 |
-| `hub` | Public spec registry | AGPL-3.0 proposed | M3 |
+| [`logicspec`](https://github.com/LogicSpec-io/logicspec) | Core toolchain | Apache-2.0 | shipped |
+| [`website`](https://github.com/LogicSpec-io/website) | logicspec.io — landing + docs (docs sourced from the core repo) | Apache-2.0 | now |
+| `logicspec-action` | PR drift gate — repo created when M0 starts | Apache-2.0 | M0 |
+| [`platform`](https://github.com/LogicSpec-io/platform) | Self-host CE + `ee/` commercial | AGPL-3.0 proposed | M1 |
+| `cloud` | IaC/secrets for app.logicspec.io — zero app code; private, created when M2 starts | private | M2 |
+| [`hub`](https://github.com/LogicSpec-io/hub) | Public spec registry | AGPL-3.0 proposed | M3 |
 
 ## Principles
 
