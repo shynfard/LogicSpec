@@ -65,6 +65,7 @@ export { type InspectReport, inspectFeature } from "./inspect.js";
 // MCP server (Node-only)
 export { createMcpHandler, type McpServerOptions } from "./mcp/server.js";
 export { runMcpServer } from "./mcp/stdio.js";
+export { parseDefinitions } from "./parser/parse-definitions.js";
 export { parseEvents } from "./parser/parse-events.js";
 // Parsing
 export { type ParseOptions, type ParseResult, parseFeature } from "./parser/parse-feature.js";
@@ -83,6 +84,11 @@ export {
 } from "./renderers/workspace-graph.js";
 export type { LogicSpecConfig, RenderDirection, RenderView } from "./schema/config.js";
 export { CONFIG_FILE_NAME } from "./schema/config.js";
+export {
+  DEFINITIONS_FILE_NAME,
+  type DefinitionSection,
+  type DefinitionsFile,
+} from "./schema/definitions.js";
 export type { EventDefinition, EventsFile } from "./schema/events.js";
 // Schema types
 export {

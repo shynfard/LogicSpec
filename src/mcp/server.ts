@@ -86,6 +86,7 @@ function loadFeatureEntry(ref: WorkspaceFeatureRef, context: ToolContext): Featu
     file,
     services: workspace.services,
     events: workspace.events,
+    definitions: workspace.definitions,
     knownFlows: workspace.knownFlows,
   });
   const id = fallbackId(ref);

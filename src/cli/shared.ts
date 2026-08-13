@@ -131,6 +131,7 @@ export function validateTarget(
     file: target.display,
     services: workspace.services,
     events: workspace.events,
+    definitions: workspace.definitions,
     knownFlows: workspace.knownFlows,
     flowOutcomes: workspace.flowOutcomes,
     severityOverrides: workspace.config.diagnostics,

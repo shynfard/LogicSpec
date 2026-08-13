@@ -1,0 +1,148 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://logicspec.dev/schemas/v1/definitions.schema.json",
+  "title": "LogicSpec Shared Definitions",
+  "description": "A LogicSpec shared-definitions catalog (definitions.yaml).",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1",
+      "description": "LogicSpec DSL version. Must be the string \"1\"."
+    },
+    "actors": {
+      "description": "Named reusable actor definitions, referenced by features via $ref.",
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+      },
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "$ref": {
+                "type": "string",
+                "description": "Intra-workspace reference \"definitions#/actors/<name>\" or \"definitions#/steps/<name>\"."
+              }
+            },
+            "required": [
+              "$ref"
+            ],
+            "additionalProperties": {}
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "user",
+                  "frontend",
+                  "service",
+                  "broker",
+                  "external",
+                  "system",
+                  "agent"
+                ],
+                "description": "What kind of participant this actor is. `agent` marks an autonomous AI agent actor."
+              },
+              "label": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "steps": {
+      "description": "Named reusable step-template definitions, referenced by features via $ref.",
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+      },
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "$ref": {
+                "type": "string",
+                "description": "Intra-workspace reference \"definitions#/actors/<name>\" or \"definitions#/steps/<name>\"."
+              }
+            },
+            "required": [
+              "$ref"
+            ],
+            "additionalProperties": {}
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Step type this template expands to (page/decision/operation/…). Validated after the caller merges local overrides."
+              },
+              "label": {
+                "description": "Display label. May be overridden at the call site.",
+                "type": "string"
+              },
+              "actor": {
+                "description": "Actor responsible for the step.",
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+              },
+              "description": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "notes": {
+                "type": "string"
+              },
+              "extensions": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                },
+                "additionalProperties": {},
+                "description": "Namespaced extension metadata. Ignored by core validation."
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "additionalProperties": {}
+          }
+        ]
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+      },
+      "additionalProperties": {},
+      "description": "Namespaced extension metadata. Ignored by core validation."
+    }
+  },
+  "required": [
+    "version"
+  ],
+  "additionalProperties": false
+}

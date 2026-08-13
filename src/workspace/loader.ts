@@ -2,11 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { CODES } from "../diagnostics/codes.js";
 import { type Diagnostic, makeDiagnostic } from "../diagnostics/diagnostic.js";
+import { parseDefinitions } from "../parser/parse-definitions.js";
 import { parseEvents } from "../parser/parse-events.js";
 import { parseFeature } from "../parser/parse-feature.js";
 import { parseServices } from "../parser/parse-services.js";
 import { loadYaml, type PathLocator } from "../parser/yaml.js";
 import type { LogicSpecConfig } from "../schema/config.js";
+import type { DefinitionsFile } from "../schema/definitions.js";
 import type { EventsFile } from "../schema/events.js";
 import type { ServicesFile } from "../schema/services.js";
 import { loadConfig } from "./config.js";
@@ -56,6 +58,8 @@ export interface Workspace {
   config: LogicSpecConfig;
   services?: ServicesFile;
   events?: EventsFile;
+  /** Shared-definitions catalog (definitions.yaml) for `$ref` reuse, when configured. */
+  definitions?: DefinitionsFile;
   features: WorkspaceFeatureRef[];
   /** Feature ids and file stems usable as subflow targets. Undefined without a config. */
   knownFlows?: ReadonlySet<string>;
@@ -66,9 +70,9 @@ export interface Workspace {
   /** AsyncAPI documents referenced from the event catalog, keyed by absolute path. */
   asyncApiDocuments: Map<string, AsyncApiDocument>;
   /** Locators for the catalog files, for catalog-level diagnostics. */
-  catalogLocators: { services?: PathLocator; events?: PathLocator };
+  catalogLocators: { services?: PathLocator; events?: PathLocator; definitions?: PathLocator };
   /** Paths of the catalog files, when configured. */
-  catalogPaths: { services?: string; events?: string };
+  catalogPaths: { services?: string; events?: string; definitions?: string };
   diagnostics: Diagnostic[];
 }
 
@@ -226,7 +230,10 @@ function loadAsyncApiDocument(
   return { channels };
 }
 
-function collectFlowRefs(featurePath: string): Omit<WorkspaceFeatureRef, "path"> {
+function collectFlowRefs(
+  featurePath: string,
+  definitions: DefinitionsFile | undefined,
+): Omit<WorkspaceFeatureRef, "path"> {
   const empty: Omit<WorkspaceFeatureRef, "path"> = {
     outcomes: [],
     flows: [],
@@ -235,7 +242,10 @@ function collectFlowRefs(featurePath: string): Omit<WorkspaceFeatureRef, "path">
     services: [],
   };
   try {
-    const parsed = parseFeature(fs.readFileSync(featurePath, "utf8"), { file: featurePath });
+    const parsed = parseFeature(fs.readFileSync(featurePath, "utf8"), {
+      file: featurePath,
+      definitions,
+    });
     if (!parsed.data) return empty;
     const outcomes = new Set<string>();
     const flows = new Set<string>();
@@ -286,6 +296,7 @@ export function loadWorkspace(startDir: string): Workspace {
 
   let services: ServicesFile | undefined;
   let events: EventsFile | undefined;
+  let definitions: DefinitionsFile | undefined;
   let features: WorkspaceFeatureRef[] = [];
   let knownFlows: Set<string> | undefined;
   let flowOutcomes: Map<string, ReadonlySet<string>> | undefined;
@@ -382,6 +393,24 @@ export function loadWorkspace(startDir: string): Workspace {
       }
     }
 
+    if (config.catalogs?.definitions) {
+      const definitionsPath = path.resolve(root, config.catalogs.definitions);
+      if (!isWithinRoot(root, definitionsPath)) {
+        diagnostics.push(
+          makeDiagnostic(CODES.UNSAFE_WORKSPACE_PATH, {
+            message: `Definitions catalog path "${config.catalogs.definitions}" resolves outside the workspace root; refusing to read it.`,
+            file: configPath,
+            path: ["catalogs", "definitions"],
+          }),
+        );
+      } else {
+        const catalog = loadCatalog(definitionsPath, parseDefinitions, diagnostics);
+        definitions = catalog.data;
+        catalogLocators.definitions = catalog.locate;
+        catalogPaths.definitions = definitionsPath;
+      }
+    }
+
     const featuresDir = path.resolve(root, config.features.directory);
     if (!isWithinRoot(root, featuresDir)) {
       diagnostics.push(
@@ -394,7 +423,7 @@ export function loadWorkspace(startDir: string): Workspace {
     } else {
       features = findFeatureFiles(featuresDir).map((filePath) => ({
         path: filePath,
-        ...collectFlowRefs(filePath),
+        ...collectFlowRefs(filePath, definitions),
       }));
     }
 
@@ -417,6 +446,7 @@ export function loadWorkspace(startDir: string): Workspace {
     config,
     services,
     events,
+    definitions,
     features,
     knownFlows,
     flowOutcomes,

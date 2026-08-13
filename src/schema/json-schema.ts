@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { definitionsFileSchema } from "./definitions.js";
 import { eventsFileSchema } from "./events.js";
-import { featureFileSchema } from "./feature.js";
+import { featureFileSchemaWithRefs } from "./feature.js";
 import { servicesFileSchema } from "./services.js";
 
 export interface GeneratedSchema {
@@ -38,7 +39,7 @@ export function generateJsonSchemas(): GeneratedSchema[] {
       "feature.schema.json",
       "LogicSpec Feature",
       "A LogicSpec feature specification (*.feature.yaml).",
-      featureFileSchema,
+      featureFileSchemaWithRefs,
     ),
     generate(
       "services.schema.json",
@@ -51,6 +52,12 @@ export function generateJsonSchemas(): GeneratedSchema[] {
       "LogicSpec Event Catalog",
       "A LogicSpec event catalog (events.yaml).",
       eventsFileSchema,
+    ),
+    generate(
+      "definitions.schema.json",
+      "LogicSpec Shared Definitions",
+      "A LogicSpec shared-definitions catalog (definitions.yaml).",
+      definitionsFileSchema,
     ),
   ];
 }

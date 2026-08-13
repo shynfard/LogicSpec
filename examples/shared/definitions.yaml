@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=../../schemas/definitions.schema.json
+version: "1"
+
+# Shared definitions reused across features via $ref. Features reference these
+# with "definitions#/actors/<name>" and "definitions#/steps/<name>". They are
+# expanded into concrete actors/steps on load — nothing here is executed.
+
+actors:
+
+  notifier:
+    kind: service
+    label: Notification Service
+    description: Sends transactional messages to the customer.
+
+steps:
+
+  # A reusable STEP TEMPLATE: a step body without an id and without a
+  # transition. Each caller supplies the id (via its map key) and the outgoing
+  # `next`/`on`, and may override the label or any other field (local wins).
+  send-notification:
+    type: operation
+    label: Send Notification
+    actor: notifier
+    description: Deliver a message to the customer.

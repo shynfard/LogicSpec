@@ -532,6 +532,55 @@ export const featureFileSchema = z.strictObject({
   extensions: extensionsSchema.optional(),
 });
 
+// ── Shared-definition references ($ref) ──────────────────────────────────────
+
+/**
+ * A reference to a shared actor definition, e.g.
+ * `{ $ref: "definitions#/actors/customer" }`. Resolved on load into the
+ * concrete actor before validation; the strict schemas below never see it. The
+ * `$ref` string's syntax and target are checked during expansion (LS110/LS111).
+ */
+export const actorRefSchema = z.strictObject({
+  $ref: z.string().describe('Reference to a shared actor: "definitions#/actors/<name>".'),
+});
+
+/**
+ * A reference to a shared step template, e.g.
+ * `{ $ref: "definitions#/steps/notify", actor: "web" }`. Loose: extra keys are
+ * local overrides that shallow-merge over the template (local wins). Resolved
+ * on load; the merged result is validated against the strict step schema.
+ */
+export const stepRefSchema = z.looseObject({
+  $ref: z
+    .string()
+    .describe(
+      'Reference to a shared step template: "definitions#/steps/<name>". Extra keys override the template (local wins).',
+    ),
+});
+
+/** A feature actor value: a concrete actor OR a `$ref` to a shared one. */
+export const actorOrRefSchema = z.union([actorRefSchema, actorSchema]);
+
+/** A feature step value: a concrete step OR a `$ref` to a shared step template. */
+export const stepOrRefSchema = z.union([stepRefSchema, stepSchema]);
+
+/**
+ * The feature schema as authored on disk, where `actors` and `steps` values may
+ * be `$ref`s. Used ONLY to generate the shipped JSON Schema so editors accept
+ * `$ref`; the runtime parser expands `$ref`s first and then validates against
+ * the strict `featureFileSchema`, which never contains references.
+ */
+export const featureFileSchemaWithRefs = z.strictObject({
+  ...featureFileSchema.shape,
+  actors: z
+    .record(identifierSchema, actorOrRefSchema)
+    .optional()
+    .describe("Actors, each a declaration or a $ref to a shared actor definition."),
+  steps: z
+    .record(identifierSchema, stepOrRefSchema)
+    .describe("Steps, each a declaration or a $ref to a shared step template."),
+});
+
 export type BoundaryHandler = z.infer<typeof boundaryHandlerSchema>;
 export type PageAction = z.infer<typeof pageActionSchema>;
 export type PageLoad = z.infer<typeof pageLoadSchema>;

@@ -5,6 +5,7 @@ import { buildGraph, type FeatureGraph } from "../graph/edges.js";
 import { type NormalizedFeature, normalizeFeature } from "../graph/normalize.js";
 import { parseFeature } from "../parser/parse-feature.js";
 import { zodIssuesToDiagnostics } from "../parser/zod-issues.js";
+import type { DefinitionsFile } from "../schema/definitions.js";
 import { type FeatureFile, featureFileSchema } from "../schema/feature.js";
 import { type SemanticContext, validateSemantics } from "./semantic.js";
 import { computeStats, type FeatureStats } from "./stats.js";
@@ -39,6 +40,8 @@ export function applySeverityOverrides(
 export interface ValidateOptions extends Omit<SemanticContext, "locate"> {
   /** Per-code severity overrides, usually from logicspec.config.yaml. */
   severityOverrides?: SeverityOverrides;
+  /** Shared-definitions catalog for resolving `$ref`s (workspace `catalogs.definitions`). */
+  definitions?: DefinitionsFile;
 }
 
 export interface ValidationResult {
@@ -74,7 +77,7 @@ export function validateFeature(
   let locate: SemanticContext["locate"];
 
   if (typeof input === "string") {
-    const parsed = parseFeature(input, { file: options.file });
+    const parsed = parseFeature(input, { file: options.file, definitions: options.definitions });
     diagnostics = [...parsed.diagnostics];
     if (parsed.data === undefined) {
       return { valid: false, diagnostics };

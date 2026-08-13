@@ -18,6 +18,10 @@ export const configSchema = z.strictObject({
     .strictObject({
       services: z.string().optional(),
       events: z.string().optional(),
+      definitions: z
+        .string()
+        .optional()
+        .describe("Path to the shared-definitions catalog (definitions.yaml) for $ref reuse."),
     })
     .optional(),
   output: z

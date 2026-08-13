@@ -76,6 +76,24 @@ export const CODES = {
     "error",
     "An asyncapi reference points to a channel missing from the AsyncAPI document.",
   ),
+  UNKNOWN_REF: code(
+    "LS110",
+    "UNKNOWN_REF",
+    "error",
+    "A $ref points to a shared definition that does not exist.",
+  ),
+  INVALID_REF: code(
+    "LS111",
+    "INVALID_REF",
+    "error",
+    "A $ref string is malformed or targets the wrong definition section.",
+  ),
+  REF_CYCLE: code(
+    "LS112",
+    "REF_CYCLE",
+    "error",
+    "Shared definitions reference each other in a cycle.",
+  ),
 
   // ── Graph analysis ────────────────────────────────────────────────────────
   UNREACHABLE_STEP: code(

@@ -45,38 +45,56 @@
       "description": "Id of the first step."
     },
     "actors": {
+      "description": "Actors, each a declaration or a $ref to a shared actor definition.",
       "type": "object",
       "propertyNames": {
         "type": "string",
         "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
       },
       "additionalProperties": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "type": "string",
-            "enum": [
-              "user",
-              "frontend",
-              "service",
-              "broker",
-              "external",
-              "system",
-              "agent"
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "$ref": {
+                "type": "string",
+                "description": "Reference to a shared actor: \"definitions#/actors/<name>\"."
+              }
+            },
+            "required": [
+              "$ref"
             ],
-            "description": "What kind of participant this actor is. `agent` marks an autonomous AI agent actor."
+            "additionalProperties": false
           },
-          "label": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "user",
+                  "frontend",
+                  "service",
+                  "broker",
+                  "external",
+                  "system",
+                  "agent"
+                ],
+                "description": "What kind of participant this actor is. `agent` marks an autonomous AI agent actor."
+              },
+              "label": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "additionalProperties": false
           }
-        },
-        "required": [
-          "kind"
-        ],
-        "additionalProperties": false
+        ]
       }
     },
     "context": {
@@ -118,792 +136,449 @@
         "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
       },
       "additionalProperties": {
-        "oneOf": [
+        "anyOf": [
           {
             "type": "object",
             "properties": {
-              "type": {
+              "$ref": {
                 "type": "string",
-                "const": "page"
-              },
-              "label": {
-                "description": "Display label. Defaults to the step id.",
-                "type": "string"
-              },
-              "actor": {
-                "description": "Actor responsible for this step.",
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-              },
-              "description": {
-                "type": "string"
-              },
-              "tags": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "notes": {
-                "type": "string"
-              },
-              "boundary": {
-                "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
-                "maxItems": 1000,
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "eventKind": {
-                      "type": "string",
-                      "enum": [
-                        "timer",
-                        "message",
-                        "signal",
-                        "error",
-                        "conditional"
-                      ],
-                      "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
-                    },
-                    "interrupting": {
-                      "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
-                      "type": "boolean"
-                    },
-                    "after": {
-                      "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "at": {
-                      "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "every": {
-                      "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "event": {
-                      "description": "Event name for a message/signal boundary, resolved against the event catalog.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                    },
-                    "name": {
-                      "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "when": {
-                      "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "label": {
-                      "description": "Optional display label for the boundary edge.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "next": {
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
-                      "description": "Target step id the boundary diverts to."
-                    }
-                  },
-                  "required": [
-                    "eventKind",
-                    "next"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "extensions": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string",
-                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
-                },
-                "additionalProperties": {},
-                "description": "Namespaced extension metadata. Ignored by core validation."
-              },
-              "route": {
-                "description": "Frontend route, e.g. /booking/checkout.",
-                "type": "string"
-              },
-              "requires": {
-                "description": "Context needed before entering.",
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                }
-              },
-              "states": {
-                "description": "Local UI states (not workflow steps).",
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                }
-              },
-              "load": {
-                "description": "Background data loads for this page.",
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "call": {
-                      "type": "string",
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*\\.[A-Za-z][A-Za-z0-9_-]*$",
-                      "description": "Operation used to load page data."
-                    },
-                    "on": {
-                      "description": "Maps load outcomes to LOCAL page states (not workflow steps).",
-                      "type": "object",
-                      "propertyNames": {
-                        "type": "string",
-                        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                      },
-                      "additionalProperties": {
-                        "type": "string",
-                        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                      }
-                    }
-                  },
-                  "required": [
-                    "call"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "actions": {
-                "description": "Things the user can do on this page.",
-                "type": "object",
-                "propertyNames": {
-                  "type": "string",
-                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                },
-                "additionalProperties": {
-                  "type": "object",
-                  "properties": {
-                    "label": {
-                      "description": "Display label. Defaults to the action id.",
-                      "type": "string"
-                    },
-                    "when": {
-                      "description": "Descriptive transition guard. Never evaluated.",
-                      "type": "string"
-                    },
-                    "requires": {
-                      "description": "Context needed for this action.",
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                      }
-                    },
-                    "produces": {
-                      "description": "Context produced by this action.",
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                      }
-                    },
-                    "next": {
-                      "type": "string",
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
-                      "description": "Target step id."
-                    }
-                  },
-                  "required": [
-                    "next"
-                  ],
-                  "additionalProperties": false
-                }
+                "description": "Reference to a shared step template: \"definitions#/steps/<name>\". Extra keys override the template (local wins)."
               }
             },
             "required": [
-              "type"
+              "$ref"
             ],
-            "additionalProperties": false
+            "additionalProperties": {}
           },
           {
-            "type": "object",
-            "properties": {
-              "type": {
-                "type": "string",
-                "const": "decision"
-              },
-              "label": {
-                "description": "Display label. Defaults to the step id.",
-                "type": "string"
-              },
-              "actor": {
-                "description": "Actor responsible for this step.",
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-              },
-              "description": {
-                "type": "string"
-              },
-              "tags": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "notes": {
-                "type": "string"
-              },
-              "boundary": {
-                "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
-                "maxItems": 1000,
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "eventKind": {
-                      "type": "string",
-                      "enum": [
-                        "timer",
-                        "message",
-                        "signal",
-                        "error",
-                        "conditional"
-                      ],
-                      "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
-                    },
-                    "interrupting": {
-                      "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
-                      "type": "boolean"
-                    },
-                    "after": {
-                      "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "at": {
-                      "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "every": {
-                      "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "event": {
-                      "description": "Event name for a message/signal boundary, resolved against the event catalog.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                    },
-                    "name": {
-                      "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "when": {
-                      "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "label": {
-                      "description": "Optional display label for the boundary edge.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "next": {
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
-                      "description": "Target step id the boundary diverts to."
-                    }
-                  },
-                  "required": [
-                    "eventKind",
-                    "next"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "extensions": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string",
-                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
-                },
-                "additionalProperties": {},
-                "description": "Namespaced extension metadata. Ignored by core validation."
-              },
-              "expression": {
-                "description": "Descriptive expression. Never evaluated.",
-                "type": "string"
-              },
-              "cases": {
-                "maxItems": 1000,
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "label": {
-                      "type": "string"
-                    },
-                    "when": {
-                      "description": "Descriptive condition. Never evaluated.",
-                      "type": "string"
-                    },
-                    "next": {
-                      "type": "string",
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                    }
-                  },
-                  "required": [
-                    "next"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "decisionTable": {
-                "description": "A DMN-style decision table. Mutually exclusive with cases.",
+            "oneOf": [
+              {
                 "type": "object",
                 "properties": {
-                  "inputs": {
-                    "maxItems": 50,
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "description": "Input column headers — the things being tested, e.g. [\"age\", \"country\"]."
-                  },
-                  "outputs": {
-                    "maxItems": 50,
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "description": "Output column headers (at least one). A reserved \"next\" column names the target step; the rest are descriptive results, e.g. [\"tier\", \"next\"]."
-                  },
-                  "hitPolicy": {
-                    "description": "How matching rules combine. Declarative label, never evaluated. Defaults to \"unique\".",
+                  "type": {
                     "type": "string",
-                    "enum": [
-                      "unique",
-                      "first",
-                      "priority",
-                      "any",
-                      "collect",
-                      "ruleOrder",
-                      "outputOrder"
-                    ]
+                    "const": "page"
                   },
-                  "rules": {
+                  "label": {
+                    "description": "Display label. Defaults to the step id.",
+                    "type": "string"
+                  },
+                  "actor": {
+                    "description": "Actor responsible for this step.",
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "boundary": {
+                    "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
                     "maxItems": 1000,
                     "type": "array",
                     "items": {
                       "type": "object",
                       "properties": {
-                        "when": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "maxLength": 500
-                          },
-                          "description": "One predicate cell per input column, in order. \"-\" or \"\" means any. Never evaluated."
+                        "eventKind": {
+                          "type": "string",
+                          "enum": [
+                            "timer",
+                            "message",
+                            "signal",
+                            "error",
+                            "conditional"
+                          ],
+                          "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
                         },
-                        "then": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "maxLength": 500
-                          },
-                          "description": "One value cell per output column, in order. Never evaluated."
+                        "interrupting": {
+                          "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
+                          "type": "boolean"
+                        },
+                        "after": {
+                          "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "at": {
+                          "description": "Timer absolute date/time. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "every": {
+                          "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "event": {
+                          "description": "Event name for a message/signal boundary, resolved against the event catalog.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        "name": {
+                          "description": "Error name/code. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "when": {
+                          "description": "Conditional predicate. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "label": {
+                          "description": "Optional display label for the boundary edge.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "next": {
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                          "description": "Target step id the boundary diverts to."
                         }
                       },
                       "required": [
-                        "when",
-                        "then"
+                        "eventKind",
+                        "next"
                       ],
                       "additionalProperties": false
+                    }
+                  },
+                  "extensions": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
                     },
-                    "description": "Rule rows. Each row has one when-cell per input and one then-cell per output."
-                  }
-                },
-                "required": [
-                  "inputs",
-                  "outputs",
-                  "rules"
-                ],
-                "additionalProperties": false
-              },
-              "default": {
-                "type": "object",
-                "properties": {
-                  "label": {
+                    "additionalProperties": {},
+                    "description": "Namespaced extension metadata. Ignored by core validation."
+                  },
+                  "route": {
+                    "description": "Frontend route, e.g. /booking/checkout.",
                     "type": "string"
                   },
-                  "next": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
-                    "description": "Target step id."
+                  "requires": {
+                    "description": "Context needed before entering.",
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                    }
+                  },
+                  "states": {
+                    "description": "Local UI states (not workflow steps).",
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                    }
+                  },
+                  "load": {
+                    "description": "Background data loads for this page.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "call": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*\\.[A-Za-z][A-Za-z0-9_-]*$",
+                          "description": "Operation used to load page data."
+                        },
+                        "on": {
+                          "description": "Maps load outcomes to LOCAL page states (not workflow steps).",
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                          },
+                          "additionalProperties": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                          }
+                        }
+                      },
+                      "required": [
+                        "call"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "actions": {
+                    "description": "Things the user can do on this page.",
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                    },
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "description": "Display label. Defaults to the action id.",
+                          "type": "string"
+                        },
+                        "when": {
+                          "description": "Descriptive transition guard. Never evaluated.",
+                          "type": "string"
+                        },
+                        "requires": {
+                          "description": "Context needed for this action.",
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                          }
+                        },
+                        "produces": {
+                          "description": "Context produced by this action.",
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                          }
+                        },
+                        "next": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                          "description": "Target step id."
+                        }
+                      },
+                      "required": [
+                        "next"
+                      ],
+                      "additionalProperties": false
+                    }
                   }
                 },
                 "required": [
-                  "next"
+                  "type"
                 ],
                 "additionalProperties": false
-              }
-            },
-            "required": [
-              "type"
-            ],
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "properties": {
-              "type": {
-                "type": "string",
-                "const": "operation"
               },
-              "label": {
-                "description": "Display label. Defaults to the step id.",
-                "type": "string"
-              },
-              "actor": {
-                "description": "Actor responsible for this step.",
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-              },
-              "description": {
-                "type": "string"
-              },
-              "tags": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "notes": {
-                "type": "string"
-              },
-              "boundary": {
-                "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
-                "maxItems": 1000,
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "eventKind": {
-                      "type": "string",
-                      "enum": [
-                        "timer",
-                        "message",
-                        "signal",
-                        "error",
-                        "conditional"
-                      ],
-                      "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
-                    },
-                    "interrupting": {
-                      "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
-                      "type": "boolean"
-                    },
-                    "after": {
-                      "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "at": {
-                      "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "every": {
-                      "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "event": {
-                      "description": "Event name for a message/signal boundary, resolved against the event catalog.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                    },
-                    "name": {
-                      "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "when": {
-                      "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "label": {
-                      "description": "Optional display label for the boundary edge.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "next": {
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
-                      "description": "Target step id the boundary diverts to."
-                    }
-                  },
-                  "required": [
-                    "eventKind",
-                    "next"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "extensions": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string",
-                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
-                },
-                "additionalProperties": {},
-                "description": "Namespaced extension metadata. Ignored by core validation."
-              },
-              "call": {
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*\\.[A-Za-z][A-Za-z0-9_-]*$",
-                "description": "Service operation reference, e.g. \"booking.reserve-slot\"."
-              },
-              "requires": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                }
-              },
-              "produces": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                }
-              },
-              "next": {
-                "description": "Shorthand when there is a single outcome.",
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-              },
-              "on": {
-                "description": "Named outcomes, e.g. success / conflict / error.",
-                "type": "object",
-                "propertyNames": {
-                  "type": "string",
-                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                },
-                "additionalProperties": {
-                  "type": "object",
-                  "properties": {
-                    "label": {
-                      "type": "string"
-                    },
-                    "when": {
-                      "description": "Descriptive transition guard. Never evaluated.",
-                      "type": "string"
-                    },
-                    "next": {
-                      "type": "string",
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
-                      "description": "Target step id."
-                    }
-                  },
-                  "required": [
-                    "next"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            },
-            "required": [
-              "type"
-            ],
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "properties": {
-              "type": {
-                "type": "string",
-                "const": "event"
-              },
-              "label": {
-                "description": "Display label. Defaults to the step id.",
-                "type": "string"
-              },
-              "actor": {
-                "description": "Actor responsible for this step.",
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-              },
-              "description": {
-                "type": "string"
-              },
-              "tags": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "notes": {
-                "type": "string"
-              },
-              "boundary": {
-                "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
-                "maxItems": 1000,
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "eventKind": {
-                      "type": "string",
-                      "enum": [
-                        "timer",
-                        "message",
-                        "signal",
-                        "error",
-                        "conditional"
-                      ],
-                      "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
-                    },
-                    "interrupting": {
-                      "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
-                      "type": "boolean"
-                    },
-                    "after": {
-                      "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "at": {
-                      "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "every": {
-                      "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "event": {
-                      "description": "Event name for a message/signal boundary, resolved against the event catalog.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                    },
-                    "name": {
-                      "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "when": {
-                      "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "label": {
-                      "description": "Optional display label for the boundary edge.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "next": {
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
-                      "description": "Target step id the boundary diverts to."
-                    }
-                  },
-                  "required": [
-                    "eventKind",
-                    "next"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "extensions": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string",
-                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
-                },
-                "additionalProperties": {},
-                "description": "Namespaced extension metadata. Ignored by core validation."
-              },
-              "direction": {
-                "type": "string",
-                "enum": [
-                  "publish",
-                  "wait"
-                ]
-              },
-              "eventKind": {
-                "description": "Optional event classification (timer/message/signal/error/conditional).",
-                "type": "string",
-                "enum": [
-                  "timer",
-                  "message",
-                  "signal",
-                  "error",
-                  "conditional"
-                ]
-              },
-              "event": {
-                "description": "Event name for message/signal/generic events, resolved against the event catalog.",
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-              },
-              "after": {
-                "description": "Timer relative delay, using the wait duration format (e.g. 15m). Descriptive, never scheduled.",
-                "type": "string",
-                "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-              },
-              "at": {
-                "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                "type": "string"
-              },
-              "every": {
-                "description": "Timer recurring cadence, using the wait duration format (e.g. 1d). Descriptive, never scheduled.",
-                "type": "string",
-                "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-              },
-              "name": {
-                "description": "Error event name/code. Descriptive, never evaluated.",
-                "type": "string"
-              },
-              "when": {
-                "description": "Conditional event predicate. Descriptive, never evaluated.",
-                "type": "string"
-              },
-              "next": {
-                "description": "Used with direction: publish.",
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-              },
-              "on": {
-                "description": "Used with direction: wait.",
+              {
                 "type": "object",
                 "properties": {
-                  "received": {
+                  "type": {
+                    "type": "string",
+                    "const": "decision"
+                  },
+                  "label": {
+                    "description": "Display label. Defaults to the step id.",
+                    "type": "string"
+                  },
+                  "actor": {
+                    "description": "Actor responsible for this step.",
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "boundary": {
+                    "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "eventKind": {
+                          "type": "string",
+                          "enum": [
+                            "timer",
+                            "message",
+                            "signal",
+                            "error",
+                            "conditional"
+                          ],
+                          "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
+                        },
+                        "interrupting": {
+                          "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
+                          "type": "boolean"
+                        },
+                        "after": {
+                          "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "at": {
+                          "description": "Timer absolute date/time. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "every": {
+                          "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "event": {
+                          "description": "Event name for a message/signal boundary, resolved against the event catalog.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        "name": {
+                          "description": "Error name/code. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "when": {
+                          "description": "Conditional predicate. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "label": {
+                          "description": "Optional display label for the boundary edge.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "next": {
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                          "description": "Target step id the boundary diverts to."
+                        }
+                      },
+                      "required": [
+                        "eventKind",
+                        "next"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "extensions": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                    },
+                    "additionalProperties": {},
+                    "description": "Namespaced extension metadata. Ignored by core validation."
+                  },
+                  "expression": {
+                    "description": "Descriptive expression. Never evaluated.",
+                    "type": "string"
+                  },
+                  "cases": {
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "when": {
+                          "description": "Descriptive condition. Never evaluated.",
+                          "type": "string"
+                        },
+                        "next": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        }
+                      },
+                      "required": [
+                        "next"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "decisionTable": {
+                    "description": "A DMN-style decision table. Mutually exclusive with cases.",
+                    "type": "object",
+                    "properties": {
+                      "inputs": {
+                        "maxItems": 50,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "description": "Input column headers — the things being tested, e.g. [\"age\", \"country\"]."
+                      },
+                      "outputs": {
+                        "maxItems": 50,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "description": "Output column headers (at least one). A reserved \"next\" column names the target step; the rest are descriptive results, e.g. [\"tier\", \"next\"]."
+                      },
+                      "hitPolicy": {
+                        "description": "How matching rules combine. Declarative label, never evaluated. Defaults to \"unique\".",
+                        "type": "string",
+                        "enum": [
+                          "unique",
+                          "first",
+                          "priority",
+                          "any",
+                          "collect",
+                          "ruleOrder",
+                          "outputOrder"
+                        ]
+                      },
+                      "rules": {
+                        "maxItems": 1000,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "when": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "maxLength": 500
+                              },
+                              "description": "One predicate cell per input column, in order. \"-\" or \"\" means any. Never evaluated."
+                            },
+                            "then": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "maxLength": 500
+                              },
+                              "description": "One value cell per output column, in order. Never evaluated."
+                            }
+                          },
+                          "required": [
+                            "when",
+                            "then"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "description": "Rule rows. Each row has one when-cell per input and one then-cell per output."
+                      }
+                    },
+                    "required": [
+                      "inputs",
+                      "outputs",
+                      "rules"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "default": {
                     "type": "object",
                     "properties": {
                       "label": {
@@ -917,770 +592,1131 @@
                     },
                     "required": [
                       "next"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "operation"
+                  },
+                  "label": {
+                    "description": "Display label. Defaults to the step id.",
+                    "type": "string"
+                  },
+                  "actor": {
+                    "description": "Actor responsible for this step.",
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "boundary": {
+                    "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "eventKind": {
+                          "type": "string",
+                          "enum": [
+                            "timer",
+                            "message",
+                            "signal",
+                            "error",
+                            "conditional"
+                          ],
+                          "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
+                        },
+                        "interrupting": {
+                          "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
+                          "type": "boolean"
+                        },
+                        "after": {
+                          "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "at": {
+                          "description": "Timer absolute date/time. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "every": {
+                          "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "event": {
+                          "description": "Event name for a message/signal boundary, resolved against the event catalog.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        "name": {
+                          "description": "Error name/code. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "when": {
+                          "description": "Conditional predicate. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "label": {
+                          "description": "Optional display label for the boundary edge.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "next": {
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                          "description": "Target step id the boundary diverts to."
+                        }
+                      },
+                      "required": [
+                        "eventKind",
+                        "next"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "extensions": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                    },
+                    "additionalProperties": {},
+                    "description": "Namespaced extension metadata. Ignored by core validation."
+                  },
+                  "call": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*\\.[A-Za-z][A-Za-z0-9_-]*$",
+                    "description": "Service operation reference, e.g. \"booking.reserve-slot\"."
+                  },
+                  "requires": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                    }
+                  },
+                  "produces": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                    }
+                  },
+                  "next": {
+                    "description": "Shorthand when there is a single outcome.",
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                  },
+                  "on": {
+                    "description": "Named outcomes, e.g. success / conflict / error.",
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                    },
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "when": {
+                          "description": "Descriptive transition guard. Never evaluated.",
+                          "type": "string"
+                        },
+                        "next": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                          "description": "Target step id."
+                        }
+                      },
+                      "required": [
+                        "next"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "event"
+                  },
+                  "label": {
+                    "description": "Display label. Defaults to the step id.",
+                    "type": "string"
+                  },
+                  "actor": {
+                    "description": "Actor responsible for this step.",
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "boundary": {
+                    "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "eventKind": {
+                          "type": "string",
+                          "enum": [
+                            "timer",
+                            "message",
+                            "signal",
+                            "error",
+                            "conditional"
+                          ],
+                          "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
+                        },
+                        "interrupting": {
+                          "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
+                          "type": "boolean"
+                        },
+                        "after": {
+                          "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "at": {
+                          "description": "Timer absolute date/time. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "every": {
+                          "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "event": {
+                          "description": "Event name for a message/signal boundary, resolved against the event catalog.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        "name": {
+                          "description": "Error name/code. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "when": {
+                          "description": "Conditional predicate. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "label": {
+                          "description": "Optional display label for the boundary edge.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "next": {
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                          "description": "Target step id the boundary diverts to."
+                        }
+                      },
+                      "required": [
+                        "eventKind",
+                        "next"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "extensions": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                    },
+                    "additionalProperties": {},
+                    "description": "Namespaced extension metadata. Ignored by core validation."
+                  },
+                  "direction": {
+                    "type": "string",
+                    "enum": [
+                      "publish",
+                      "wait"
+                    ]
+                  },
+                  "eventKind": {
+                    "description": "Optional event classification (timer/message/signal/error/conditional).",
+                    "type": "string",
+                    "enum": [
+                      "timer",
+                      "message",
+                      "signal",
+                      "error",
+                      "conditional"
+                    ]
+                  },
+                  "event": {
+                    "description": "Event name for message/signal/generic events, resolved against the event catalog.",
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                  },
+                  "after": {
+                    "description": "Timer relative delay, using the wait duration format (e.g. 15m). Descriptive, never scheduled.",
+                    "type": "string",
+                    "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                  },
+                  "at": {
+                    "description": "Timer absolute date/time. Descriptive, never evaluated.",
+                    "type": "string"
+                  },
+                  "every": {
+                    "description": "Timer recurring cadence, using the wait duration format (e.g. 1d). Descriptive, never scheduled.",
+                    "type": "string",
+                    "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                  },
+                  "name": {
+                    "description": "Error event name/code. Descriptive, never evaluated.",
+                    "type": "string"
+                  },
+                  "when": {
+                    "description": "Conditional event predicate. Descriptive, never evaluated.",
+                    "type": "string"
+                  },
+                  "next": {
+                    "description": "Used with direction: publish.",
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                  },
+                  "on": {
+                    "description": "Used with direction: wait.",
+                    "type": "object",
+                    "properties": {
+                      "received": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "next": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                            "description": "Target step id."
+                          }
+                        },
+                        "required": [
+                          "next"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "timeout": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "next": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                            "description": "Target step id."
+                          }
+                        },
+                        "required": [
+                          "next"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "received"
                     ],
                     "additionalProperties": false
                   },
                   "timeout": {
-                    "type": "object",
-                    "properties": {
-                      "label": {
-                        "type": "string"
-                      },
-                      "next": {
-                        "type": "string",
-                        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
-                        "description": "Target step id."
-                      }
-                    },
-                    "required": [
-                      "next"
-                    ],
-                    "additionalProperties": false
+                    "description": "How long to wait before the timeout outcome.",
+                    "type": "string",
+                    "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                   }
                 },
                 "required": [
-                  "received"
+                  "type",
+                  "direction"
                 ],
                 "additionalProperties": false
               },
-              "timeout": {
-                "description": "How long to wait before the timeout outcome.",
-                "type": "string",
-                "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-              }
-            },
-            "required": [
-              "type",
-              "direction"
-            ],
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "properties": {
-              "type": {
-                "type": "string",
-                "const": "wait"
-              },
-              "label": {
-                "description": "Display label. Defaults to the step id.",
-                "type": "string"
-              },
-              "actor": {
-                "description": "Actor responsible for this step.",
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-              },
-              "description": {
-                "type": "string"
-              },
-              "tags": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "notes": {
-                "type": "string"
-              },
-              "boundary": {
-                "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
-                "maxItems": 1000,
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "eventKind": {
-                      "type": "string",
-                      "enum": [
-                        "timer",
-                        "message",
-                        "signal",
-                        "error",
-                        "conditional"
-                      ],
-                      "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
-                    },
-                    "interrupting": {
-                      "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
-                      "type": "boolean"
-                    },
-                    "after": {
-                      "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "at": {
-                      "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "every": {
-                      "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "event": {
-                      "description": "Event name for a message/signal boundary, resolved against the event catalog.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                    },
-                    "name": {
-                      "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "when": {
-                      "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "label": {
-                      "description": "Optional display label for the boundary edge.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "next": {
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
-                      "description": "Target step id the boundary diverts to."
-                    }
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "wait"
                   },
-                  "required": [
-                    "eventKind",
-                    "next"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "extensions": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string",
-                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
-                },
-                "additionalProperties": {},
-                "description": "Namespaced extension metadata. Ignored by core validation."
-              },
-              "duration": {
-                "type": "string",
-                "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$",
-                "description": "Human-readable duration, e.g. \"10m\" or \"1h 30m\"."
-              },
-              "next": {
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-              }
-            },
-            "required": [
-              "type",
-              "duration",
-              "next"
-            ],
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "properties": {
-              "type": {
-                "type": "string",
-                "const": "subflow"
-              },
-              "label": {
-                "description": "Display label. Defaults to the step id.",
-                "type": "string"
-              },
-              "actor": {
-                "description": "Actor responsible for this step.",
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-              },
-              "description": {
-                "type": "string"
-              },
-              "tags": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "notes": {
-                "type": "string"
-              },
-              "boundary": {
-                "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
-                "maxItems": 1000,
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "eventKind": {
-                      "type": "string",
-                      "enum": [
-                        "timer",
-                        "message",
-                        "signal",
-                        "error",
-                        "conditional"
-                      ],
-                      "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
-                    },
-                    "interrupting": {
-                      "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
-                      "type": "boolean"
-                    },
-                    "after": {
-                      "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "at": {
-                      "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "every": {
-                      "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "event": {
-                      "description": "Event name for a message/signal boundary, resolved against the event catalog.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                    },
-                    "name": {
-                      "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "when": {
-                      "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "label": {
-                      "description": "Optional display label for the boundary edge.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "next": {
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
-                      "description": "Target step id the boundary diverts to."
-                    }
+                  "label": {
+                    "description": "Display label. Defaults to the step id.",
+                    "type": "string"
                   },
-                  "required": [
-                    "eventKind",
-                    "next"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "extensions": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string",
-                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
-                },
-                "additionalProperties": {},
-                "description": "Namespaced extension metadata. Ignored by core validation."
-              },
-              "flow": {
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
-                "description": "Feature id of another *.feature.yaml in the workspace."
-              },
-              "requires": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                }
-              },
-              "produces": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                }
-              },
-              "next": {
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-              },
-              "on": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string",
-                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                },
-                "additionalProperties": {
-                  "type": "object",
-                  "properties": {
-                    "label": {
+                  "actor": {
+                    "description": "Actor responsible for this step.",
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
                       "type": "string"
-                    },
-                    "when": {
-                      "description": "Descriptive transition guard. Never evaluated.",
-                      "type": "string"
-                    },
-                    "next": {
-                      "type": "string",
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
-                      "description": "Target step id."
                     }
                   },
-                  "required": [
-                    "next"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            },
-            "required": [
-              "type",
-              "flow"
-            ],
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "properties": {
-              "type": {
-                "type": "string",
-                "const": "parallel"
-              },
-              "label": {
-                "description": "Display label. Defaults to the step id.",
-                "type": "string"
-              },
-              "actor": {
-                "description": "Actor responsible for this step.",
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-              },
-              "description": {
-                "type": "string"
-              },
-              "tags": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "notes": {
-                "type": "string"
-              },
-              "boundary": {
-                "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
-                "maxItems": 1000,
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "eventKind": {
-                      "type": "string",
-                      "enum": [
-                        "timer",
-                        "message",
-                        "signal",
-                        "error",
-                        "conditional"
+                  "notes": {
+                    "type": "string"
+                  },
+                  "boundary": {
+                    "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "eventKind": {
+                          "type": "string",
+                          "enum": [
+                            "timer",
+                            "message",
+                            "signal",
+                            "error",
+                            "conditional"
+                          ],
+                          "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
+                        },
+                        "interrupting": {
+                          "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
+                          "type": "boolean"
+                        },
+                        "after": {
+                          "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "at": {
+                          "description": "Timer absolute date/time. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "every": {
+                          "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "event": {
+                          "description": "Event name for a message/signal boundary, resolved against the event catalog.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        "name": {
+                          "description": "Error name/code. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "when": {
+                          "description": "Conditional predicate. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "label": {
+                          "description": "Optional display label for the boundary edge.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "next": {
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                          "description": "Target step id the boundary diverts to."
+                        }
+                      },
+                      "required": [
+                        "eventKind",
+                        "next"
                       ],
-                      "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
-                    },
-                    "interrupting": {
-                      "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
-                      "type": "boolean"
-                    },
-                    "after": {
-                      "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "at": {
-                      "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "every": {
-                      "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "event": {
-                      "description": "Event name for a message/signal boundary, resolved against the event catalog.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                    },
-                    "name": {
-                      "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "when": {
-                      "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "label": {
-                      "description": "Optional display label for the boundary edge.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "next": {
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
-                      "description": "Target step id the boundary diverts to."
+                      "additionalProperties": false
                     }
                   },
-                  "required": [
-                    "eventKind",
-                    "next"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "extensions": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string",
-                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
-                },
-                "additionalProperties": {},
-                "description": "Namespaced extension metadata. Ignored by core validation."
-              },
-              "branches": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string",
-                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                },
-                "additionalProperties": {
-                  "type": "object",
-                  "properties": {
-                    "flow": {
+                  "extensions": {
+                    "type": "object",
+                    "propertyNames": {
                       "type": "string",
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
-                      "description": "Feature id of the subflow this branch runs."
-                    }
+                      "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                    },
+                    "additionalProperties": {},
+                    "description": "Namespaced extension metadata. Ignored by core validation."
                   },
-                  "required": [
-                    "flow"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "wait": {
-                "description": "Join strategy. Defaults to \"all\".",
-                "type": "string",
-                "enum": [
-                  "all",
-                  "any"
-                ]
-              },
-              "next": {
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-              }
-            },
-            "required": [
-              "type",
-              "branches",
-              "next"
-            ],
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "properties": {
-              "type": {
-                "type": "string",
-                "const": "error"
-              },
-              "label": {
-                "description": "Display label. Defaults to the step id.",
-                "type": "string"
-              },
-              "actor": {
-                "description": "Actor responsible for this step.",
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-              },
-              "description": {
-                "type": "string"
-              },
-              "tags": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "notes": {
-                "type": "string"
-              },
-              "boundary": {
-                "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
-                "maxItems": 1000,
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "eventKind": {
-                      "type": "string",
-                      "enum": [
-                        "timer",
-                        "message",
-                        "signal",
-                        "error",
-                        "conditional"
-                      ],
-                      "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
-                    },
-                    "interrupting": {
-                      "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
-                      "type": "boolean"
-                    },
-                    "after": {
-                      "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "at": {
-                      "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "every": {
-                      "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "event": {
-                      "description": "Event name for a message/signal boundary, resolved against the event catalog.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                    },
-                    "name": {
-                      "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "when": {
-                      "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "label": {
-                      "description": "Optional display label for the boundary edge.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "next": {
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
-                      "description": "Target step id the boundary diverts to."
-                    }
+                  "duration": {
+                    "type": "string",
+                    "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$",
+                    "description": "Human-readable duration, e.g. \"10m\" or \"1h 30m\"."
                   },
-                  "required": [
-                    "eventKind",
-                    "next"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "extensions": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string",
-                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                  "next": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                  }
                 },
-                "additionalProperties": {},
-                "description": "Namespaced extension metadata. Ignored by core validation."
-              },
-              "message": {
-                "type": "string"
-              },
-              "actions": {
-                "description": "Recovery actions. An error without actions is terminal.",
-                "type": "object",
-                "propertyNames": {
-                  "type": "string",
-                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                },
-                "additionalProperties": {
-                  "type": "object",
-                  "properties": {
-                    "label": {
-                      "type": "string"
-                    },
-                    "next": {
-                      "type": "string",
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                    }
-                  },
-                  "required": [
-                    "next"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            },
-            "required": [
-              "type"
-            ],
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "properties": {
-              "type": {
-                "type": "string",
-                "const": "final"
-              },
-              "label": {
-                "description": "Display label. Defaults to the step id.",
-                "type": "string"
-              },
-              "actor": {
-                "description": "Actor responsible for this step.",
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-              },
-              "description": {
-                "type": "string"
-              },
-              "tags": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "notes": {
-                "type": "string"
-              },
-              "boundary": {
-                "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
-                "maxItems": 1000,
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "eventKind": {
-                      "type": "string",
-                      "enum": [
-                        "timer",
-                        "message",
-                        "signal",
-                        "error",
-                        "conditional"
-                      ],
-                      "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
-                    },
-                    "interrupting": {
-                      "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
-                      "type": "boolean"
-                    },
-                    "after": {
-                      "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "at": {
-                      "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "every": {
-                      "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
-                    },
-                    "event": {
-                      "description": "Event name for a message/signal boundary, resolved against the event catalog.",
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                    },
-                    "name": {
-                      "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "when": {
-                      "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "label": {
-                      "description": "Optional display label for the boundary edge.",
-                      "type": "string",
-                      "maxLength": 500
-                    },
-                    "next": {
-                      "type": "string",
-                      "maxLength": 500,
-                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
-                      "description": "Target step id the boundary diverts to."
-                    }
-                  },
-                  "required": [
-                    "eventKind",
-                    "next"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "extensions": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string",
-                  "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
-                },
-                "additionalProperties": {},
-                "description": "Namespaced extension metadata. Ignored by core validation."
-              },
-              "outcome": {
-                "type": "string",
-                "enum": [
-                  "success",
-                  "failure",
-                  "cancelled"
+                "required": [
+                  "type",
+                  "duration",
+                  "next"
                 ],
-                "description": "Outcome of a final step."
+                "additionalProperties": false
               },
-              "terminate": {
-                "description": "When true, ends the whole flow instance, not just this path. Defaults to false.",
-                "type": "boolean"
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "subflow"
+                  },
+                  "label": {
+                    "description": "Display label. Defaults to the step id.",
+                    "type": "string"
+                  },
+                  "actor": {
+                    "description": "Actor responsible for this step.",
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "boundary": {
+                    "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "eventKind": {
+                          "type": "string",
+                          "enum": [
+                            "timer",
+                            "message",
+                            "signal",
+                            "error",
+                            "conditional"
+                          ],
+                          "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
+                        },
+                        "interrupting": {
+                          "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
+                          "type": "boolean"
+                        },
+                        "after": {
+                          "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "at": {
+                          "description": "Timer absolute date/time. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "every": {
+                          "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "event": {
+                          "description": "Event name for a message/signal boundary, resolved against the event catalog.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        "name": {
+                          "description": "Error name/code. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "when": {
+                          "description": "Conditional predicate. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "label": {
+                          "description": "Optional display label for the boundary edge.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "next": {
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                          "description": "Target step id the boundary diverts to."
+                        }
+                      },
+                      "required": [
+                        "eventKind",
+                        "next"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "extensions": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                    },
+                    "additionalProperties": {},
+                    "description": "Namespaced extension metadata. Ignored by core validation."
+                  },
+                  "flow": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                    "description": "Feature id of another *.feature.yaml in the workspace."
+                  },
+                  "requires": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                    }
+                  },
+                  "produces": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                    }
+                  },
+                  "next": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                  },
+                  "on": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                    },
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "when": {
+                          "description": "Descriptive transition guard. Never evaluated.",
+                          "type": "string"
+                        },
+                        "next": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                          "description": "Target step id."
+                        }
+                      },
+                      "required": [
+                        "next"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "type",
+                  "flow"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "parallel"
+                  },
+                  "label": {
+                    "description": "Display label. Defaults to the step id.",
+                    "type": "string"
+                  },
+                  "actor": {
+                    "description": "Actor responsible for this step.",
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "boundary": {
+                    "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "eventKind": {
+                          "type": "string",
+                          "enum": [
+                            "timer",
+                            "message",
+                            "signal",
+                            "error",
+                            "conditional"
+                          ],
+                          "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
+                        },
+                        "interrupting": {
+                          "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
+                          "type": "boolean"
+                        },
+                        "after": {
+                          "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "at": {
+                          "description": "Timer absolute date/time. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "every": {
+                          "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "event": {
+                          "description": "Event name for a message/signal boundary, resolved against the event catalog.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        "name": {
+                          "description": "Error name/code. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "when": {
+                          "description": "Conditional predicate. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "label": {
+                          "description": "Optional display label for the boundary edge.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "next": {
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                          "description": "Target step id the boundary diverts to."
+                        }
+                      },
+                      "required": [
+                        "eventKind",
+                        "next"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "extensions": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                    },
+                    "additionalProperties": {},
+                    "description": "Namespaced extension metadata. Ignored by core validation."
+                  },
+                  "branches": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                    },
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "flow": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                          "description": "Feature id of the subflow this branch runs."
+                        }
+                      },
+                      "required": [
+                        "flow"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "wait": {
+                    "description": "Join strategy. Defaults to \"all\".",
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "any"
+                    ]
+                  },
+                  "next": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                  }
+                },
+                "required": [
+                  "type",
+                  "branches",
+                  "next"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "error"
+                  },
+                  "label": {
+                    "description": "Display label. Defaults to the step id.",
+                    "type": "string"
+                  },
+                  "actor": {
+                    "description": "Actor responsible for this step.",
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "boundary": {
+                    "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "eventKind": {
+                          "type": "string",
+                          "enum": [
+                            "timer",
+                            "message",
+                            "signal",
+                            "error",
+                            "conditional"
+                          ],
+                          "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
+                        },
+                        "interrupting": {
+                          "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
+                          "type": "boolean"
+                        },
+                        "after": {
+                          "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "at": {
+                          "description": "Timer absolute date/time. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "every": {
+                          "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "event": {
+                          "description": "Event name for a message/signal boundary, resolved against the event catalog.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        "name": {
+                          "description": "Error name/code. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "when": {
+                          "description": "Conditional predicate. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "label": {
+                          "description": "Optional display label for the boundary edge.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "next": {
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                          "description": "Target step id the boundary diverts to."
+                        }
+                      },
+                      "required": [
+                        "eventKind",
+                        "next"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "extensions": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                    },
+                    "additionalProperties": {},
+                    "description": "Namespaced extension metadata. Ignored by core validation."
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "actions": {
+                    "description": "Recovery actions. An error without actions is terminal.",
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                    },
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "next": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        }
+                      },
+                      "required": [
+                        "next"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "final"
+                  },
+                  "label": {
+                    "description": "Display label. Defaults to the step id.",
+                    "type": "string"
+                  },
+                  "actor": {
+                    "description": "Actor responsible for this step.",
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "boundary": {
+                    "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "eventKind": {
+                          "type": "string",
+                          "enum": [
+                            "timer",
+                            "message",
+                            "signal",
+                            "error",
+                            "conditional"
+                          ],
+                          "description": "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind."
+                        },
+                        "interrupting": {
+                          "description": "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
+                          "type": "boolean"
+                        },
+                        "after": {
+                          "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "at": {
+                          "description": "Timer absolute date/time. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "every": {
+                          "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+                        },
+                        "event": {
+                          "description": "Event name for a message/signal boundary, resolved against the event catalog.",
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        "name": {
+                          "description": "Error name/code. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "when": {
+                          "description": "Conditional predicate. Descriptive, never evaluated.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "label": {
+                          "description": "Optional display label for the boundary edge.",
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "next": {
+                          "type": "string",
+                          "maxLength": 500,
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+                          "description": "Target step id the boundary diverts to."
+                        }
+                      },
+                      "required": [
+                        "eventKind",
+                        "next"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "extensions": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[^\\s/]+\\/[^\\s/][^\\s]*$"
+                    },
+                    "additionalProperties": {},
+                    "description": "Namespaced extension metadata. Ignored by core validation."
+                  },
+                  "outcome": {
+                    "type": "string",
+                    "enum": [
+                      "success",
+                      "failure",
+                      "cancelled"
+                    ],
+                    "description": "Outcome of a final step."
+                  },
+                  "terminate": {
+                    "description": "When true, ends the whole flow instance, not just this path. Defaults to false.",
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "type",
+                  "outcome"
+                ],
+                "additionalProperties": false
               }
-            },
-            "required": [
-              "type",
-              "outcome"
-            ],
-            "additionalProperties": false
+            ]
           }
         ]
-      }
+      },
+      "description": "Steps, each a declaration or a $ref to a shared step template."
     },
     "zones": {
       "description": "Agent zones: named regions bounding autonomous, order-not-fixed AI-agent behavior. Descriptive annotation only — never executed or reordered.",

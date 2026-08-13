@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=../../schemas/feature.schema.json
+version: "1"
+
+feature:
+  id: reminder
+  name: Reminder
+  description: Sends a reminder built from shared definitions ($ref reuse).
+
+start: home
+
+actors:
+
+  web:
+    kind: frontend
+    label: Web App
+
+  # A shared actor pulled in by reference; resolves to definitions/actors/notifier.
+  notifier:
+    $ref: "definitions#/actors/notifier"
+
+steps:
+
+  home:
+    type: page
+    label: Home
+    actor: web
+    actions:
+      send:
+        label: Send reminder
+        next: notify
+
+  # A shared step template pulled in by reference. The map key ("notify") is the
+  # step id; the local keys shallow-merge over the template (local wins), so this
+  # overrides the template's label and supplies the transition the template left
+  # to the caller.
+  notify:
+    $ref: "definitions#/steps/send-notification"
+    label: Send Reminder
+    next: sent
+
+  sent:
+    type: final
+    label: Reminder Sent
+    outcome: success
