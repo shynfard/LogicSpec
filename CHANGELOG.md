@@ -3,6 +3,24 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.9.1
+
+Security patch. The DSL is unchanged and every valid workspace stays valid.
+
+- **Arbitrary local file read via workspace config (path traversal), fixed.**
+  `loadWorkspace` resolved every config-referenced path with a bare
+  `path.resolve(root, …)` and then read it, with no check that the result stayed
+  inside the workspace root. A crafted `logicspec.config.yaml` (or a service /
+  event catalog) could therefore point a `catalogs.services` / `catalogs.events`
+  entry, an `openapi`/`asyncapi` `document:`, or the `features.directory` at an
+  absolute path or a `../…` escape and make the loader open, parse, and surface
+  an arbitrary file from disk. Each of those paths is now clamped to the
+  directory containing `logicspec.config.yaml`: a path that escapes the root is
+  **refused** (never read or parsed) and reported as new diagnostic **LS005**
+  (`UNSAFE_WORKSPACE_PATH`, error), located at the offending config/catalog
+  value. Legitimate in-root paths are unaffected — output is byte-identical.
+  `docs/validation.md` documents LS005.
+
 ## 0.9.0
 
 An **additive, backward-compatible** extension: **agent zones** (and an `agent`
