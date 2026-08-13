@@ -9,6 +9,8 @@ export interface NormalizedTransition {
   kind: EdgeKind;
   /** Display label, e.g. the action label or outcome name. */
   label?: string;
+  /** Descriptive guard predicate for this transition. Never evaluated. */
+  guard?: string;
   /** Document path of the `next` scalar, for diagnostics. */
   path: DocPath;
 }
@@ -68,6 +70,7 @@ function transitionsOf(id: string, step: Step): NormalizedTransition[] {
           to: action.next,
           kind: "action",
           label: action.label ?? actionId,
+          guard: action.when,
           path: [...base, "actions", actionId, "next"],
         });
       }
@@ -102,6 +105,7 @@ function transitionsOf(id: string, step: Step): NormalizedTransition[] {
           to: target.next,
           kind: "outcome",
           label: target.label ?? outcome,
+          guard: target.when,
           path: [...base, "on", outcome, "next"],
         });
       }

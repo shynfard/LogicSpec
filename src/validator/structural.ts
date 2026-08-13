@@ -57,14 +57,69 @@ export function validateStructure(
             );
           }
           if (step.on === undefined) {
+            const subject = step.event ? `"${step.event}"` : "an event";
             diagnostics.push(
               makeDiagnostic(CODES.INVALID_EVENT_STEP, {
-                message: `Event "${id}" waits for "${step.event}" but defines no "on.received" transition.`,
+                message: `Event "${id}" waits for ${subject} but defines no "on.received" transition.`,
                 file,
                 path: ["steps", id],
                 location: locate(["steps", id]),
               }),
             );
+          }
+        }
+
+        // ── eventKind consistency (LS305) ─────────────────────────────────
+        type EventField = "event" | "after" | "at" | "every" | "name" | "when";
+        const has = (field: EventField) => step[field] !== undefined;
+        const pushKind = (message: string, field?: string) => {
+          const path = field ? at(field) : ["steps", id];
+          diagnostics.push(
+            makeDiagnostic(CODES.INVALID_EVENT_KIND, {
+              message: `Event "${id}" ${message}`,
+              file,
+              path,
+              location: locate(path),
+            }),
+          );
+        };
+        const forbid = (fields: readonly EventField[], why: string) => {
+          for (const field of fields) {
+            if (has(field)) pushKind(`must not set "${field}" ${why}.`, field);
+          }
+        };
+
+        switch (step.eventKind) {
+          case undefined:
+          case "message":
+          case "signal": {
+            const lead = step.eventKind ? `is a ${step.eventKind} event and ` : "";
+            if (!has("event")) pushKind(`${lead}must name an "event".`, "event");
+            forbid(
+              ["after", "at", "every", "name", "when"],
+              "unless it is a timer, error or conditional event",
+            );
+            break;
+          }
+          case "timer": {
+            const timerFields = (["after", "at", "every"] as const).filter((f) => has(f));
+            if (timerFields.length !== 1) {
+              pushKind(
+                'is a timer event and must set exactly one of "after", "at" or "every".',
+                "eventKind",
+              );
+            }
+            forbid(["event", "name", "when"], "on a timer event");
+            break;
+          }
+          case "error": {
+            forbid(["event", "after", "at", "every", "when"], "on an error event");
+            break;
+          }
+          case "conditional": {
+            if (!has("when")) pushKind('is a conditional event and must set "when".', "when");
+            forbid(["event", "after", "at", "every", "name"], "on a conditional event");
+            break;
           }
         }
         break;

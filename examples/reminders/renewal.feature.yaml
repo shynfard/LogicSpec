@@ -1,0 +1,107 @@
+# yaml-language-server: $schema=../../schemas/feature.schema.json
+version: "1"
+
+# Demonstrates the v0.6.0 additive vocabulary:
+#   * typed events      — a timer event (after), a message event, a signal event
+#   * transition guards — descriptive "when" on operation outcomes and page actions
+#   * typed terminals   — a final that terminates the whole flow instance
+
+feature:
+  id: renewal
+  name: Subscription Renewal
+  description: A subscription nears expiry; the system charges the card, then renews or lapses.
+
+start: await-renewal-window
+
+actors:
+
+  scheduler:
+    kind: system
+    label: Scheduler
+
+  billing:
+    kind: service
+    label: Billing Service
+
+  customer:
+    kind: user
+    label: Customer
+
+  broker:
+    kind: broker
+    label: Message Broker
+
+context:
+
+  invoiceId:
+    type: string
+
+steps:
+
+  await-renewal-window:
+    type: event
+    label: Renewal window reached
+    actor: scheduler
+    direction: wait
+    eventKind: timer
+    after: 30d
+    on:
+      received:
+        next: charge-card
+
+  charge-card:
+    type: operation
+    label: Charge Card
+    actor: billing
+    call: billing.charge
+    produces:
+      - invoiceId
+    on:
+      paid:
+        when: gateway confirms the charge
+        next: renewed-signal
+      declined:
+        when: gateway declines the charge
+        next: payment-failed
+
+  payment-failed:
+    type: event
+    label: Payment Failed Notice
+    actor: broker
+    direction: publish
+    eventKind: message
+    event: PaymentFailed
+    next: update-payment
+
+  update-payment:
+    type: page
+    label: Update Payment Method
+    actor: customer
+    actions:
+      retry:
+        label: Retry payment
+        when: customer supplies a new card
+        next: charge-card
+      cancel:
+        label: Cancel subscription
+        next: lapsed
+
+  renewed-signal:
+    type: event
+    label: Renewed
+    actor: broker
+    direction: publish
+    eventKind: signal
+    event: SubscriptionRenewed
+    next: renewed
+
+  renewed:
+    type: final
+    label: Subscription Renewed
+    outcome: success
+
+  lapsed:
+    type: final
+    label: Subscription Lapsed
+    outcome: failure
+    terminate: true

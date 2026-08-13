@@ -1,0 +1,25 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`v0.6.0 vocabulary example (examples/reminders) > renders typed events, guards and a terminated final (golden) 1`] = `
+"flowchart TD
+  START(("Start"))
+  await_renewal_window>"Renewal window reached<br/>EVENT · TIMER"]
+  charge_card[["Charge Card<br/>OPERATION"]]
+  payment_failed>"Payment Failed Notice<br/>EVENT · MESSAGE"]
+  update_payment["Update Payment Method<br/>PAGE"]
+  renewed_signal>"Renewed<br/>EVENT · SIGNAL"]
+  renewed((("Subscription Renewed<br/>FINAL · success")))
+  lapsed((("Subscription Lapsed<br/>FINAL · failure · ⦻ TERMINATE")))
+
+  START --> await_renewal_window
+  await_renewal_window -. "received" .-> charge_card
+  charge_card -- "paid [when: gateway confirms the charge]" --> renewed_signal
+  charge_card -- "declined [when: gateway declines the charge]" --> payment_failed
+  payment_failed --> update_payment
+  update_payment -- "Retry payment [when: customer supplies a new card]" --> charge_card
+  update_payment -- "Cancel subscription" --> lapsed
+  renewed_signal --> renewed
+
+  classDef error stroke-width:2px,stroke-dasharray:4 3;
+"
+`;

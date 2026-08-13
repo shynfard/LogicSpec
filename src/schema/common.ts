@@ -60,6 +60,15 @@ export const finalOutcomeSchema = z
   .enum(["success", "failure", "cancelled"])
   .describe("Outcome of a final step.");
 
+/**
+ * Optional classification of an event step, mirroring the common BPMN event
+ * kinds. When absent the event keeps its generic publish/wait behavior.
+ */
+export const eventKindSchema = z
+  .enum(["timer", "message", "signal", "error", "conditional"])
+  .describe("Optional event classification. Absent keeps the generic event behavior.");
+
 export type ContextType = z.infer<typeof contextTypeSchema>;
 export type ActorKind = z.infer<typeof actorKindSchema>;
 export type FinalOutcome = z.infer<typeof finalOutcomeSchema>;
+export type EventKind = z.infer<typeof eventKindSchema>;

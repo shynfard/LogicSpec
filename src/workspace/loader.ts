@@ -237,7 +237,7 @@ function collectFlowRefs(featurePath: string): Omit<WorkspaceFeatureRef, "path">
       if (step.type === "parallel") {
         for (const branch of Object.values(step.branches)) flows.add(branch.flow);
       }
-      if (step.type === "event") {
+      if (step.type === "event" && step.event !== undefined) {
         (step.direction === "publish" ? publishes : waitsFor).add(step.event);
       }
       if (step.type === "operation" && step.call !== undefined) {

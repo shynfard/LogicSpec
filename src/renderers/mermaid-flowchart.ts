@@ -37,7 +37,9 @@ export function renderMermaidFlowchart(
   }
   for (const edge of graph.edges) {
     if (!known.has(edge.from) || !known.has(edge.to)) continue;
-    lines.push(`  ${ids.id(edge.from)} ${edgeArrow(edge.kind, edge.label)} ${ids.id(edge.to)}`);
+    lines.push(
+      `  ${ids.id(edge.from)} ${edgeArrow(edge.kind, edge.label, edge.guard)} ${ids.id(edge.to)}`,
+    );
   }
 
   lines.push("");

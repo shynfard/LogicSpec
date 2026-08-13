@@ -249,6 +249,7 @@ function checkCalls(step: NormalizedStep, services: ServicesFile, report: Report
 function checkEvent(step: NormalizedStep, events: EventsFile, report: Reporter): void {
   const def = step.def;
   if (def.type !== "event") return;
+  if (def.event === undefined) return; // timer/error/conditional events name no catalog event
   if (!events.events[def.event]) {
     report(
       CODES.UNKNOWN_EVENT,

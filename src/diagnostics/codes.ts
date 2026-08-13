@@ -123,6 +123,12 @@ export const CODES = {
     "error",
     "A parallel step must define at least one branch.",
   ),
+  INVALID_EVENT_KIND: code(
+    "LS305",
+    "INVALID_EVENT_KIND",
+    "error",
+    "An event step's fields are inconsistent with its eventKind.",
+  ),
 
   // ── Advisory ──────────────────────────────────────────────────────────────
   NO_FAILURE_OUTCOME: code(

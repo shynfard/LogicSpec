@@ -136,14 +136,16 @@ function eventsOf(normalized: NormalizedFeature, catalog: EventsFile | undefined
   const usage = new Map<string, EventUsage>();
   for (const step of normalized.steps) {
     if (step.def.type !== "event") continue;
-    const entry = usage.get(step.def.event) ?? {
-      event: step.def.event,
+    const name = step.def.event;
+    if (name === undefined) continue; // timer/error/conditional events name no catalog event
+    const entry = usage.get(name) ?? {
+      event: name,
       published: false,
       waited: false,
     };
     if (step.def.direction === "publish") entry.published = true;
     else entry.waited = true;
-    usage.set(step.def.event, entry);
+    usage.set(name, entry);
   }
   return [...usage.values()].map((entry) => {
     const def = catalog?.events[entry.event];

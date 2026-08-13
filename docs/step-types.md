@@ -107,6 +107,22 @@ cancel-booking:
 
 `next` and `on` are mutually exclusive (LS301). `call` references resolve against the service catalog when one is configured.
 
+Each named outcome may carry an optional `when` — a descriptive guard on that transition, never evaluated (same semantics as a decision `cases[].when`):
+
+```yaml
+reserve-slot:
+  type: operation
+  call: booking.reserve-slot
+  on:
+    success:
+      when: the slot is still free
+      next: checkout
+    conflict:
+      next: slot-conflict
+```
+
+Guards are also allowed on `subflow` outcomes and on `page` `actions`. They render on the edge label as `[when: …]`.
+
 ## `event`
 
 Publish a domain event, or wait for one. Two directions, one type.
@@ -142,6 +158,33 @@ wait-payment:
 ```
 
 Publishing events use `next`; waiting events use `on.received` (and optionally `on.timeout` plus a `timeout` duration). Mixing directions and properties is rejected (LS302). Event names resolve against the event catalog when one is configured.
+
+### Typed events
+
+An optional `eventKind` classifies the event, BPMN-style. When it is absent the event keeps the generic behavior above. Each kind carries its own natural fields:
+
+| `eventKind` | Fields | Notes |
+|-------------|--------|-------|
+| `timer` | exactly one of `after` / `at` / `every` | `after` and `every` reuse the `wait` duration format (`15m`, `1d`); `at` is a descriptive date/time |
+| `message` | `event` | a named message, resolved against the event catalog |
+| `signal` | `event` | a broadcast signal, resolved against the event catalog |
+| `error` | optional `name` | a descriptive error name/code |
+| `conditional` | `when` | a descriptive predicate, never evaluated (like a decision `when`) |
+
+```yaml
+renewal-window:
+  type: event
+  label: Renewal window reached
+  actor: scheduler
+  direction: wait
+  eventKind: timer
+  after: 30d
+  on:
+    received:
+      next: charge-card
+```
+
+Rules (LS305): an unknown `eventKind` is rejected (LS002); a `timer` needs exactly one of `after`/`at`/`every`; `message`/`signal`/generic events must name an `event`; a `conditional` must set `when`; and fields belonging to another kind (a timer field on a message event, an `event` name on a timer, …) are rejected. The kind shows in the diagram marker (`EVENT · TIMER`) so a timer reads differently from a message.
 
 ## `wait`
 
@@ -233,3 +276,15 @@ success:
 ```
 
 `outcome` is `success`, `failure`, or `cancelled`. A final step must not have outgoing transitions (LS300).
+
+An optional `terminate: boolean` (default `false`) marks a terminal that ends the **whole flow instance**, not just the current path — useful alongside `parallel` branches, where a normal final would only end one branch:
+
+```yaml
+lapsed:
+  type: final
+  label: Subscription Lapsed
+  outcome: failure
+  terminate: true
+```
+
+A final's `kind` is derived, never stored: `terminate: true` ⇒ `terminate`; otherwise `outcome: failure` ⇒ `error`; everything else ⇒ `normal`. A terminated final gets a distinct diagram marker (`⦻ TERMINATE`).

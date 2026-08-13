@@ -35,7 +35,7 @@ export function inspectFeature(feature: NormalizedFeature, graph: FeatureGraph):
     if (def.type === "page") {
       for (const load of def.load ?? []) operations.push(load.call);
     }
-    if (def.type === "event") events.push(def.event);
+    if (def.type === "event" && def.event !== undefined) events.push(def.event);
     if (def.type === "subflow") subflows.push(def.flow);
     if (def.type === "parallel") {
       for (const branch of Object.values(def.branches)) subflows.push(branch.flow);

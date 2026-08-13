@@ -1,4 +1,4 @@
-import type { StepType } from "../schema/feature.js";
+import type { EventKind, StepType } from "../schema/feature.js";
 import type { EdgeKind, NormalizedFeature } from "./normalize.js";
 
 export interface GraphNode {
@@ -8,6 +8,10 @@ export interface GraphNode {
   actor?: string;
   /** Final outcome, present only on final steps. */
   outcome?: string;
+  /** Event classification, present only on typed event steps. */
+  eventKind?: EventKind;
+  /** True for a final step that terminates the whole flow instance. */
+  terminate?: boolean;
 }
 
 export interface GraphEdge {
@@ -15,6 +19,8 @@ export interface GraphEdge {
   to: string;
   kind: EdgeKind;
   label?: string;
+  /** Descriptive guard predicate for this edge. Never evaluated. */
+  guard?: string;
 }
 
 /**
@@ -43,6 +49,8 @@ export function buildGraph(feature: NormalizedFeature): FeatureGraph {
     label: step.label,
     actor: step.actor,
     outcome: step.def.type === "final" ? step.def.outcome : undefined,
+    eventKind: step.def.type === "event" ? step.def.eventKind : undefined,
+    terminate: step.def.type === "final" ? step.def.terminate : undefined,
   }));
 
   const edges: GraphEdge[] = feature.steps.flatMap((step) =>
@@ -51,6 +59,7 @@ export function buildGraph(feature: NormalizedFeature): FeatureGraph {
       to: t.to,
       kind: t.kind,
       label: t.label,
+      guard: t.guard,
     })),
   );
 

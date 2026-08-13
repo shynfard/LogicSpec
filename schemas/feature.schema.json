@@ -219,6 +219,10 @@
                       "description": "Display label. Defaults to the action id.",
                       "type": "string"
                     },
+                    "when": {
+                      "description": "Descriptive transition guard. Never evaluated.",
+                      "type": "string"
+                    },
                     "requires": {
                       "description": "Context needed for this action.",
                       "type": "array",
@@ -414,6 +418,10 @@
                     "label": {
                       "type": "string"
                     },
+                    "when": {
+                      "description": "Descriptive transition guard. Never evaluated.",
+                      "type": "string"
+                    },
                     "next": {
                       "type": "string",
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
@@ -476,10 +484,43 @@
                   "wait"
                 ]
               },
-              "event": {
+              "eventKind": {
+                "description": "Optional event classification (timer/message/signal/error/conditional).",
                 "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
-                "description": "Event name, resolved against the event catalog."
+                "enum": [
+                  "timer",
+                  "message",
+                  "signal",
+                  "error",
+                  "conditional"
+                ]
+              },
+              "event": {
+                "description": "Event name for message/signal/generic events, resolved against the event catalog.",
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+              },
+              "after": {
+                "description": "Timer relative delay, using the wait duration format (e.g. 15m).",
+                "type": "string",
+                "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+              },
+              "at": {
+                "description": "Timer absolute date/time. Descriptive, never evaluated.",
+                "type": "string"
+              },
+              "every": {
+                "description": "Timer recurring interval, using the wait duration format (e.g. 1d).",
+                "type": "string",
+                "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
+              },
+              "name": {
+                "description": "Error event name/code. Descriptive, never evaluated.",
+                "type": "string"
+              },
+              "when": {
+                "description": "Conditional event predicate. Descriptive, never evaluated.",
+                "type": "string"
               },
               "next": {
                 "description": "Used with direction: publish.",
@@ -538,8 +579,7 @@
             },
             "required": [
               "type",
-              "direction",
-              "event"
+              "direction"
             ],
             "additionalProperties": false
           },
@@ -667,6 +707,10 @@
                   "type": "object",
                   "properties": {
                     "label": {
+                      "type": "string"
+                    },
+                    "when": {
+                      "description": "Descriptive transition guard. Never evaluated.",
                       "type": "string"
                     },
                     "next": {
@@ -881,6 +925,10 @@
                   "cancelled"
                 ],
                 "description": "Outcome of a final step."
+              },
+              "terminate": {
+                "description": "When true, ends the whole flow instance, not just this path. Defaults to false.",
+                "type": "boolean"
               }
             },
             "required": [

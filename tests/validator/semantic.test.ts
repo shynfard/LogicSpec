@@ -282,6 +282,24 @@ steps:
     expect(result.diagnostics.filter((d) => d.code === "LS201")).toEqual([]);
   });
 
+  it("does not resolve a nameless timer event against the event catalog (no LS105)", () => {
+    const source = featureWith(`
+  start-step:
+    type: event
+    direction: wait
+    eventKind: timer
+    after: 30d
+    on:
+      received: { next: fin }
+  fin:
+    type: final
+    outcome: failure
+`);
+    const result = validateFeature(source, { events: EVENTS });
+    expect(result.diagnostics.filter((d) => d.code === "LS105")).toEqual([]);
+    expect(result.valid).toBe(true);
+  });
+
   it("emits LS400 info when no failure outcome exists", () => {
     const source = featureWith(`
   start-step:

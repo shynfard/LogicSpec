@@ -11,7 +11,7 @@ YAML source
     ↓  syntax            → LS001
 Schema validation (Zod)  → LS002, LS300
     ↓
-Structural rules         → LS301, LS302, LS303, LS304
+Structural rules         → LS301, LS302, LS303, LS304, LS305
     ↓
 Normalized feature model
     ↓
@@ -91,6 +91,7 @@ Codes are stable and documented. They are never renumbered or reused.
 | LS302 | `INVALID_EVENT_STEP` | error | Event direction contradicts its transition properties |
 | LS303 | `EMPTY_DECISION` | error | A decision has neither cases nor a default |
 | LS304 | `EMPTY_PARALLEL` | error | A parallel step has no branches |
+| LS305 | `INVALID_EVENT_KIND` | error | An event's fields contradict its `eventKind` (e.g. a timer without exactly one of `after`/`at`/`every`, a message without an `event` name, a conditional without `when`) |
 
 ### Advisory
 

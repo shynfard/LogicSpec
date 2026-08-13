@@ -62,7 +62,13 @@ export class NodeIdAllocator {
 
 /** Type marker shown under the label so shape is never the only signal. */
 function typeMarker(node: GraphNode): string {
-  if (node.type === "final") return `FINAL · ${node.outcome ?? "success"}`;
+  if (node.type === "final") {
+    const base = `FINAL · ${node.outcome ?? "success"}`;
+    return node.terminate === true ? `${base} · ⦻ TERMINATE` : base;
+  }
+  if (node.type === "event" && node.eventKind !== undefined) {
+    return `EVENT · ${node.eventKind.toUpperCase()}`;
+  }
   return node.type.toUpperCase();
 }
 
@@ -95,13 +101,26 @@ export function nodeDeclaration(node: GraphNode, mermaidId: string): string {
   }
 }
 
+/**
+ * Composes an edge's display text from its label and optional guard.
+ * A guard renders as a bracketed `[when: …]` suffix so it reads distinctly
+ * from the outcome/action label.
+ */
+export function edgeLabel(label: string | undefined, guard?: string): string | undefined {
+  const parts: string[] = [];
+  if (label !== undefined && label !== "") parts.push(label);
+  if (guard !== undefined && guard !== "") parts.push(`[when: ${guard}]`);
+  return parts.length === 0 ? undefined : parts.join(" ");
+}
+
 /** Async edges (event waits) render dotted; everything else solid. */
-export function edgeArrow(kind: EdgeKind, label: string | undefined): string {
+export function edgeArrow(kind: EdgeKind, label: string | undefined, guard?: string): string {
   const dotted = kind === "event";
-  if (label === undefined || label === "") {
+  const text = edgeLabel(label, guard);
+  if (text === undefined) {
     return dotted ? "-.->" : "-->";
   }
-  const escaped = escapeMermaid(label);
+  const escaped = escapeMermaid(text);
   return dotted ? `-. "${escaped}" .->` : `-- "${escaped}" -->`;
 }
 

@@ -239,3 +239,257 @@ steps:
     expect(result.diagnostics[0]?.path).toEqual(["version"]);
   });
 });
+
+describe("typed events (eventKind, LS305)", () => {
+  it("accepts a generic event with no eventKind (backward compatible)", () => {
+    const source = featureWith(`
+  start-step:
+    type: event
+    direction: publish
+    event: Thing
+    next: fin
+  fin:
+    type: final
+    outcome: success
+`);
+    const result = parseFeature(source);
+    expect(result.ok).toBe(true);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it("accepts a timer event with exactly one of after/at/every", () => {
+    for (const timer of ["after: 15m", "at: 2026-01-01T00:00:00Z", "every: 1d"]) {
+      const result = parseFeature(
+        featureWith(`
+  start-step:
+    type: event
+    direction: wait
+    eventKind: timer
+    ${timer}
+    on:
+      received: { next: fin }
+  fin:
+    type: final
+    outcome: success
+`),
+      );
+      expect(result.ok, timer).toBe(true);
+      expect(result.diagnostics, timer).toEqual([]);
+    }
+  });
+
+  it("accepts message, signal, error and conditional events", () => {
+    const cases = [
+      "eventKind: message\n    event: Thing\n    next: fin",
+      "eventKind: signal\n    event: Thing\n    next: fin",
+      "eventKind: error\n    name: PaymentTimeout\n    next: fin",
+      "eventKind: conditional\n    when: balance < 0\n    next: fin",
+    ];
+    for (const body of cases) {
+      const result = parseFeature(
+        featureWith(`
+  start-step:
+    type: event
+    direction: publish
+    ${body}
+  fin:
+    type: final
+    outcome: success
+`),
+      );
+      expect(result.ok, body).toBe(true);
+      expect(result.diagnostics, body).toEqual([]);
+    }
+  });
+
+  it("rejects an unknown eventKind with LS002", () => {
+    const result = parseFeature(
+      featureWith(`
+  start-step:
+    type: event
+    direction: publish
+    eventKind: reminder
+    event: Thing
+    next: fin
+  fin:
+    type: final
+    outcome: success
+`),
+    );
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.some((d) => d.code === "LS002")).toBe(true);
+  });
+
+  it("requires a timer to set exactly one of after/at/every (LS305)", () => {
+    const none = featureWith(`
+  start-step:
+    type: event
+    direction: wait
+    eventKind: timer
+    on:
+      received: { next: fin }
+  fin:
+    type: final
+    outcome: success
+`);
+    expect(codes(none)).toContain("LS305");
+
+    const two = featureWith(`
+  start-step:
+    type: event
+    direction: wait
+    eventKind: timer
+    after: 5m
+    every: 1d
+    on:
+      received: { next: fin }
+  fin:
+    type: final
+    outcome: success
+`);
+    expect(codes(two)).toContain("LS305");
+  });
+
+  it("rejects a timer that also names an event (LS305)", () => {
+    const source = featureWith(`
+  start-step:
+    type: event
+    direction: wait
+    eventKind: timer
+    after: 5m
+    event: Thing
+    on:
+      received: { next: fin }
+  fin:
+    type: final
+    outcome: success
+`);
+    expect(codes(source)).toContain("LS305");
+  });
+
+  it("requires message/signal/generic events to name an event (LS305)", () => {
+    const source = featureWith(`
+  start-step:
+    type: event
+    direction: publish
+    eventKind: message
+    next: fin
+  fin:
+    type: final
+    outcome: success
+`);
+    expect(codes(source)).toContain("LS305");
+  });
+
+  it("rejects timer fields on a message event (LS305)", () => {
+    const source = featureWith(`
+  start-step:
+    type: event
+    direction: publish
+    eventKind: message
+    event: Thing
+    after: 5m
+    next: fin
+  fin:
+    type: final
+    outcome: success
+`);
+    expect(codes(source)).toContain("LS305");
+  });
+
+  it("requires a conditional event to set when (LS305)", () => {
+    const source = featureWith(`
+  start-step:
+    type: event
+    direction: publish
+    eventKind: conditional
+    next: fin
+  fin:
+    type: final
+    outcome: success
+`);
+    expect(codes(source)).toContain("LS305");
+  });
+});
+
+describe("typed terminal states (terminate)", () => {
+  it("accepts a final with terminate: true", () => {
+    const result = parseFeature(
+      featureWith(`
+  start-step:
+    type: page
+    actions:
+      go: { next: fin }
+  fin:
+    type: final
+    outcome: failure
+    terminate: true
+`),
+    );
+    expect(result.ok).toBe(true);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it("rejects a non-boolean terminate with LS002", () => {
+    const result = parseFeature(
+      featureWith(`
+  start-step:
+    type: page
+    actions:
+      go: { next: fin }
+  fin:
+    type: final
+    outcome: success
+    terminate: "yes"
+`),
+    );
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.some((d) => d.code === "LS002")).toBe(true);
+  });
+});
+
+describe("transition guards (when)", () => {
+  it("accepts guards on operation outcomes and page actions", () => {
+    const result = parseFeature(
+      featureWith(`
+  start-step:
+    type: page
+    actions:
+      go:
+        when: user is signed in
+        next: work
+  work:
+    type: operation
+    on:
+      success:
+        when: the call succeeds
+        next: fin
+      error:
+        next: fin
+  fin:
+    type: final
+    outcome: success
+`),
+    );
+    expect(result.ok).toBe(true);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it("rejects a non-string guard with LS002", () => {
+    const result = parseFeature(
+      featureWith(`
+  start-step:
+    type: operation
+    on:
+      success:
+        when: 123
+        next: fin
+  fin:
+    type: final
+    outcome: success
+`),
+    );
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.some((d) => d.code === "LS002")).toBe(true);
+  });
+});

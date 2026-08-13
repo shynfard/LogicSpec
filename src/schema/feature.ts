@@ -4,11 +4,16 @@ import {
   callRefSchema,
   contextTypeSchema,
   durationSchema,
+  type EventKind,
+  eventKindSchema,
   extensionsSchema,
+  type FinalOutcome,
   finalOutcomeSchema,
   identifierSchema,
   versionSchema,
 } from "./common.js";
+
+export type { EventKind, FinalOutcome };
 
 // ── Shared step properties ───────────────────────────────────────────────────
 
@@ -27,10 +32,22 @@ const outcomeSchema = z.strictObject({
   next: identifierSchema.describe("Target step id."),
 });
 
+/**
+ * A transition outcome that may carry an optional descriptive guard. The
+ * `when` predicate is documentation only — like decision `cases[].when`, it is
+ * never evaluated. Used by operation and subflow named outcomes.
+ */
+const guardedOutcomeSchema = z.strictObject({
+  label: z.string().optional(),
+  when: z.string().optional().describe("Descriptive transition guard. Never evaluated."),
+  next: identifierSchema.describe("Target step id."),
+});
+
 // ── page ─────────────────────────────────────────────────────────────────────
 
 const pageActionSchema = z.strictObject({
   label: z.string().optional().describe("Display label. Defaults to the action id."),
+  when: z.string().optional().describe("Descriptive transition guard. Never evaluated."),
   requires: z.array(identifierSchema).optional().describe("Context needed for this action."),
   produces: z.array(identifierSchema).optional().describe("Context produced by this action."),
   next: identifierSchema.describe("Target step id."),
@@ -83,7 +100,7 @@ export const operationStepSchema = z.strictObject({
   produces: z.array(identifierSchema).optional(),
   next: identifierSchema.optional().describe("Shorthand when there is a single outcome."),
   on: z
-    .record(identifierSchema, outcomeSchema)
+    .record(identifierSchema, guardedOutcomeSchema)
     .optional()
     .describe("Named outcomes, e.g. success / conflict / error."),
 });
@@ -94,7 +111,27 @@ export const eventStepSchema = z.strictObject({
   type: z.literal("event"),
   ...stepBase,
   direction: z.enum(["publish", "wait"]),
-  event: identifierSchema.describe("Event name, resolved against the event catalog."),
+  eventKind: eventKindSchema
+    .optional()
+    .describe("Optional event classification (timer/message/signal/error/conditional)."),
+  event: identifierSchema
+    .optional()
+    .describe("Event name for message/signal/generic events, resolved against the event catalog."),
+  // Timer events (eventKind: timer) — exactly one of the following.
+  after: durationSchema
+    .optional()
+    .describe("Timer relative delay, using the wait duration format (e.g. 15m)."),
+  at: z.string().optional().describe("Timer absolute date/time. Descriptive, never evaluated."),
+  every: durationSchema
+    .optional()
+    .describe("Timer recurring interval, using the wait duration format (e.g. 1d)."),
+  // Error events (eventKind: error).
+  name: z.string().optional().describe("Error event name/code. Descriptive, never evaluated."),
+  // Conditional events (eventKind: conditional).
+  when: z
+    .string()
+    .optional()
+    .describe("Conditional event predicate. Descriptive, never evaluated."),
   next: identifierSchema.optional().describe("Used with direction: publish."),
   on: z
     .strictObject({
@@ -124,7 +161,7 @@ export const subflowStepSchema = z.strictObject({
   requires: z.array(identifierSchema).optional(),
   produces: z.array(identifierSchema).optional(),
   next: identifierSchema.optional(),
-  on: z.record(identifierSchema, outcomeSchema).optional(),
+  on: z.record(identifierSchema, guardedOutcomeSchema).optional(),
 });
 
 // ── parallel ─────────────────────────────────────────────────────────────────
@@ -164,7 +201,25 @@ export const finalStepSchema = z.strictObject({
   type: z.literal("final"),
   ...stepBase,
   outcome: finalOutcomeSchema,
+  terminate: z
+    .boolean()
+    .optional()
+    .describe("When true, ends the whole flow instance, not just this path. Defaults to false."),
 });
+
+/** Derived classification of a final step: normal | error | terminate. */
+export type FinalKind = "normal" | "error" | "terminate";
+
+/**
+ * Classifies a final step. `terminate: true` wins (the instance stops);
+ * otherwise a `failure` outcome reads as an error terminal; everything else is
+ * a normal terminal. Derived, never stored — keeps the DSL additive.
+ */
+export function finalKind(step: { outcome: FinalOutcome; terminate?: boolean }): FinalKind {
+  if (step.terminate === true) return "terminate";
+  if (step.outcome === "failure") return "error";
+  return "normal";
+}
 
 // ── Feature file ─────────────────────────────────────────────────────────────
 
