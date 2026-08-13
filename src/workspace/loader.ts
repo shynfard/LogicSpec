@@ -93,6 +93,17 @@ export function findFeatureFiles(directory: string): string[] {
   return results.sort();
 }
 
+/**
+ * True when `resolved` is the workspace root itself or a path nested inside it.
+ * Guards against config-referenced paths (catalogs, API documents, the features
+ * directory) escaping the root via `..` segments or an absolute path, which
+ * would otherwise let a crafted config read arbitrary files off disk.
+ */
+export function isWithinRoot(root: string, resolved: string): boolean {
+  const rel = path.relative(root, resolved);
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
 export function featureStem(filePath: string): string {
   const base = path.basename(filePath);
   return base.endsWith(FEATURE_FILE_SUFFIX)
@@ -286,42 +297,106 @@ export function loadWorkspace(startDir: string): Workspace {
   if (configPath !== undefined) {
     if (config.catalogs?.services) {
       const servicesPath = path.resolve(root, config.catalogs.services);
-      const catalog = loadCatalog(servicesPath, parseServices, diagnostics);
-      services = catalog.data;
-      catalogLocators.services = catalog.locate;
-      catalogPaths.services = servicesPath;
-      for (const service of Object.values(services?.services ?? {})) {
-        for (const operation of Object.values(service.operations)) {
-          if (operation.openapi === undefined) continue;
-          const documentPath = path.resolve(path.dirname(servicesPath), operation.openapi.document);
-          if (!openApiDocuments.has(documentPath)) {
-            const document = loadOpenApiDocument(documentPath, diagnostics);
-            if (document) openApiDocuments.set(documentPath, document);
+      if (!isWithinRoot(root, servicesPath)) {
+        diagnostics.push(
+          makeDiagnostic(CODES.UNSAFE_WORKSPACE_PATH, {
+            message: `Service catalog path "${config.catalogs.services}" resolves outside the workspace root; refusing to read it.`,
+            file: configPath,
+            path: ["catalogs", "services"],
+          }),
+        );
+      } else {
+        const catalog = loadCatalog(servicesPath, parseServices, diagnostics);
+        services = catalog.data;
+        catalogLocators.services = catalog.locate;
+        catalogPaths.services = servicesPath;
+        for (const [serviceId, service] of Object.entries(services?.services ?? {})) {
+          for (const [operationId, operation] of Object.entries(service.operations)) {
+            if (operation.openapi === undefined) continue;
+            const documentPath = path.resolve(
+              path.dirname(servicesPath),
+              operation.openapi.document,
+            );
+            if (!isWithinRoot(root, documentPath)) {
+              const docPath = [
+                "services",
+                serviceId,
+                "operations",
+                operationId,
+                "openapi",
+                "document",
+              ];
+              diagnostics.push(
+                makeDiagnostic(CODES.UNSAFE_WORKSPACE_PATH, {
+                  message: `OpenAPI document "${operation.openapi.document}" resolves outside the workspace root; refusing to read it.`,
+                  file: servicesPath,
+                  path: docPath,
+                  location: catalog.locate?.(docPath),
+                }),
+              );
+              continue;
+            }
+            if (!openApiDocuments.has(documentPath)) {
+              const document = loadOpenApiDocument(documentPath, diagnostics);
+              if (document) openApiDocuments.set(documentPath, document);
+            }
           }
         }
       }
     }
     if (config.catalogs?.events) {
       const eventsPath = path.resolve(root, config.catalogs.events);
-      const catalog = loadCatalog(eventsPath, parseEvents, diagnostics);
-      events = catalog.data;
-      catalogLocators.events = catalog.locate;
-      catalogPaths.events = eventsPath;
-      for (const event of Object.values(events?.events ?? {})) {
-        if (event.asyncapi === undefined) continue;
-        const documentPath = path.resolve(path.dirname(eventsPath), event.asyncapi.document);
-        if (!asyncApiDocuments.has(documentPath)) {
-          const document = loadAsyncApiDocument(documentPath, diagnostics);
-          if (document) asyncApiDocuments.set(documentPath, document);
+      if (!isWithinRoot(root, eventsPath)) {
+        diagnostics.push(
+          makeDiagnostic(CODES.UNSAFE_WORKSPACE_PATH, {
+            message: `Event catalog path "${config.catalogs.events}" resolves outside the workspace root; refusing to read it.`,
+            file: configPath,
+            path: ["catalogs", "events"],
+          }),
+        );
+      } else {
+        const catalog = loadCatalog(eventsPath, parseEvents, diagnostics);
+        events = catalog.data;
+        catalogLocators.events = catalog.locate;
+        catalogPaths.events = eventsPath;
+        for (const [eventName, event] of Object.entries(events?.events ?? {})) {
+          if (event.asyncapi === undefined) continue;
+          const documentPath = path.resolve(path.dirname(eventsPath), event.asyncapi.document);
+          if (!isWithinRoot(root, documentPath)) {
+            const docPath = ["events", eventName, "asyncapi", "document"];
+            diagnostics.push(
+              makeDiagnostic(CODES.UNSAFE_WORKSPACE_PATH, {
+                message: `AsyncAPI document "${event.asyncapi.document}" resolves outside the workspace root; refusing to read it.`,
+                file: eventsPath,
+                path: docPath,
+                location: catalog.locate?.(docPath),
+              }),
+            );
+            continue;
+          }
+          if (!asyncApiDocuments.has(documentPath)) {
+            const document = loadAsyncApiDocument(documentPath, diagnostics);
+            if (document) asyncApiDocuments.set(documentPath, document);
+          }
         }
       }
     }
 
     const featuresDir = path.resolve(root, config.features.directory);
-    features = findFeatureFiles(featuresDir).map((filePath) => ({
-      path: filePath,
-      ...collectFlowRefs(filePath),
-    }));
+    if (!isWithinRoot(root, featuresDir)) {
+      diagnostics.push(
+        makeDiagnostic(CODES.UNSAFE_WORKSPACE_PATH, {
+          message: `Features directory "${config.features.directory}" resolves outside the workspace root; refusing to scan it.`,
+          file: configPath,
+          path: ["features", "directory"],
+        }),
+      );
+    } else {
+      features = findFeatureFiles(featuresDir).map((filePath) => ({
+        path: filePath,
+        ...collectFlowRefs(filePath),
+      }));
+    }
 
     knownFlows = new Set<string>();
     flowOutcomes = new Map<string, ReadonlySet<string>>();

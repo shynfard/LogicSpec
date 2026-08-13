@@ -57,6 +57,7 @@ Codes are stable and documented. They are never renumbered or reused.
 | LS002 | `SCHEMA_ERROR` | error | The document does not match the schema (unknown property, wrong type, unknown step type, bad enum value, malformed duration or identifier) |
 | LS003 | `CONFIG_ERROR` | error | `logicspec.config.yaml` is invalid |
 | LS004 | `FILE_ERROR` | error | A file or directory could not be read |
+| LS005 | `UNSAFE_WORKSPACE_PATH` | error | A config-referenced path (a `catalogs` file, an `openapi`/`asyncapi` `document`, or the `features` directory) resolves **outside the workspace root**. The referenced file is refused rather than read, so a crafted config cannot make the loader open arbitrary files on disk. Every such path must stay inside the directory containing `logicspec.config.yaml` (absolute paths and `..` escapes are rejected) |
 
 ### Reference resolution
 

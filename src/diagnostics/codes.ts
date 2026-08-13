@@ -23,6 +23,12 @@ export const CODES = {
   SCHEMA_ERROR: code("LS002", "SCHEMA_ERROR", "error", "The document does not match the schema."),
   CONFIG_ERROR: code("LS003", "CONFIG_ERROR", "error", "The workspace configuration is invalid."),
   FILE_ERROR: code("LS004", "FILE_ERROR", "error", "A file could not be read."),
+  UNSAFE_WORKSPACE_PATH: code(
+    "LS005",
+    "UNSAFE_WORKSPACE_PATH",
+    "error",
+    "A config-referenced path resolves outside the workspace root.",
+  ),
 
   // ── Reference resolution ──────────────────────────────────────────────────
   UNKNOWN_START: code("LS100", "UNKNOWN_START", "error", "start points to a nonexistent step."),
