@@ -3,6 +3,11 @@ import { type Diagnostic, makeDiagnostic } from "../diagnostics/diagnostic.js";
 import type { PathLocator } from "../parser/yaml.js";
 import type { FeatureFile } from "../schema/feature.js";
 
+/** A string that is present but contains only whitespace. */
+function isBlank(value: string | undefined): boolean {
+  return typeof value === "string" && value.trim().length === 0;
+}
+
 /**
  * File-local structural rules that Zod's shape validation cannot express:
  * mutually exclusive properties and direction-dependent requirements.
@@ -17,6 +22,21 @@ export function validateStructure(
   for (const [id, step] of Object.entries(feature.steps)) {
     const at = (...tail: string[]) => ["steps", id, ...tail];
 
+    // A descriptive `when` guard that is present but blank is a mistake: it
+    // renders as an empty `[when: ]` and carries no meaning (LS306).
+    const checkGuard = (when: string | undefined, ...tail: string[]) => {
+      if (isBlank(when)) {
+        diagnostics.push(
+          makeDiagnostic(CODES.BLANK_GUARD, {
+            message: `Step "${id}" has a blank "when" guard at ${tail.join(".")}; write a descriptive predicate or omit it.`,
+            file,
+            path: at(...tail),
+            location: locate(at(...tail)),
+          }),
+        );
+      }
+    };
+
     switch (step.type) {
       case "operation":
       case "subflow": {
@@ -29,6 +49,15 @@ export function validateStructure(
               location: locate(at("next")),
             }),
           );
+        }
+        for (const [outcome, target] of Object.entries(step.on ?? {})) {
+          checkGuard(target.when, "on", outcome, "when");
+        }
+        break;
+      }
+      case "page": {
+        for (const [actionId, action] of Object.entries(step.actions ?? {})) {
+          checkGuard(action.when, "actions", actionId, "when");
         }
         break;
       }
@@ -71,7 +100,11 @@ export function validateStructure(
 
         // ── eventKind consistency (LS305) ─────────────────────────────────
         type EventField = "event" | "after" | "at" | "every" | "name" | "when";
-        const has = (field: EventField) => step[field] !== undefined;
+        // A blank string never satisfies a "required per kind" field: an empty
+        // `event`/`when`/`at` is as good as absent, so it must not slip past the
+        // per-kind requirements as a non-undefined value.
+        const has = (field: EventField) =>
+          step[field] !== undefined && !isBlank(step[field] as string | undefined);
         const pushKind = (message: string, field?: string) => {
           const path = field ? at(field) : ["steps", id];
           diagnostics.push(
@@ -102,6 +135,12 @@ export function validateStructure(
             break;
           }
           case "timer": {
+            if (step.direction === "publish") {
+              pushKind(
+                'is a timer event and must use "direction: wait" — a timer is caught, never published.',
+                "direction",
+              );
+            }
             const timerFields = (["after", "at", "every"] as const).filter((f) => has(f));
             if (timerFields.length !== 1) {
               pushKind(
@@ -113,10 +152,19 @@ export function validateStructure(
             break;
           }
           case "error": {
+            if (step.name !== undefined && isBlank(step.name)) {
+              pushKind('has a blank "name"; give the error a descriptive name or omit it.', "name");
+            }
             forbid(["event", "after", "at", "every", "when"], "on an error event");
             break;
           }
           case "conditional": {
+            if (step.direction === "publish") {
+              pushKind(
+                'is a conditional event and must use "direction: wait" — a conditional event is caught, never published.',
+                "direction",
+              );
+            }
             if (!has("when")) pushKind('is a conditional event and must set "when".', "when");
             forbid(["event", "after", "at", "every", "name"], "on a conditional event");
             break;

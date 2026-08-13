@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  type FeatureFile,
   parseEvents,
   parseServices,
   type ValidateOptions,
@@ -314,5 +315,52 @@ steps:
     const diagnostic = result.diagnostics.find((d) => d.code === "LS400");
     expect(diagnostic?.severity).toBe("info");
     expect(result.valid).toBe(true);
+  });
+});
+
+describe("object-input validation does not bypass structural checks", () => {
+  it("runs LS305 on an already-parsed object (timer with no after/at/every)", () => {
+    const feature: FeatureFile = {
+      version: "1",
+      feature: { id: "demo", name: "Demo" },
+      start: "ev",
+      steps: {
+        ev: {
+          type: "event",
+          direction: "wait",
+          eventKind: "timer",
+          on: { received: { next: "fin" } },
+        },
+        fin: { type: "final", outcome: "success" },
+      },
+    };
+    const result = validateFeature(feature);
+    expect(result.diagnostics.map((d) => d.code)).toContain("LS305");
+    expect(result.valid).toBe(false);
+  });
+
+  it("runs LS305 on an object generic event with no event name", () => {
+    const feature: FeatureFile = {
+      version: "1",
+      feature: { id: "demo", name: "Demo" },
+      start: "ev",
+      steps: {
+        ev: { type: "event", direction: "publish", next: "fin" },
+        fin: { type: "final", outcome: "success" },
+      },
+    };
+    const result = validateFeature(feature);
+    expect(result.diagnostics.map((d) => d.code)).toContain("LS305");
+    expect(result.valid).toBe(false);
+  });
+
+  it("still accepts a structurally valid object", () => {
+    const feature: FeatureFile = {
+      version: "1",
+      feature: { id: "demo", name: "Demo" },
+      start: "fin",
+      steps: { fin: { type: "final", outcome: "success" } },
+    };
+    expect(validateFeature(feature).valid).toBe(true);
   });
 });

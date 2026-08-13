@@ -279,18 +279,18 @@ describe("typed events (eventKind, LS305)", () => {
   });
 
   it("accepts message, signal, error and conditional events", () => {
+    // Conditionals are catch events, so they wait (LS305); the rest publish.
     const cases = [
-      "eventKind: message\n    event: Thing\n    next: fin",
-      "eventKind: signal\n    event: Thing\n    next: fin",
-      "eventKind: error\n    name: PaymentTimeout\n    next: fin",
-      "eventKind: conditional\n    when: balance < 0\n    next: fin",
+      "direction: publish\n    eventKind: message\n    event: Thing\n    next: fin",
+      "direction: publish\n    eventKind: signal\n    event: Thing\n    next: fin",
+      "direction: publish\n    eventKind: error\n    name: PaymentTimeout\n    next: fin",
+      "direction: wait\n    eventKind: conditional\n    when: balance < 0\n    on:\n      received: { next: fin }",
     ];
     for (const body of cases) {
       const result = parseFeature(
         featureWith(`
   start-step:
     type: event
-    direction: publish
     ${body}
   fin:
     type: final
@@ -401,14 +401,135 @@ describe("typed events (eventKind, LS305)", () => {
     const source = featureWith(`
   start-step:
     type: event
+    direction: wait
+    eventKind: conditional
+    on:
+      received: { next: fin }
+  fin:
+    type: final
+    outcome: success
+`);
+    expect(codes(source)).toContain("LS305");
+  });
+
+  it("rejects a published timer or conditional — they are catch events (LS305)", () => {
+    const publishedTimer = featureWith(`
+  start-step:
+    type: event
+    direction: publish
+    eventKind: timer
+    after: 5m
+    next: fin
+  fin:
+    type: final
+    outcome: success
+`);
+    expect(codes(publishedTimer)).toContain("LS305");
+
+    const publishedConditional = featureWith(`
+  start-step:
+    type: event
     direction: publish
     eventKind: conditional
+    when: balance < 0
+    next: fin
+  fin:
+    type: final
+    outcome: success
+`);
+    expect(codes(publishedConditional)).toContain("LS305");
+  });
+
+  it("rejects a blank timer field and a blank conditional when (LS305)", () => {
+    const blankAt = featureWith(`
+  start-step:
+    type: event
+    direction: wait
+    eventKind: timer
+    at: ""
+    on:
+      received: { next: fin }
+  fin:
+    type: final
+    outcome: success
+`);
+    expect(codes(blankAt)).toContain("LS305");
+
+    const blankWhen = featureWith(`
+  start-step:
+    type: event
+    direction: wait
+    eventKind: conditional
+    when: "   "
+    on:
+      received: { next: fin }
+  fin:
+    type: final
+    outcome: success
+`);
+    expect(codes(blankWhen)).toContain("LS305");
+  });
+
+  it("rejects a blank error name (LS305)", () => {
+    const source = featureWith(`
+  start-step:
+    type: event
+    direction: publish
+    eventKind: error
+    name: ""
     next: fin
   fin:
     type: final
     outcome: success
 `);
     expect(codes(source)).toContain("LS305");
+  });
+});
+
+describe("blank descriptive guards (LS306)", () => {
+  it("rejects a blank when guard on an operation outcome", () => {
+    const source = featureWith(`
+  start-step:
+    type: operation
+    on:
+      success:
+        when: ""
+        next: fin
+  fin:
+    type: final
+    outcome: success
+`);
+    expect(codes(source)).toContain("LS306");
+  });
+
+  it("rejects a blank when guard on a page action", () => {
+    const source = featureWith(`
+  start-step:
+    type: page
+    actions:
+      go:
+        when: "   "
+        next: fin
+  fin:
+    type: final
+    outcome: success
+`);
+    expect(codes(source)).toContain("LS306");
+  });
+
+  it("accepts a non-blank guard", () => {
+    const source = featureWith(`
+  start-step:
+    type: operation
+    on:
+      success:
+        when: the slot is still free
+        next: fin
+  fin:
+    type: final
+    outcome: success
+`);
+    expect(codes(source)).not.toContain("LS306");
   });
 });
 

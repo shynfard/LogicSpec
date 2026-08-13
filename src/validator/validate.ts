@@ -6,6 +6,7 @@ import { parseFeature } from "../parser/parse-feature.js";
 import type { FeatureFile } from "../schema/feature.js";
 import { type SemanticContext, validateSemantics } from "./semantic.js";
 import { computeStats, type FeatureStats } from "./stats.js";
+import { validateStructure } from "./structural.js";
 
 /** Per-code severity overrides; "off" removes matching diagnostics entirely. */
 export type SeverityOverrides = Readonly<Record<string, Severity | "off">>;
@@ -73,8 +74,12 @@ export function validateFeature(
     feature = parsed.data;
     locate = parsed.locate;
   } else {
+    // An already-parsed object skipped the parser, so it also skipped the
+    // file-local structural checks (LS301–LS306). Run them here so no input
+    // path can bypass per-kind event consistency or the other structural
+    // rules. Source locations are unavailable for object inputs.
     feature = input;
-    diagnostics = [];
+    diagnostics = validateStructure(feature, () => undefined, options.file);
     locate = undefined;
   }
 

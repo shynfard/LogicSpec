@@ -129,6 +129,12 @@ export const CODES = {
     "error",
     "An event step's fields are inconsistent with its eventKind.",
   ),
+  BLANK_GUARD: code(
+    "LS306",
+    "BLANK_GUARD",
+    "error",
+    "A descriptive when guard is present but blank.",
+  ),
 
   // ── Advisory ──────────────────────────────────────────────────────────────
   NO_FAILURE_OUTCOME: code(
