@@ -135,6 +135,12 @@ export const CODES = {
     "error",
     "A descriptive when guard is present but blank.",
   ),
+  INVALID_DECISION_TABLE: code(
+    "LS307",
+    "INVALID_DECISION_TABLE",
+    "error",
+    "A decision table's shape is inconsistent (row width, empty rules/outputs, or combined with cases).",
+  ),
 
   // ── Advisory ──────────────────────────────────────────────────────────────
   NO_FAILURE_OUTCOME: code(

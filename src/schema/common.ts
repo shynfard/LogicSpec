@@ -68,7 +68,17 @@ export const eventKindSchema = z
   .enum(["timer", "message", "signal", "error", "conditional"])
   .describe("Optional event classification. Absent keeps the generic event behavior.");
 
+/**
+ * DMN-standard decision-table hit policy. This is a declarative LABEL that
+ * describes how matching rules combine — it is never an evaluator. Like every
+ * predicate in the DSL, the table's cells are documentation, not runtime.
+ */
+export const hitPolicySchema = z
+  .enum(["unique", "first", "priority", "any", "collect", "ruleOrder", "outputOrder"])
+  .describe('DMN hit policy. A declarative label, never evaluated. Defaults to "unique".');
+
 export type ContextType = z.infer<typeof contextTypeSchema>;
 export type ActorKind = z.infer<typeof actorKindSchema>;
 export type FinalOutcome = z.infer<typeof finalOutcomeSchema>;
 export type EventKind = z.infer<typeof eventKindSchema>;
+export type HitPolicy = z.infer<typeof hitPolicySchema>;

@@ -1,5 +1,5 @@
 import { CODES } from "../diagnostics/codes.js";
-import { type Diagnostic, makeDiagnostic } from "../diagnostics/diagnostic.js";
+import { type Diagnostic, type DocPath, makeDiagnostic } from "../diagnostics/diagnostic.js";
 import type { PathLocator } from "../parser/yaml.js";
 import type { FeatureFile } from "../schema/feature.js";
 
@@ -177,15 +177,63 @@ export function validateStructure(
         break;
       }
       case "decision": {
-        if ((step.cases === undefined || step.cases.length === 0) && step.default === undefined) {
+        const hasCases = step.cases !== undefined && step.cases.length > 0;
+        const table = step.decisionTable;
+        if (!hasCases && step.default === undefined && table === undefined) {
           diagnostics.push(
             makeDiagnostic(CODES.EMPTY_DECISION, {
-              message: `Decision "${id}" must define at least one case or a default.`,
+              message: `Decision "${id}" must define at least one case, a decision table, or a default.`,
               file,
               path: ["steps", id],
               location: locate(["steps", id]),
             }),
           );
+        }
+        if (table !== undefined) {
+          const pushTable = (message: string, ...tail: (string | number)[]) => {
+            const path: DocPath = ["steps", id, ...tail];
+            diagnostics.push(
+              makeDiagnostic(CODES.INVALID_DECISION_TABLE, {
+                message: `Decision "${id}" ${message}`,
+                file,
+                path,
+                location: locate(path),
+              }),
+            );
+          };
+          // A decision uses EITHER free-form cases OR a table, never both.
+          if (step.cases !== undefined) {
+            pushTable(
+              'defines both "cases" and a "decisionTable"; use one or the other.',
+              "decisionTable",
+            );
+          }
+          if (table.outputs.length === 0) {
+            pushTable("has a decision table with no output columns.", "decisionTable", "outputs");
+          }
+          if (table.rules.length === 0) {
+            pushTable("has a decision table with no rules.", "decisionTable", "rules");
+          }
+          table.rules.forEach((rule, index) => {
+            if (rule.when.length !== table.inputs.length) {
+              pushTable(
+                `rule ${index + 1} has ${rule.when.length} "when" cell(s) but the table declares ${table.inputs.length} input column(s).`,
+                "decisionTable",
+                "rules",
+                index,
+                "when",
+              );
+            }
+            if (rule.then.length !== table.outputs.length) {
+              pushTable(
+                `rule ${index + 1} has ${rule.then.length} "then" cell(s) but the table declares ${table.outputs.length} output column(s).`,
+                "decisionTable",
+                "rules",
+                index,
+                "then",
+              );
+            }
+          });
         }
         break;
       }

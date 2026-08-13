@@ -1,5 +1,13 @@
-import type { EventKind, StepType } from "../schema/feature.js";
+import type { EventKind, HitPolicy, StepType } from "../schema/feature.js";
 import type { EdgeKind, NormalizedFeature } from "./normalize.js";
+
+/** Decision-table summary exposed on a decision node for renderers and tools. */
+export interface GraphDecisionTable {
+  hitPolicy: HitPolicy;
+  inputs: string[];
+  outputs: string[];
+  ruleCount: number;
+}
 
 export interface GraphNode {
   id: string;
@@ -12,6 +20,8 @@ export interface GraphNode {
   eventKind?: EventKind;
   /** True for a final step that terminates the whole flow instance. */
   terminate?: boolean;
+  /** Present only on decision steps driven by a decision table. */
+  decisionTable?: GraphDecisionTable;
 }
 
 export interface GraphEdge {
@@ -51,6 +61,15 @@ export function buildGraph(feature: NormalizedFeature): FeatureGraph {
     outcome: step.def.type === "final" ? step.def.outcome : undefined,
     eventKind: step.def.type === "event" ? step.def.eventKind : undefined,
     terminate: step.def.type === "final" ? step.def.terminate : undefined,
+    decisionTable:
+      step.def.type === "decision" && step.def.decisionTable !== undefined
+        ? {
+            hitPolicy: step.def.decisionTable.hitPolicy ?? "unique",
+            inputs: step.def.decisionTable.inputs,
+            outputs: step.def.decisionTable.outputs,
+            ruleCount: step.def.decisionTable.rules.length,
+          }
+        : undefined,
   }));
 
   const edges: GraphEdge[] = feature.steps.flatMap((step) =>

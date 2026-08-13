@@ -17,7 +17,13 @@ export {
   type SourceLocation,
 } from "./diagnostics/diagnostic.js";
 export * from "./edit/mutations.js";
-export { buildGraph, type FeatureGraph, type GraphEdge, type GraphNode } from "./graph/edges.js";
+export {
+  buildGraph,
+  type FeatureGraph,
+  type GraphDecisionTable,
+  type GraphEdge,
+  type GraphNode,
+} from "./graph/edges.js";
 export {
   type EdgeKind,
   type NormalizedActor,
@@ -37,7 +43,18 @@ export { mermaidNodeIdMap } from "./renderers/mermaid-common.js";
 export type { RenderDirection, RenderView } from "./schema/config.js";
 export type { EventDefinition, EventsFile } from "./schema/events.js";
 
-export type { Actor, ContextVar, FeatureFile, Step, StepType } from "./schema/feature.js";
+export {
+  type Actor,
+  type ContextVar,
+  DECISION_TABLE_TARGET_COLUMN,
+  type DecisionRule,
+  type DecisionStep,
+  type DecisionTable,
+  type FeatureFile,
+  type HitPolicy,
+  type Step,
+  type StepType,
+} from "./schema/feature.js";
 export type { Service, ServiceOperation, ServicesFile } from "./schema/services.js";
 export { computeStats, type FeatureStats } from "./validator/stats.js";
 export {

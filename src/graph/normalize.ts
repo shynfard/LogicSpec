@@ -1,5 +1,13 @@
 import type { DocPath } from "../diagnostics/diagnostic.js";
-import type { Actor, ContextVar, FeatureFile, Step, StepType } from "../schema/feature.js";
+import {
+  type Actor,
+  type ContextVar,
+  DECISION_TABLE_TARGET_COLUMN,
+  type DecisionTable,
+  type FeatureFile,
+  type Step,
+  type StepType,
+} from "../schema/feature.js";
 
 /** How an edge came to exist. Renderers may style kinds differently. */
 export type EdgeKind = "action" | "outcome" | "decision" | "event" | "default" | "next";
@@ -59,6 +67,23 @@ export interface NormalizedFeature {
   steps: NormalizedStep[];
 }
 
+/**
+ * Builds a concise branch label for one decision-table rule from its
+ * descriptive (non-target) output cells, e.g. `tier: gold`. Falls back to the
+ * 1-based rule number when the rule has no descriptive outputs.
+ */
+function decisionRuleLabel(table: DecisionTable, then: string[], index: number): string {
+  const parts: string[] = [];
+  table.outputs.forEach((header, i) => {
+    if (header === DECISION_TABLE_TARGET_COLUMN) return;
+    const value = then[i];
+    if (value !== undefined && value !== "" && value !== "-") {
+      parts.push(`${header}: ${value}`);
+    }
+  });
+  return parts.length > 0 ? parts.join(", ") : `rule ${index + 1}`;
+}
+
 function transitionsOf(id: string, step: Step): NormalizedTransition[] {
   const base: DocPath = ["steps", id];
   const transitions: NormalizedTransition[] = [];
@@ -85,6 +110,26 @@ function transitionsOf(id: string, step: Step): NormalizedTransition[] {
           path: [...base, "cases", index, "next"],
         });
       });
+      // A table-driven decision branches through its reserved `next` output
+      // column: one transition per rule, targeting that rule's `next` cell.
+      // These flow through the same machinery as cases, so unreachable/dangling
+      // target checks (LS101/LS2xx) apply to table targets unchanged.
+      const table = step.decisionTable;
+      if (table !== undefined) {
+        const nextColumn = table.outputs.indexOf(DECISION_TABLE_TARGET_COLUMN);
+        if (nextColumn >= 0) {
+          table.rules.forEach((rule, index) => {
+            const to = rule.then[nextColumn];
+            if (to === undefined) return; // malformed row width — LS307 covers it
+            transitions.push({
+              to,
+              kind: "decision",
+              label: decisionRuleLabel(table, rule.then, index),
+              path: [...base, "decisionTable", "rules", index, "then", nextColumn],
+            });
+          });
+        }
+      }
       if (step.default) {
         transitions.push({
           to: step.default.next,

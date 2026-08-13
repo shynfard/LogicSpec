@@ -81,6 +81,13 @@ function typeMarker(node: GraphNode): string {
   if (node.type === "event" && node.eventKind !== undefined) {
     return `EVENT · ${node.eventKind.toUpperCase()}`;
   }
+  // A table-driven decision keeps the diamond shape but declares itself a table
+  // and how many rules it holds, so the grid nature reads in the diagram.
+  if (node.type === "decision" && node.decisionTable !== undefined) {
+    const { hitPolicy, ruleCount } = node.decisionTable;
+    const rules = `${ruleCount} ${ruleCount === 1 ? "rule" : "rules"}`;
+    return `DECISION TABLE · ${hitPolicy.toUpperCase()} · ${rules}`;
+  }
   return node.type.toUpperCase();
 }
 

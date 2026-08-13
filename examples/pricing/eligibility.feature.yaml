@@ -1,0 +1,65 @@
+# yaml-language-server: $schema=../../schemas/feature.schema.json
+version: "1"
+
+# Demonstrates the v0.7.0 addition: a DECISION TABLE with a hit policy.
+#
+# The `assess` decision uses a grid of rules instead of free-form cases. Cells
+# are descriptive predicates — never evaluated — and the hit policy is a
+# declarative label. The reserved `next` output column names the step each rule
+# branches to, so the table still renders as a real flow with typed branches.
+
+feature:
+  id: eligibility
+  name: Loan Eligibility
+  description: Classify a loan applicant with a decision table, then branch on the result.
+
+start: assess
+
+actors:
+
+  underwriting:
+    kind: service
+    label: Underwriting
+
+steps:
+
+  assess:
+    type: decision
+    label: Assess Applicant
+    actor: underwriting
+    decisionTable:
+      hitPolicy: first
+      inputs:
+        - age
+        - country
+      outputs:
+        - tier
+        - next
+      rules:
+        - when: ["< 18", "-"]
+          then: ["ineligible", "reject"]
+        - when: [">= 18", "US"]
+          then: ["prime", "approve"]
+        - when: [">= 18", "-"]
+          then: ["standard", "review"]
+
+  approve:
+    type: final
+    label: Approved
+    outcome: success
+
+  review:
+    type: operation
+    label: Manual Review
+    actor: underwriting
+    call: underwriting.queue-review
+    on:
+      approved:
+        next: approve
+      rejected:
+        next: reject
+
+  reject:
+    type: final
+    label: Rejected
+    outcome: failure

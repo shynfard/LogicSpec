@@ -11,7 +11,7 @@ YAML source
     ↓  syntax            → LS001
 Schema validation (Zod)  → LS002, LS300
     ↓
-Structural rules         → LS301, LS302, LS303, LS304, LS305, LS306
+Structural rules         → LS301, LS302, LS303, LS304, LS305, LS306, LS307
     ↓
 Normalized feature model
     ↓
@@ -89,10 +89,11 @@ Codes are stable and documented. They are never renumbered or reused.
 | LS300 | `INVALID_FINAL` | error | A final step declares outgoing transitions |
 | LS301 | `INVALID_TRANSITIONS` | error | `next` and `on` used together on an operation or subflow |
 | LS302 | `INVALID_EVENT_STEP` | error | Event direction contradicts its transition properties |
-| LS303 | `EMPTY_DECISION` | error | A decision has neither cases nor a default |
+| LS303 | `EMPTY_DECISION` | error | A decision has no cases, no decision table, and no default |
 | LS304 | `EMPTY_PARALLEL` | error | A parallel step has no branches |
 | LS305 | `INVALID_EVENT_KIND` | error | An event's fields contradict its `eventKind` (e.g. a timer without exactly one of `after`/`at`/`every`, a message without an `event` name, a conditional without `when`, a blank required field, or a `timer`/`conditional` published instead of waited) |
 | LS306 | `BLANK_GUARD` | error | A descriptive `when` guard on an operation/subflow outcome or a page action is present but blank |
+| LS307 | `INVALID_DECISION_TABLE` | error | A decision table's shape is inconsistent: combined with `cases`, no output columns, no rules, or a rule whose `when`/`then` width does not match the declared inputs/outputs |
 
 ### Advisory
 

@@ -69,7 +69,48 @@ has-availability:
     next: no-slots
 ```
 
-A decision needs at least one case or a default (LS303).
+A decision needs at least one case, a decision table, or a default (LS303).
+
+### Decision tables
+
+For grid-shaped logic — the kind a domain expert reads as a table, not a graph — a decision can carry a `decisionTable` instead of free-form `cases`. It is a [DMN](https://www.omg.org/dmn/)-style table: input columns (the things being tested), output columns (the results), a hit policy, and a list of rules (rows). A decision uses **either** `cases` **or** a `decisionTable`, never both (LS307).
+
+Like every predicate in LogicSpec, the cells are **descriptive text and are never evaluated**, and the hit policy is a **declarative label** — it documents how rules are meant to combine; the tool never picks a winner.
+
+```yaml
+assess:
+  type: decision
+  label: Assess Applicant
+  actor: underwriting
+  decisionTable:
+    hitPolicy: first
+    inputs:
+      - age
+      - country
+    outputs:
+      - tier
+      - next
+    rules:
+      - when: ["< 18", "-"]
+        then: ["ineligible", "reject"]
+      - when: [">= 18", "US"]
+        then: ["prime", "approve"]
+      - when: [">= 18", "-"]
+        then: ["standard", "review"]
+```
+
+| Field | Meaning |
+|-------|---------|
+| `inputs` | Column headers for the things being tested, e.g. `["age", "country"]`. |
+| `outputs` | One or more result column headers. The reserved **`next`** column names the target step (see below); every other output is a descriptive result value, e.g. `tier`. |
+| `hitPolicy` | One of `unique` (default), `first`, `priority`, `any`, `collect`, `ruleOrder`, `outputOrder` — the DMN hit policies. A label only, never evaluated. |
+| `rules` | The rows. Each rule has one `when` cell per input column and one `then` cell per output column. `-` or `""` in a `when` cell means "any". |
+
+**Target-column convention.** One output column may be named `next`. When present, that column's cell in each rule is the step id the decision transitions to when the rule is selected — so a table-driven decision produces one branch per rule and stays a real flow. All the usual target checks apply to those cells: an unresolved target is [LS101](validation.md), and a step reachable only through a table branch is reachable for [LS200](validation.md). If you omit the `next` column, the table is a pure classification/output table and the decision continues through its `default`.
+
+Rules are validated for shape (LS307): each rule's `when` width must equal the number of inputs, each rule's `then` width must equal the number of outputs, the table must declare at least one output column, and it must have at least one rule.
+
+In the flowchart the node keeps the decision diamond but its marker becomes `DECISION TABLE · <HIT POLICY> · N rules`, and each rule renders as a branch labelled by its descriptive outputs (e.g. `tier: prime`). The full table — inputs, outputs, hit policy and rule count — is exposed on the graph node, and the complete rule grid is available through the MCP `get_step` tool.
 
 ## `operation`
 

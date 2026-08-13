@@ -40,7 +40,13 @@ export {
   setStepField,
 } from "./edit/mutations.js";
 export { analyzeDataflow, type DataflowIssue } from "./graph/dataflow.js";
-export { buildGraph, type FeatureGraph, type GraphEdge, type GraphNode } from "./graph/edges.js";
+export {
+  buildGraph,
+  type FeatureGraph,
+  type GraphDecisionTable,
+  type GraphEdge,
+  type GraphNode,
+} from "./graph/edges.js";
 // Normalized model and graph
 export {
   type EdgeKind,
@@ -79,9 +85,14 @@ export type { EventDefinition, EventsFile } from "./schema/events.js";
 export {
   type Actor,
   type ContextVar,
+  DECISION_TABLE_TARGET_COLUMN,
+  type DecisionRule,
+  type DecisionStep,
+  type DecisionTable,
   type FeatureFile,
   type FinalKind,
   finalKind,
+  type HitPolicy,
   type Step,
   type StepType,
 } from "./schema/feature.js";

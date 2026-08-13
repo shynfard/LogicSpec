@@ -321,6 +321,73 @@
                   "additionalProperties": false
                 }
               },
+              "decisionTable": {
+                "description": "A DMN-style decision table. Mutually exclusive with cases.",
+                "type": "object",
+                "properties": {
+                  "inputs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Input column headers — the things being tested, e.g. [\"age\", \"country\"]."
+                  },
+                  "outputs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Output column headers (at least one). A reserved \"next\" column names the target step; the rest are descriptive results, e.g. [\"tier\", \"next\"]."
+                  },
+                  "hitPolicy": {
+                    "description": "How matching rules combine. Declarative label, never evaluated. Defaults to \"unique\".",
+                    "type": "string",
+                    "enum": [
+                      "unique",
+                      "first",
+                      "priority",
+                      "any",
+                      "collect",
+                      "ruleOrder",
+                      "outputOrder"
+                    ]
+                  },
+                  "rules": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "when": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "One predicate cell per input column, in order. \"-\" or \"\" means any. Never evaluated."
+                        },
+                        "then": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "One value cell per output column, in order. Never evaluated."
+                        }
+                      },
+                      "required": [
+                        "when",
+                        "then"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "description": "Rule rows. Each row has one when-cell per input and one then-cell per output."
+                  }
+                },
+                "required": [
+                  "inputs",
+                  "outputs",
+                  "rules"
+                ],
+                "additionalProperties": false
+              },
               "default": {
                 "type": "object",
                 "properties": {

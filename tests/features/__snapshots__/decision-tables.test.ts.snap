@@ -1,0 +1,20 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`decision-table example (examples/pricing) > renders the table marker and its branches (golden) 1`] = `
+"flowchart TD
+  START(("Start"))
+  assess{"Assess Applicant<br/>DECISION TABLE · FIRST · 3 rules"}
+  approve((("Approved<br/>FINAL · success")))
+  review[["Manual Review<br/>OPERATION"]]
+  reject((("Rejected<br/>FINAL · failure · ⊗ ERROR")))
+
+  START --> assess
+  assess -- "tier: ineligible" --> reject
+  assess -- "tier: prime" --> approve
+  assess -- "tier: standard" --> review
+  review -- "approved" --> approve
+  review -- "rejected" --> reject
+
+  classDef error stroke-width:2px,stroke-dasharray:4 3;
+"
+`;

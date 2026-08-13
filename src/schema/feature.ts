@@ -9,11 +9,13 @@ import {
   extensionsSchema,
   type FinalOutcome,
   finalOutcomeSchema,
+  type HitPolicy,
+  hitPolicySchema,
   identifierSchema,
   versionSchema,
 } from "./common.js";
 
-export type { EventKind, FinalOutcome };
+export type { EventKind, FinalOutcome, HitPolicy };
 
 // ── Shared step properties ───────────────────────────────────────────────────
 
@@ -82,11 +84,64 @@ const decisionCaseSchema = z.strictObject({
   next: identifierSchema,
 });
 
+/**
+ * The reserved output column that names the transition target. When a decision
+ * table's `outputs` contains a column with this exact header, each rule's cell
+ * in that column is the step id the decision moves to when the rule is picked.
+ * Every other output column is a descriptive result value, never interpreted.
+ */
+export const DECISION_TABLE_TARGET_COLUMN = "next";
+
+/**
+ * One rule (row) of a decision table. Both arrays are positional: a `when` cell
+ * per input column and a `then` cell per output column. Every cell is
+ * descriptive text — like a decision `when`, nothing here is ever evaluated.
+ */
+const decisionRuleSchema = z.strictObject({
+  when: z
+    .array(z.string())
+    .describe(
+      'One predicate cell per input column, in order. "-" or "" means any. Never evaluated.',
+    ),
+  // biome-ignore lint/suspicious/noThenProperty: canonical DMN decision-table output field; a Zod schema object, not a thenable.
+  then: z
+    .array(z.string())
+    .describe("One value cell per output column, in order. Never evaluated."),
+});
+
+/**
+ * A DMN-style decision table: a grid of rules instead of free-form cases. It is
+ * a description, not a runtime — the hit policy is a declarative label and no
+ * cell is ever evaluated. A reserved `next` output column names the transition
+ * target step; the remaining outputs are descriptive result values.
+ */
+const decisionTableSchema = z.strictObject({
+  inputs: z
+    .array(z.string())
+    .describe('Input column headers — the things being tested, e.g. ["age", "country"].'),
+  outputs: z
+    .array(z.string())
+    .describe(
+      'Output column headers (at least one). A reserved "next" column names the target step; the rest are descriptive results, e.g. ["tier", "next"].',
+    ),
+  hitPolicy: hitPolicySchema
+    .optional()
+    .describe(
+      'How matching rules combine. Declarative label, never evaluated. Defaults to "unique".',
+    ),
+  rules: z
+    .array(decisionRuleSchema)
+    .describe("Rule rows. Each row has one when-cell per input and one then-cell per output."),
+});
+
 export const decisionStepSchema = z.strictObject({
   type: z.literal("decision"),
   ...stepBase,
   expression: z.string().optional().describe("Descriptive expression. Never evaluated."),
   cases: z.array(decisionCaseSchema).optional(),
+  decisionTable: decisionTableSchema
+    .optional()
+    .describe("A DMN-style decision table. Mutually exclusive with cases."),
   default: outcomeSchema.optional(),
 });
 
@@ -269,6 +324,8 @@ export type PageAction = z.infer<typeof pageActionSchema>;
 export type PageLoad = z.infer<typeof pageLoadSchema>;
 export type PageStep = z.infer<typeof pageStepSchema>;
 export type DecisionStep = z.infer<typeof decisionStepSchema>;
+export type DecisionTable = z.infer<typeof decisionTableSchema>;
+export type DecisionRule = z.infer<typeof decisionRuleSchema>;
 export type OperationStep = z.infer<typeof operationStepSchema>;
 export type EventStep = z.infer<typeof eventStepSchema>;
 export type WaitStep = z.infer<typeof waitStepSchema>;
