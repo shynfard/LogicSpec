@@ -3,6 +3,45 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.9.0
+
+An **additive, backward-compatible** extension: **agent zones** (and an `agent`
+actor kind). Every new field is optional, so all existing specs stay valid.
+
+- **`agent` actor kind**: actor `kind` now includes `agent` alongside `user`,
+  `frontend`, `service`, `broker`, `external` and `system`, so a step can be
+  owned by an autonomous AI agent actor. It behaves like any other kind and
+  reads as its own lane in the swimlane view.
+- **Agent zones**: an optional top-level `zones` array demarcates regions of an
+  otherwise deterministic flow as **autonomous-agent territory** — a stretch
+  that is agent-driven and **order-not-fixed** (Camunda's ad-hoc agent-zone
+  pattern). Each zone has a `label`, an optional `description`, an optional
+  `kind` (`agent`, the default and only kind for now), and a `steps` list naming
+  its member steps. A zone is a pure **annotation**: consistent with the rest of
+  the DSL it does **not** change control flow, does not execute, does not
+  reorder, and produces no graph edges — it only records which steps sit inside
+  the agent's autonomous region.
+- New diagnostic **LS309** (`INVALID_ZONE`): every zone `steps` id must resolve
+  to a real step (an unknown id is LS309 with a nearest-name suggestion); a step
+  belongs to **at most one** zone (overlap is rejected); a zone must name at
+  least one step. The construct is bounded to keep validation cheap — at most
+  **100 zones** per feature, **1000 steps** per zone, a **200**-character label
+  and a **1000**-character description; exceeding any bound is rejected as LS309
+  before normalization can amplify it.
+- **Rendering & model**: a zone renders as a labelled **subgraph** ("cluster")
+  around its member steps, titled `🤖 <label>`; interior steps keep their normal
+  shapes and edges. A feature without zones renders byte-for-byte as before.
+  Zones are exposed on the normalized model (`NormalizedFeature.zones`), the
+  graph (`FeatureGraph.zones`) and the inspect report, and each step carries its
+  membership (`NormalizedStep.zone`). Through MCP, `get_feature` lists the zones
+  and `get_step` reports the zone a step belongs to. The swimlane, sequence and
+  event-model views omit the cluster (the `agent` actor lane still reads in the
+  swimlane). New public types `AgentZone`, `NormalizedZone`, `GraphZone`,
+  `AgentZoneKind` and the `AGENT_ZONE_LIMITS` constant are exported.
+- New `examples/triage/` exercises an AI incident-triage region;
+  `docs/step-types.md`, `docs/specification.md` and `docs/validation.md` document
+  the construct, the `agent` kind and LS309.
+
 ## 0.8.0
 
 An **additive, backward-compatible** extension: **boundary events**. Every new
