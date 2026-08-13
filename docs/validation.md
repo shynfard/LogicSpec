@@ -9,6 +9,8 @@ Every feature file passes through the same stages:
 ```text
 YAML source
     ↓  syntax            → LS001
+$ref expansion           → LS110, LS111, LS112
+    ↓
 Schema validation (Zod)  → LS002, LS300
     ↓
 Structural rules         → LS301, LS302, LS303, LS304, LS305, LS306, LS307, LS308, LS309
@@ -20,7 +22,9 @@ Graph construction
 Semantic validation      → LS1xx, LS2xx, LS400
 ```
 
-Each stage is testable in isolation. Cross-file checks (service catalog, event catalog, subflow resolution and contracts, OpenAPI/AsyncAPI references) run only when a workspace config is found; without `logicspec.config.yaml` they are skipped, never guessed.
+Each stage is testable in isolation. Cross-file checks (service catalog, event catalog, shared definitions, subflow resolution and contracts, OpenAPI/AsyncAPI references) run only when a workspace config is found; without `logicspec.config.yaml` they are skipped, never guessed.
+
+**Shared definitions (`$ref`).** An optional `definitions.yaml` catalog (configured as `catalogs.definitions`) holds named reusable **actors** and **step templates**. A feature actor may be `{ $ref: "definitions#/actors/<name>" }`, and a step body may be `{ $ref: "definitions#/steps/<name>", …overrides }` — the step's map key is its id, and local keys shallow-merge over the template (local wins). These references are **expanded into concrete actors/steps before schema validation**, so graph building, every validator, the renderers and diff all operate on the fully-resolved feature; a feature with no `$ref` is byte-identical through the pipeline. Only intra-workspace `definitions#/…` references are accepted (no arbitrary file/URL refs), and the catalog path is subject to the same LS005 workspace-root containment as every other catalog.
 
 Catalog-level checks (LS108, LS109, LS403) belong to the *workspace*, not to any one feature — the CLI reports them once per workspace, and `validate --json` lists them under `workspace.diagnostics`.
 
@@ -73,6 +77,9 @@ Codes are stable and documented. They are never renumbered or reused.
 | LS107 | `UNKNOWN_STATE` | error | A page `load.on` outcome targets a state the page does not declare |
 | LS108 | `UNKNOWN_OPENAPI_OPERATION` | error | An `openapi` reference names an `operationId` missing from the linked OpenAPI document |
 | LS109 | `UNKNOWN_ASYNCAPI_CHANNEL` | error | An `asyncapi` reference names a channel missing from the linked AsyncAPI document |
+| LS110 | `UNKNOWN_REF` | error | A `$ref` points to a shared definition that does not exist (no such `definitions#/actors/<name>` or `definitions#/steps/<name>`, or no definitions catalog is configured) |
+| LS111 | `INVALID_REF` | error | A `$ref` string is malformed (not `definitions#/actors\|steps/<name>`) or targets the wrong section (an actor slot referencing a step, or vice versa) |
+| LS112 | `REF_CYCLE` | error | Shared definitions reference each other in a cycle (a definition whose `$ref` chain returns to itself) |
 
 ### Graph analysis
 
@@ -133,7 +140,7 @@ What LS202 rejects is a **trapped** region: a strongly connected group of steps,
 
 ## Suggestions
 
-Typo-like errors (unknown step, actor, context variable, service, operation, event, subflow, state, step type, zone step) include a nearest-name suggestion when a close match exists:
+Typo-like errors (unknown step, actor, context variable, service, operation, event, subflow, state, step type, zone step, shared-definition `$ref` target) include a nearest-name suggestion when a close match exists:
 
 ```text
 LS101 ERROR UNKNOWN_STEP

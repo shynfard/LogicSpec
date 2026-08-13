@@ -22,14 +22,14 @@ CLI commands: `init` · `validate [paths...] [--strict] [--json]` (no paths = wh
 | Layer | Path | Role |
 |-------|------|------|
 | Schemas | `src/schema/` | Zod schemas = canonical DSL shape; JSON Schema generation |
-| Parser | `src/parser/` | YAML → value + path→line/col(+end) locator; Zod issues → diagnostics |
+| Parser | `src/parser/` | YAML → value + path→line/col(+end) locator; `expand-refs.ts` resolves `$ref` shared definitions before schema; Zod issues → diagnostics |
 | Graph | `src/graph/` | `normalize.ts` (normalized model + ALL transition discovery), `edges.ts` (FeatureGraph), `reachability.ts` (BFS, Tarjan SCC), `dataflow.ts` (must-availability, LS203) |
 | Validator | `src/validator/` | `structural.ts` (file-local), `semantic.ts` (cross-refs + graph + unused + subflow contracts), `catalogs.ts` (OpenAPI/AsyncAPI refs, workspace-level), `validate.ts` (orchestrator + severity overrides), `stats.ts` |
 | Renderers | `src/renderers/` | flowchart (stable); swimlane, sequence, event-model (experimental); workspace graph; Markdown wrapper |
 | Diff | `src/diff/` | semantic feature diff (`diffFeatures`, `formatFeatureDiff`) |
 | Edit | `src/edit/` | comment/format-preserving `yaml`-Document mutations (two-way editing) |
 | MCP | `src/mcp/` | dependency-free stdio JSON-RPC server, 7 tools |
-| Workspace | `src/workspace/` | config discovery, catalog + API-doc loading, flow index, `featureDependents` |
+| Workspace | `src/workspace/` | config discovery, catalog (services/events/definitions) + API-doc loading, flow index, `featureDependents` |
 | CLI | `src/cli/` | Commander commands; thin layer over the library |
 | Diagnostics | `src/diagnostics/` | LS codes, Diagnostic type, nearest-name suggestions |
 | Integrations | `integrations/vscode/`, `integrations/editor/` | self-contained packages (own package.json — install/build/test INSIDE the dir); bundle core from `../../src` via alias, never from dist |
