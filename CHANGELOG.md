@@ -3,6 +3,45 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.7.0
+
+An **additive, backward-compatible** extension: **decision tables**. Every new
+field is optional, so all existing specs stay valid.
+
+- **Decision tables with hit policies**: a `decision` step may carry an optional
+  `decisionTable` — a [DMN](https://www.omg.org/dmn/)-style grid — instead of
+  free-form `cases`. It declares `inputs` (columns being tested), `outputs` (at
+  least one result column), a `hitPolicy` (`unique` (default), `first`,
+  `priority`, `any`, `collect`, `ruleOrder`, `outputOrder`), and `rules` (rows
+  with one `when` cell per input and one `then` cell per output). Consistent with
+  the rest of the DSL, the cells are **descriptive and never evaluated** and the
+  hit policy is a **declarative label**, not an evaluator — LogicSpec stays a
+  specification tool, not a runtime.
+- **Target-column convention**: a reserved `next` output column names the target
+  step for each rule, so a table-driven decision produces one branch per rule and
+  stays a real flow. Those targets flow through the normal transition machinery,
+  so unresolved targets are **LS101** and reachability (**LS200**) treats table
+  branches like any other edge. Omit the `next` column for a pure
+  classification/output table that continues through the decision's `default`.
+- New diagnostic **LS307** (`INVALID_DECISION_TABLE`): rejects a table combined
+  with `cases`, a table with no outputs or no rules, and any rule whose `when` /
+  `then` width does not match the declared inputs / outputs. `decisionTable` and
+  `cases` are mutually exclusive.
+- **Rendering & model**: the flowchart node keeps the decision diamond but its
+  marker becomes `DECISION TABLE · <HIT POLICY> · N rules`, with each rule
+  rendered as a branch labelled by its descriptive outputs. The table summary is
+  exposed on the graph node (`GraphNode.decisionTable`) and the full rule grid is
+  available via the authored step definition (MCP `get_step`). New public types
+  `DecisionTable`, `DecisionRule`, `HitPolicy` and the
+  `DECISION_TABLE_TARGET_COLUMN` constant are exported.
+- New `examples/pricing/` demonstrates a decision table; `docs/step-types.md` and
+  `docs/validation.md` document the construct and LS307.
+
+Also fixed: a **forbidden** event field that was present but blank (e.g. a
+`timer` with `name: ""`) slipped past **LS305**, because the forbidden-field
+check used blank-aware presence. Forbidden-field checks now test raw presence;
+required-field checks stay blank-aware.
+
 ## 0.6.0
 
 Three **additive, backward-compatible** vocabulary extensions. Every field is
