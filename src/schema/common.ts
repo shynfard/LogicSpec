@@ -53,8 +53,8 @@ export const extensionsSchema = z
   .describe("Namespaced extension metadata. Ignored by core validation.");
 
 export const actorKindSchema = z
-  .enum(["user", "frontend", "service", "broker", "external", "system"])
-  .describe("What kind of participant this actor is.");
+  .enum(["user", "frontend", "service", "broker", "external", "system", "agent"])
+  .describe("What kind of participant this actor is. `agent` marks an autonomous AI agent actor.");
 
 export const finalOutcomeSchema = z
   .enum(["success", "failure", "cancelled"])
@@ -77,8 +77,18 @@ export const hitPolicySchema = z
   .enum(["unique", "first", "priority", "any", "collect", "ruleOrder", "outputOrder"])
   .describe('DMN hit policy. A declarative label, never evaluated. Defaults to "unique".');
 
+/**
+ * The kind of an agent zone. Only `agent` exists today — a zone demarcates a
+ * region of the flow that an autonomous AI agent drives, order-not-fixed. It is
+ * an enum (not a bare literal) so future zone kinds stay additive.
+ */
+export const agentZoneKindSchema = z
+  .enum(["agent"])
+  .describe('Agent-zone kind. Only "agent" for now; the region is agent-driven.');
+
 export type ContextType = z.infer<typeof contextTypeSchema>;
 export type ActorKind = z.infer<typeof actorKindSchema>;
 export type FinalOutcome = z.infer<typeof finalOutcomeSchema>;
 export type EventKind = z.infer<typeof eventKindSchema>;
 export type HitPolicy = z.infer<typeof hitPolicySchema>;
+export type AgentZoneKind = z.infer<typeof agentZoneKindSchema>;

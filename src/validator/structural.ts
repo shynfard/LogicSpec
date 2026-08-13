@@ -1,5 +1,6 @@
 import { CODES } from "../diagnostics/codes.js";
 import { type Diagnostic, type DocPath, makeDiagnostic } from "../diagnostics/diagnostic.js";
+import { suggest, withSuggestion } from "../diagnostics/suggest.js";
 import type { PathLocator } from "../parser/yaml.js";
 import {
   BOUNDARY_STEP_TYPES,
@@ -373,6 +374,65 @@ export function validateStructure(
       });
     }
   }
+
+  diagnostics.push(...validateZones(feature, locate, file));
+
+  return diagnostics;
+}
+
+/**
+ * Agent-zone structural rules (LS309). A zone is a file-local ANNOTATION, so
+ * every check here is answerable from the single document: each member step
+ * must resolve to a real step, a step may belong to at most one zone (overlap
+ * is disallowed for simplicity), and a zone must name at least one step. The
+ * array/length caps live in the schema and surface as LS309 via zod-issues.
+ */
+function validateZones(feature: FeatureFile, locate: PathLocator, file?: string): Diagnostic[] {
+  if (feature.zones === undefined) return [];
+  const diagnostics: Diagnostic[] = [];
+  const stepIds = new Set(Object.keys(feature.steps));
+  // First zone (source order) that claims a step; a later zone claiming the
+  // same step is the overlap that LS309 rejects.
+  const ownerZone = new Map<string, number>();
+
+  const push = (message: string, path: DocPath, suggestion?: string) => {
+    diagnostics.push(
+      makeDiagnostic(CODES.INVALID_ZONE, {
+        message: withSuggestion(message, suggestion),
+        file,
+        path,
+        location: locate(path),
+        suggestion,
+      }),
+    );
+  };
+
+  feature.zones.forEach((zone, zi) => {
+    const label = `Zone ${zi + 1} ("${zone.label}")`;
+    if (zone.steps.length === 0) {
+      push(`${label} lists no steps; an agent zone must contain at least one step.`, [
+        "zones",
+        zi,
+        "steps",
+      ]);
+    }
+    zone.steps.forEach((stepId, si) => {
+      const path: DocPath = ["zones", zi, "steps", si];
+      if (!stepIds.has(stepId)) {
+        push(`${label} references unknown step "${stepId}".`, path, suggest(stepId, stepIds));
+        return;
+      }
+      const owner = ownerZone.get(stepId);
+      if (owner === undefined) {
+        ownerZone.set(stepId, zi);
+      } else if (owner !== zi) {
+        push(
+          `${label} also claims step "${stepId}", which already belongs to zone ${owner + 1}; a step belongs to at most one zone.`,
+          path,
+        );
+      }
+    });
+  });
 
   return diagnostics;
 }

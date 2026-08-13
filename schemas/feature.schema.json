@@ -61,9 +61,10 @@
               "service",
               "broker",
               "external",
-              "system"
+              "system",
+              "agent"
             ],
-            "description": "What kind of participant this actor is."
+            "description": "What kind of participant this actor is. `agent` marks an autonomous AI agent actor."
           },
           "label": {
             "type": "string"
@@ -1679,6 +1680,47 @@
             "additionalProperties": false
           }
         ]
+      }
+    },
+    "zones": {
+      "description": "Agent zones: named regions bounding autonomous, order-not-fixed AI-agent behavior. Descriptive annotation only — never executed or reordered.",
+      "maxItems": 100,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Display label for the agent zone, e.g. \"AI Triage\"."
+          },
+          "description": {
+            "description": "Optional prose describing what the agent does in this region.",
+            "type": "string",
+            "maxLength": 1000
+          },
+          "kind": {
+            "description": "Zone kind. Defaults to \"agent\" — the only kind for now.",
+            "type": "string",
+            "enum": [
+              "agent"
+            ]
+          },
+          "steps": {
+            "maxItems": 1000,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+            },
+            "description": "Step ids inside this agent's autonomous region. Each must resolve to a real step, and a step belongs to at most one zone (LS309)."
+          }
+        },
+        "required": [
+          "label",
+          "steps"
+        ],
+        "additionalProperties": false
       }
     },
     "extensions": {

@@ -1,0 +1,146 @@
+# yaml-language-server: $schema=../../schemas/feature.schema.json
+version: "1"
+
+# Demonstrates the v0.9.0 addition: AGENT ZONES (and the `agent` actor kind).
+#
+# An agent zone demarcates a REGION of an otherwise deterministic, reviewable
+# flow as autonomous-agent territory: a stretch of steps an AI agent drives,
+# where the order is NOT fixed (Camunda's ad-hoc agent-zone pattern). It is a
+# pure ANNOTATION — it does not change control flow, does not execute, and does
+# not reorder anything. It only records which steps sit inside the agent's
+# autonomous region so humans, diagrams and MCP clients can see the boundary.
+#
+# Here an autonomous triage agent classifies an incoming incident, enriches it
+# with context, assesses severity and drafts a summary — all inside one zone —
+# before handing off to a human responder for approval. The agent's actor uses
+# the new `kind: agent`, so it also reads as its own lane in the swimlane view.
+
+feature:
+  id: incident-triage
+  name: Incident Triage
+  description: >-
+    An autonomous AI agent triages an incoming incident inside a bounded
+    region, then hands off to a human responder for approval.
+
+start: report-incident
+
+actors:
+
+  reporter:
+    kind: user
+    label: Reporter
+
+  triage-agent:
+    kind: agent
+    label: Triage Agent
+    description: An autonomous LLM agent that classifies, enriches, assesses and drafts.
+
+  responder:
+    kind: system
+    label: On-call Responder
+
+  notifier:
+    kind: service
+    label: Notifier
+
+steps:
+
+  report-incident:
+    type: page
+    label: Report Incident
+    actor: reporter
+    route: /incidents/new
+    actions:
+      submit:
+        label: Submit
+        next: classify
+
+  # ── Inside the "AI Triage" agent zone ──────────────────────────────────────
+  # These steps are annotated as the agent's autonomous region. The zone does
+  # not reorder them or run them — it documents that this stretch is agent-driven.
+
+  classify:
+    type: operation
+    label: Classify Incident
+    actor: triage-agent
+    call: triage.classify
+    next: enrich
+
+  enrich:
+    type: operation
+    label: Gather Context
+    actor: triage-agent
+    call: triage.enrich
+    next: assess-severity
+
+  assess-severity:
+    type: decision
+    label: Severity?
+    actor: triage-agent
+    cases:
+      - label: Critical
+        when: the model rates the incident critical
+        next: page-oncall
+    default:
+      label: Routine
+      next: draft-summary
+
+  page-oncall:
+    type: operation
+    label: Page On-call
+    actor: triage-agent
+    call: triage.page-oncall
+    next: draft-summary
+
+  draft-summary:
+    type: operation
+    label: Draft Summary
+    actor: triage-agent
+    call: triage.draft-summary
+    next: human-approval
+
+  # ── Back to deterministic, human-owned flow ────────────────────────────────
+
+  human-approval:
+    type: page
+    label: Approve Triage
+    actor: responder
+    actions:
+      approve:
+        label: Approve
+        next: notify
+      reject:
+        label: Send back
+        next: rejected
+
+  notify:
+    type: event
+    label: Incident Triaged
+    actor: notifier
+    direction: publish
+    event: IncidentTriaged
+    next: done
+
+  done:
+    type: final
+    label: Triaged
+    outcome: success
+
+  rejected:
+    type: final
+    label: Triage Rejected
+    outcome: failure
+
+# Agent zones: descriptive regions bounding autonomous, order-not-fixed
+# AI-agent behavior. A step belongs to at most one zone (LS309).
+zones:
+  - label: AI Triage
+    description: >-
+      The autonomous region where the triage agent classifies, enriches,
+      assesses severity and drafts a summary — order not fixed, LLM-driven.
+    steps:
+      - classify
+      - enrich
+      - assess-severity
+      - page-oncall
+      - draft-summary

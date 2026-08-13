@@ -1,4 +1,5 @@
 import {
+  type AgentZoneKind,
   BOUNDARY_STEP_TYPES,
   type EventKind,
   type HitPolicy,
@@ -52,6 +53,19 @@ export interface GraphEdge {
 }
 
 /**
+ * A descriptive agent zone exposed on the graph for renderers and tools. It is
+ * an annotation, not structure: it carries no edges and never alters the flow,
+ * it only names the member steps of an autonomous AI-agent region.
+ */
+export interface GraphZone {
+  label: string;
+  description?: string;
+  kind: AgentZoneKind;
+  /** Member step ids, in source order. */
+  steps: string[];
+}
+
+/**
  * The explicit graph every analysis and renderer works from.
  * Nodes and edges preserve source order.
  */
@@ -61,6 +75,8 @@ export interface FeatureGraph {
   start: string;
   /** Steps where the flow ends: finals plus errors without recovery actions. */
   terminals: string[];
+  /** Agent zones (descriptive regions), in source order. */
+  zones: GraphZone[];
 }
 
 /** True when the step type is allowed to have no outgoing transitions. */
@@ -113,5 +129,12 @@ export function buildGraph(feature: NormalizedFeature): FeatureGraph {
     .filter((step) => isTerminalStep(step.type, step.transitions.length))
     .map((step) => step.id);
 
-  return { nodes, edges, start: feature.start, terminals };
+  const zones: GraphZone[] = feature.zones.map((zone) => ({
+    label: zone.label,
+    description: zone.description,
+    kind: zone.kind,
+    steps: [...zone.steps],
+  }));
+
+  return { nodes, edges, start: feature.start, terminals, zones };
 }

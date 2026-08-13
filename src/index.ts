@@ -47,6 +47,7 @@ export {
   type GraphDecisionTable,
   type GraphEdge,
   type GraphNode,
+  type GraphZone,
 } from "./graph/edges.js";
 // Normalized model and graph
 export {
@@ -56,6 +57,7 @@ export {
   type NormalizedFeature,
   type NormalizedStep,
   type NormalizedTransition,
+  type NormalizedZone,
   normalizeFeature,
 } from "./graph/normalize.js";
 // Inspection
@@ -85,6 +87,9 @@ export type { EventDefinition, EventsFile } from "./schema/events.js";
 // Schema types
 export {
   type Actor,
+  AGENT_ZONE_LIMITS,
+  type AgentZone,
+  type AgentZoneKind,
   BOUNDARY_STEP_TYPES,
   type BoundaryHandler,
   type ContextVar,

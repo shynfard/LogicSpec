@@ -208,7 +208,8 @@ const TOOLS: ToolDefinition[] = [
     name: "get_feature",
     description:
       "Full structured model of one feature: steps, edges, terminals, context, services, " +
-      "events and stats. This is the machine-readable source of truth for the feature's behavior.",
+      "events, agent zones and stats. This is the machine-readable source of truth for the " +
+      "feature's behavior.",
     schema: z.strictObject({ feature: featureArg }),
     run: (args, context) => {
       const { feature } = args as { feature: string };
@@ -220,7 +221,8 @@ const TOOLS: ToolDefinition[] = [
   {
     name: "get_step",
     description:
-      "One step of a feature: its definition exactly as authored plus every outgoing transition.",
+      "One step of a feature: its definition exactly as authored, every outgoing transition, and " +
+      "the agent zone it belongs to (when any).",
     schema: z.strictObject({
       feature: featureArg,
       step: z.string().describe('Step id, e.g. "reserve-slot".'),

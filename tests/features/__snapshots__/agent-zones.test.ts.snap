@@ -1,0 +1,54 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`agent zones — rendering > renders a zone as a labelled subgraph cluster in the flowchart 1`] = `
+"flowchart TD
+  START(("Start"))
+  start_step[["start-step<br/>OPERATION"]]
+  done((("done<br/>FINAL · success")))
+  failed((("failed<br/>FINAL · failure · ⊗ ERROR")))
+  subgraph zone_0["🤖 Agent Region"]
+    analyze[["analyze<br/>OPERATION"]]
+    decide{"decide<br/>DECISION"}
+  end
+
+  START --> start_step
+  start_step --> analyze
+  analyze --> decide
+  decide -- "looks good" --> done
+  decide -- "default" --> failed
+
+  classDef error stroke-width:2px,stroke-dasharray:4 3;
+"
+`;
+
+exports[`agent-zones example (examples/triage) > renders the AI Triage zone as a subgraph cluster (golden) 1`] = `
+"flowchart TD
+  START(("Start"))
+  report_incident["Report Incident<br/>PAGE"]
+  human_approval["Approve Triage<br/>PAGE"]
+  notify>"Incident Triaged<br/>EVENT"]
+  done((("Triaged<br/>FINAL · success")))
+  rejected((("Triage Rejected<br/>FINAL · failure · ⊗ ERROR")))
+  subgraph zone_0["🤖 AI Triage"]
+    classify[["Classify Incident<br/>OPERATION"]]
+    enrich[["Gather Context<br/>OPERATION"]]
+    assess_severity{"Severity?<br/>DECISION"}
+    page_oncall[["Page On-call<br/>OPERATION"]]
+    draft_summary[["Draft Summary<br/>OPERATION"]]
+  end
+
+  START --> report_incident
+  report_incident -- "Submit" --> classify
+  classify --> enrich
+  enrich --> assess_severity
+  assess_severity -- "Critical" --> page_oncall
+  assess_severity -- "Routine" --> draft_summary
+  page_oncall --> draft_summary
+  draft_summary --> human_approval
+  human_approval -- "Approve" --> notify
+  human_approval -- "Send back" --> rejected
+  notify --> done
+
+  classDef error stroke-width:2px,stroke-dasharray:4 3;
+"
+`;

@@ -1,8 +1,9 @@
-import type { FeatureGraph } from "../graph/edges.js";
+import type { FeatureGraph, GraphZone } from "../graph/edges.js";
 import type { RenderDirection } from "../schema/config.js";
 import {
   CLASS_DEFS,
   edgeArrow,
+  escapeMermaid,
   NodeIdAllocator,
   nodeDeclaration,
   START_NODE_ID,
@@ -13,9 +14,19 @@ export interface FlowchartOptions {
   direction?: RenderDirection;
 }
 
+/** Subgraph title for an agent zone, e.g. "🤖 AI Triage". */
+function zoneTitle(zone: GraphZone): string {
+  return `🤖 ${zone.label}`;
+}
+
 /**
  * Renders the default flowchart view. Output is fully deterministic:
  * nodes and edges appear in source order.
+ *
+ * Agent zones render as labelled subgraphs ("clusters") around their member
+ * steps — a descriptive boundary, never a control-flow construct. A step not in
+ * any zone is declared at the top level exactly as before, so a feature without
+ * zones renders byte-for-byte as it always has.
  */
 export function renderMermaidFlowchart(
   graph: FeatureGraph,
@@ -25,13 +36,34 @@ export function renderMermaidFlowchart(
   const ids = new NodeIdAllocator();
   const lines: string[] = [`flowchart ${direction}`];
 
+  const known = new Set(graph.nodes.map((n) => n.id));
+  // Map each real step to the first zone (source order) that claims it, so a
+  // node is declared exactly once even if a malformed doc lists it twice.
+  const zoneOfStep = new Map<string, number>();
+  graph.zones.forEach((zone, zoneIndex) => {
+    for (const stepId of zone.steps) {
+      if (known.has(stepId) && !zoneOfStep.has(stepId)) zoneOfStep.set(stepId, zoneIndex);
+    }
+  });
+
   lines.push(`  ${startDeclaration()}`);
+  // Steps outside every zone, in source order (identical to the zone-free path).
   for (const node of graph.nodes) {
+    if (zoneOfStep.has(node.id)) continue;
     lines.push(`  ${nodeDeclaration(node, ids.id(node.id))}`);
   }
+  // Each zone as a subgraph around its member steps, in source order.
+  graph.zones.forEach((zone, zoneIndex) => {
+    const members = graph.nodes.filter((node) => zoneOfStep.get(node.id) === zoneIndex);
+    if (members.length === 0) return; // never emit an empty cluster
+    lines.push(`  subgraph zone_${zoneIndex}["${escapeMermaid(zoneTitle(zone))}"]`);
+    for (const node of members) {
+      lines.push(`    ${nodeDeclaration(node, ids.id(node.id))}`);
+    }
+    lines.push("  end");
+  });
 
   lines.push("");
-  const known = new Set(graph.nodes.map((n) => n.id));
   if (known.has(graph.start)) {
     lines.push(`  ${START_NODE_ID} --> ${ids.id(graph.start)}`);
   }

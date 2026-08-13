@@ -147,6 +147,12 @@ export const CODES = {
     "error",
     "A boundary event is on a disallowed step type, or its fields are inconsistent with its eventKind.",
   ),
+  INVALID_ZONE: code(
+    "LS309",
+    "INVALID_ZONE",
+    "error",
+    "An agent zone references an unknown step, overlaps another zone, is empty, or exceeds its caps.",
+  ),
 
   // ── Advisory ──────────────────────────────────────────────────────────────
   NO_FAILURE_OUTCOME: code(

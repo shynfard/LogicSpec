@@ -1,6 +1,8 @@
 import { z } from "zod";
 import {
+  type AgentZoneKind,
   actorKindSchema,
+  agentZoneKindSchema,
   callRefSchema,
   contextTypeSchema,
   durationSchema,
@@ -15,7 +17,7 @@ import {
   versionSchema,
 } from "./common.js";
 
-export type { EventKind, FinalOutcome, HitPolicy };
+export type { AgentZoneKind, EventKind, FinalOutcome, HitPolicy };
 
 // ── Boundary events ──────────────────────────────────────────────────────────
 
@@ -442,6 +444,69 @@ export const contextVarSchema = z.strictObject({
   description: z.string().optional(),
 });
 
+// ── Agent zones ────────────────────────────────────────────────────────────
+
+/**
+ * An **agent zone** demarcates a REGION of an otherwise deterministic flow as
+ * autonomous-agent territory: a stretch of steps an AI agent drives, where the
+ * order is not fixed (Camunda's ad-hoc agent-zone pattern). It is purely
+ * DESCRIPTIVE — a zone is an ANNOTATION. It does not change control flow, does
+ * not execute, does not reorder, and produces no graph edges; it only records
+ * which steps sit inside the agent's autonomous region so humans, diagrams and
+ * MCP clients can see the boundary. Consistent with the rest of the DSL,
+ * nothing here is ever run.
+ */
+
+/**
+ * Generous-but-safe upper bounds on the zones construct. Zones are descriptive
+ * annotations, not a runtime, so these caps sit far above any hand-authored
+ * spec yet keep a hostile document from amplifying validation: every zone step
+ * drives an O(steps) resolution + an O(n·m) "did you mean" suggestion pass, so
+ * an unbounded `zones`/`steps` array would otherwise let a tiny document hang
+ * the validator. Mirrors the wave-3/4 decision-table and boundary caps.
+ * Exceeding any bound is LS309.
+ */
+export const AGENT_ZONE_LIMITS = {
+  /** Maximum number of zones per feature. */
+  zones: 100,
+  /** Maximum number of member step ids per zone. */
+  steps: 1000,
+  /** Maximum characters in a zone label. */
+  labelLength: 200,
+  /** Maximum characters in a zone description. */
+  descriptionLength: 1000,
+} as const;
+
+export const agentZoneSchema = z.strictObject({
+  label: z
+    .string()
+    .max(
+      AGENT_ZONE_LIMITS.labelLength,
+      `has a zone label longer than ${AGENT_ZONE_LIMITS.labelLength} characters; zone labels are capped at ${AGENT_ZONE_LIMITS.labelLength}.`,
+    )
+    .describe('Display label for the agent zone, e.g. "AI Triage".'),
+  description: z
+    .string()
+    .max(
+      AGENT_ZONE_LIMITS.descriptionLength,
+      `has a zone description longer than ${AGENT_ZONE_LIMITS.descriptionLength} characters; zone descriptions are capped at ${AGENT_ZONE_LIMITS.descriptionLength}.`,
+    )
+    .optional()
+    .describe("Optional prose describing what the agent does in this region."),
+  kind: agentZoneKindSchema
+    .optional()
+    .describe('Zone kind. Defaults to "agent" — the only kind for now.'),
+  steps: z
+    .array(identifierSchema)
+    .max(
+      AGENT_ZONE_LIMITS.steps,
+      `declares more than ${AGENT_ZONE_LIMITS.steps} steps; a zone is capped at ${AGENT_ZONE_LIMITS.steps} steps.`,
+    )
+    .describe(
+      "Step ids inside this agent's autonomous region. Each must resolve to a real step, and a step belongs to at most one zone (LS309).",
+    ),
+});
+
 export const featureFileSchema = z.strictObject({
   version: versionSchema,
   feature: z.strictObject({
@@ -454,6 +519,16 @@ export const featureFileSchema = z.strictObject({
   actors: z.record(identifierSchema, actorSchema).optional(),
   context: z.record(identifierSchema, contextVarSchema).optional(),
   steps: z.record(identifierSchema, stepSchema),
+  zones: z
+    .array(agentZoneSchema)
+    .max(
+      AGENT_ZONE_LIMITS.zones,
+      `declares more than ${AGENT_ZONE_LIMITS.zones} agent zones; a feature is capped at ${AGENT_ZONE_LIMITS.zones} zones.`,
+    )
+    .optional()
+    .describe(
+      "Agent zones: named regions bounding autonomous, order-not-fixed AI-agent behavior. Descriptive annotation only — never executed or reordered.",
+    ),
   extensions: extensionsSchema.optional(),
 });
 
@@ -475,6 +550,7 @@ export type Step = z.infer<typeof stepSchema>;
 export type StepType = Step["type"];
 export type Actor = z.infer<typeof actorSchema>;
 export type ContextVar = z.infer<typeof contextVarSchema>;
+export type AgentZone = z.infer<typeof agentZoneSchema>;
 export type FeatureFile = z.infer<typeof featureFileSchema>;
 
 export const STEP_TYPES: readonly StepType[] = [

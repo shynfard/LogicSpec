@@ -13,7 +13,7 @@ export interface InspectReport {
   start: string;
   actors: string[];
   context: string[];
-  steps: Array<{ id: string; type: string; label: string; actor?: string }>;
+  steps: Array<{ id: string; type: string; label: string; actor?: string; zone?: string }>;
   edges: Array<{ from: string; to: string; kind: string; label?: string }>;
   terminals: string[];
   finalOutcomes: string[];
@@ -21,6 +21,8 @@ export interface InspectReport {
   operations: string[];
   events: string[];
   subflows: string[];
+  /** Agent zones: descriptive regions of autonomous AI-agent behavior. */
+  zones: Array<{ label: string; description?: string; kind: string; steps: string[] }>;
   stats: FeatureStats;
 }
 
@@ -58,6 +60,7 @@ export function inspectFeature(feature: NormalizedFeature, graph: FeatureGraph):
       type: s.type,
       label: s.label,
       ...(s.actor !== undefined ? { actor: s.actor } : {}),
+      ...(s.zone !== undefined ? { zone: s.zone } : {}),
     })),
     edges: graph.edges.map((e) => ({
       from: e.from,
@@ -71,6 +74,12 @@ export function inspectFeature(feature: NormalizedFeature, graph: FeatureGraph):
     operations: unique(operations),
     events: unique(events),
     subflows: unique(subflows),
+    zones: feature.zones.map((z) => ({
+      label: z.label,
+      ...(z.description !== undefined ? { description: z.description } : {}),
+      kind: z.kind,
+      steps: z.steps,
+    })),
     stats,
   };
 }

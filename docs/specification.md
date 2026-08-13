@@ -50,6 +50,7 @@ start: select-service # required — id of the first step
 actors: { … }         # optional — map of actor id → actor
 context: { … }        # optional — map of variable name → context variable
 steps: { … }          # required — map of step id → step
+zones: [ … ]          # optional — list of agent zones (see below)
 
 extensions: { … }     # optional — namespaced extension data
 ```
@@ -73,10 +74,10 @@ actors:
 `kind` is one of:
 
 ```text
-user  frontend  service  broker  external  system
+user  frontend  service  broker  external  system  agent
 ```
 
-A step may declare `actor: <actor-id>`. The actor must exist. Actors drive the swimlane view and responsibility documentation.
+`agent` marks an autonomous AI agent actor; it behaves like any other kind and pairs naturally with [agent zones](#agent-zones). A step may declare `actor: <actor-id>`. The actor must exist. Actors drive the swimlane view and responsibility documentation.
 
 ## Context
 
@@ -94,6 +95,23 @@ string  number  boolean  object  array  date  datetime
 ```
 
 Context is **descriptive**. It is not a type system and is never evaluated. Steps reference context variables via `requires:` and `produces:`; every referenced name must be declared.
+
+## Agent zones
+
+An optional top-level `zones` array demarcates regions of the flow as autonomous AI-agent territory — a stretch that is agent-driven and **order-not-fixed**, inside an otherwise deterministic spec.
+
+```yaml
+zones:
+  - label: AI Triage        # required — display label
+    description: …          # optional — prose
+    kind: agent             # optional — only "agent" today (the default)
+    steps:                  # required — member step ids
+      - classify
+      - enrich
+      - draft-summary
+```
+
+A zone is **descriptive**: it is an annotation, not a control-flow construct. It does not execute, does not reorder, and produces no edges — it only records which steps sit inside the agent's autonomous region. Every `steps` id must resolve to a declared step, and a step belongs to **at most one** zone (LS309). Zones render as labelled subgraph clusters in the flowchart and are exposed on the model, the graph, the inspect report and the MCP tools. See [step-types.md](step-types.md#agent-zones) for details, rendering and bounds.
 
 ## Steps
 

@@ -398,4 +398,53 @@ An interrupting boundary is drawn **alongside** the step's normal outgoing edges
 
 A custom `label` is appended, and a non-interrupting handler gains a `(non-interrupting)` suffix, e.g. `✉ on-message PriceChanged (non-interrupting)`. The boundaries are also exposed on the graph node (`GraphNode.boundaries`), and the full authored handlers are available through the MCP `get_step` tool.
 
+---
+
+## Agent zones
+
+Most of a LogicSpec flow is deterministic and reviewable: each step names its transitions, and the order is fixed. Some stretches are not — an autonomous AI agent is handed a region and drives it, deciding which steps to take and in what order. An **agent zone** demarcates that region: it says "this stretch is agent-driven, order-not-fixed," without giving up the reviewability of the surrounding flow.
+
+A zone is a pure **annotation**. It does **not** change control flow, does not execute, does not reorder, and produces no graph edges. It only records which steps sit inside the agent's autonomous territory, so humans, diagrams and MCP clients can see the boundary. This mirrors Camunda's ad-hoc agent-zone pattern — the region is bounded, the interior is the agent's.
+
+Zones live in an optional top-level `zones` array (a sibling of `steps`, not a step type):
+
+```yaml
+zones:
+  - label: AI Triage
+    description: The agent classifies, enriches, assesses and drafts — order not fixed.
+    steps:
+      - classify
+      - enrich
+      - assess-severity
+      - draft-summary
+```
+
+| Field | Meaning |
+|-------|---------|
+| `label` | required display label for the zone, e.g. `AI Triage`. |
+| `description` | optional prose describing what the agent does in the region. |
+| `kind` | optional; only `agent` today (the default), so a zone need not set it. |
+| `steps` | the ids of the steps inside the agent's region. Each must resolve to a real step, and a step belongs to **at most one** zone. |
+
+### The `agent` actor kind
+
+The autonomous steps are usually owned by an AI agent actor. Actor `kind` now includes `agent` alongside `user`, `frontend`, `service`, `broker`, `external` and `system`:
+
+```yaml
+actors:
+  triage-agent:
+    kind: agent
+    label: Triage Agent
+```
+
+An `agent`-kind actor behaves like any other actor: assign it to steps with `actor:`, and it reads as its own lane in the swimlane view. Zones and the `agent` kind are independent — you can use either alone — but they pair naturally: an agent actor owns the steps, and a zone draws the boundary of its autonomous region.
+
+### Rendering & model
+
+In the flowchart the zone renders as a labelled **subgraph** ("cluster") around its member steps, titled `🤖 <label>`. The interior steps keep their normal shapes and their normal edges cross the cluster boundary as usual — the box is a boundary, not a new node. A feature with no zones renders exactly as before.
+
+The zones are exposed on the normalized model (`NormalizedFeature.zones`), on the graph (`FeatureGraph.zones`), and on the inspect report; each step carries its zone membership (`NormalizedStep.zone`). Through MCP, `get_feature` lists the zones and `get_step` reports the zone a step belongs to. The swimlane, sequence and event-model views omit the cluster (the `agent` actor lane still reads in the swimlane).
+
+Rules (**LS309**): every zone `steps` id must resolve to a real step (an unknown id is LS309 with a nearest-name suggestion); a step belongs to at most one zone (overlap is rejected); a zone must name at least one step. The construct is bounded to keep validation cheap — at most 100 zones per feature, 1000 steps per zone, a 200-character label and a 1000-character description; exceeding any bound is LS309. See `examples/triage/` for a feature that bounds an AI triage region.
+
 Rules (**LS308**): a boundary is allowed only on `subflow`, `page` and `parallel` steps; each handler's fields must be consistent with its `eventKind` (a `timer` needs exactly one of `after`/`at`/`every`; `message`/`signal` need an `event`; a `conditional` needs `when`; fields belonging to another kind are rejected; every required field must be non-blank) — the same per-kind rules typed events follow. A `message`/`signal` boundary's `event` name resolves against the event catalog just like an event step's, so an unknown name is [LS105](validation.md). The `boundary` array is bounded to keep validation cheap — at most 1000 handlers per step, and 500 characters per descriptive field (`after`/`at`/`every`/`name`/`when`/`label`); exceeding either bound is LS308. See `examples/fulfillment/` for a feature that exercises all three host types.

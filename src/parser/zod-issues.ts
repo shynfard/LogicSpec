@@ -148,6 +148,27 @@ export function zodIssuesToDiagnostics(
       continue;
     }
 
+    // An over-limit zones array (too many zones / steps-per-zone) or an over-long
+    // zone label/description reads as LS309, matching the zone's other structural
+    // errors, rather than a raw Zod "too_big". The bound lives in the schema so
+    // the pipeline rejects the document before the O(zones·steps) resolution and
+    // "did you mean" passes can amplify it. A zone-scoped issue (path within a
+    // specific zone) is prefixed with its 1-based index; the top-level `zones`
+    // cap has no index.
+    if (issue.code === "too_big" && path[0] === "zones") {
+      const zoneIndex = typeof path[1] === "number" ? path[1] : undefined;
+      const prefix = zoneIndex === undefined ? "" : `Zone ${zoneIndex + 1} `;
+      diagnostics.push(
+        makeDiagnostic(CODES.INVALID_ZONE, {
+          message: `${prefix}${issue.message}`,
+          file,
+          path,
+          location: locate(path),
+        }),
+      );
+      continue;
+    }
+
     diagnostics.push(
       makeDiagnostic(CODES.SCHEMA_ERROR, {
         message: issue.message,

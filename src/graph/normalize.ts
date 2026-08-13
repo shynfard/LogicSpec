@@ -1,6 +1,7 @@
 import type { DocPath } from "../diagnostics/diagnostic.js";
 import {
   type Actor,
+  type AgentZoneKind,
   BOUNDARY_STEP_TYPES,
   type BoundaryHandler,
   type ContextVar,
@@ -45,6 +46,19 @@ export interface NormalizedContextVar {
   description?: string;
 }
 
+/**
+ * A normalized agent zone: a descriptive region bounding autonomous, order-not
+ * -fixed AI-agent behavior. It produces no edges — it only records which steps
+ * sit inside the agent's territory so diagrams, inspect and MCP can read it.
+ */
+export interface NormalizedZone {
+  label: string;
+  description?: string;
+  kind: AgentZoneKind;
+  /** Member step ids, in source order, exactly as authored. */
+  steps: string[];
+}
+
 export interface NormalizedStep {
   id: string;
   type: StepType;
@@ -54,6 +68,12 @@ export interface NormalizedStep {
   description?: string;
   tags: string[];
   notes?: string;
+  /**
+   * Label of the agent zone this step belongs to, when any. A step belongs to
+   * at most one zone (overlap is LS309); if a malformed document nests it in
+   * several, the first zone in source order wins here.
+   */
+  zone?: string;
   /** The structurally validated step definition, exactly as authored. */
   def: Step;
   /** Every outgoing transition of this step, in source order. */
@@ -74,6 +94,8 @@ export interface NormalizedFeature {
   actors: NormalizedActor[];
   context: NormalizedContextVar[];
   steps: NormalizedStep[];
+  /** Agent zones in source order. Descriptive regions — never edges. */
+  zones: NormalizedZone[];
 }
 
 /**
@@ -297,6 +319,22 @@ export function normalizeFeature(feature: FeatureFile): NormalizedFeature {
     ([name, v]) => ({ name, type: v.type, description: v.description }),
   );
 
+  const zones: NormalizedZone[] = (feature.zones ?? []).map((zone) => ({
+    label: zone.label,
+    description: zone.description,
+    kind: zone.kind ?? "agent",
+    steps: [...zone.steps],
+  }));
+
+  // First zone (source order) that claims a step owns it in the model. Overlap
+  // is an LS309 error; here we pick deterministically so the model never lies.
+  const zoneByStep = new Map<string, string>();
+  for (const zone of zones) {
+    for (const stepId of zone.steps) {
+      if (!zoneByStep.has(stepId)) zoneByStep.set(stepId, zone.label);
+    }
+  }
+
   const steps: NormalizedStep[] = Object.entries(feature.steps).map(([id, step]) => ({
     id,
     type: step.type,
@@ -305,6 +343,7 @@ export function normalizeFeature(feature: FeatureFile): NormalizedFeature {
     description: step.description,
     tags: step.tags ?? [],
     notes: step.notes,
+    ...(zoneByStep.has(id) ? { zone: zoneByStep.get(id) } : {}),
     def: step,
     transitions: transitionsOf(id, step),
   }));
@@ -318,5 +357,6 @@ export function normalizeFeature(feature: FeatureFile): NormalizedFeature {
     actors,
     context,
     steps,
+    zones,
   };
 }
