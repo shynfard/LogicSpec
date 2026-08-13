@@ -109,6 +109,60 @@ describe("CLI exit codes", () => {
     expect(report.edges).toEqual([{ from: "home", to: "done", kind: "action", label: "go" }]);
   });
 
+  it("validate returns 1 (not a crash/2) for a runaway-deep $ref chain", () => {
+    // A LINEAR, non-cyclic definition chain thousands deep must degrade to a
+    // graceful LS112 (validation error, exit 1), never an uncaught stack
+    // overflow that would crash the CLI (exit 2).
+    const wsDir = fs.mkdtempSync(path.join(os.tmpdir(), "logicspec-deepref-"));
+    try {
+      const depth = 10_000;
+      const chain = ['version: "1"', "steps:"];
+      for (let i = 0; i < depth; i++) {
+        chain.push(`  s${i}:`, `    $ref: "definitions#/steps/s${i + 1}"`);
+      }
+      chain.push(`  s${depth}:`, "    type: operation", "    label: End");
+      fs.writeFileSync(path.join(wsDir, "definitions.yaml"), `${chain.join("\n")}\n`);
+      fs.writeFileSync(
+        path.join(wsDir, "logicspec.config.yaml"),
+        'version: "1"\nfeatures:\n  directory: .\ncatalogs:\n  definitions: ./definitions.yaml\n',
+      );
+      fs.writeFileSync(
+        path.join(wsDir, "deep.feature.yaml"),
+        `version: "1"
+feature:
+  id: deep
+  name: Deep
+start: home
+actors:
+  web:
+    kind: frontend
+steps:
+  home:
+    type: page
+    actor: web
+    actions:
+      go:
+        next: deep
+  deep:
+    $ref: "definitions#/steps/s0"
+    next: done
+  done:
+    type: final
+    outcome: success
+`,
+      );
+      const io = captureIo();
+      let exit = -1;
+      expect(() => {
+        exit = runValidate([path.join(wsDir, "deep.feature.yaml")], { cwd: wsDir, io });
+      }).not.toThrow();
+      expect(exit).toBe(1);
+      expect([...io.stdout, ...io.stderr].join("\n")).toContain("LS112");
+    } finally {
+      fs.rmSync(wsDir, { recursive: true, force: true });
+    }
+  });
+
   it("init scaffolds a valid workspace and never overwrites", () => {
     const initDir = fs.mkdtempSync(path.join(os.tmpdir(), "logicspec-init-"));
     try {

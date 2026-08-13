@@ -42,6 +42,8 @@ describe("shared-definitions example workspace", () => {
     expect(result.valid).toBe(true);
     // The shared actor and shared step template resolved into the model.
     expect(result.normalized?.actors.map((a) => a.id)).toContain("notifier");
+    // The actor $ref carried a local `label` override; local wins (fix 4).
+    expect(result.feature?.actors?.notifier?.label).toBe("Reminder Notifier");
     const notify = result.normalized?.steps.find((s) => s.id === "notify");
     expect(notify?.type).toBe("operation");
     expect(notify?.label).toBe("Send Reminder");

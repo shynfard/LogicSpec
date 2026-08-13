@@ -14,9 +14,13 @@ actors:
     kind: frontend
     label: Web App
 
-  # A shared actor pulled in by reference; resolves to definitions/actors/notifier.
+  # A shared actor pulled in by reference. Like step templates, an actor $ref may
+  # carry local override keys that shallow-merge over the resolved actor (local
+  # wins) — here the label is customized for this feature. The merged actor is
+  # still validated against the strict actor schema.
   notifier:
     $ref: "definitions#/actors/notifier"
+    label: Reminder Notifier
 
 steps:
 

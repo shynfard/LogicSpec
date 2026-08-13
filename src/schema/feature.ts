@@ -433,6 +433,29 @@ export const stepSchema = z.discriminatedUnion("type", [
   finalStepSchema,
 ]);
 
+/**
+ * The shape a shared STEP TEMPLATE (in `definitions.yaml`) must satisfy on its
+ * own, used to validate templates AT CATALOG LOAD so a bad template (unknown
+ * type, wrong field type, missing type-essential field) is reported against
+ * definitions.yaml rather than surfacing later at the referencing feature's
+ * step slot. It mirrors the strict per-type step schema, except the OUTGOING
+ * transition may be deferred to the caller: `next` is optional even for `wait`
+ * and `parallel` templates (operation/subflow/event already treat `next`/`on`
+ * as optional). The merged step is still validated against the strict
+ * `stepSchema` at the call site, so nothing here relaxes the final contract.
+ */
+export const stepTemplateShapeSchema = z.discriminatedUnion("type", [
+  pageStepSchema,
+  decisionStepSchema,
+  operationStepSchema,
+  eventStepSchema,
+  waitStepSchema.extend({ next: identifierSchema.optional() }),
+  subflowStepSchema,
+  parallelStepSchema.extend({ next: identifierSchema.optional() }),
+  errorStepSchema,
+  finalStepSchema,
+]);
+
 export const actorSchema = z.strictObject({
   kind: actorKindSchema,
   label: z.string().optional(),
@@ -539,9 +562,17 @@ export const featureFileSchema = z.strictObject({
  * `{ $ref: "definitions#/actors/customer" }`. Resolved on load into the
  * concrete actor before validation; the strict schemas below never see it. The
  * `$ref` string's syntax and target are checked during expansion (LS110/LS111).
+ * Loose, like {@link stepRefSchema}: extra keys are local overrides that
+ * shallow-merge over the resolved actor (local wins). The merged actor is still
+ * validated against the strict {@link actorSchema}, so an override key that is
+ * not a valid actor field is rejected as usual.
  */
-export const actorRefSchema = z.strictObject({
-  $ref: z.string().describe('Reference to a shared actor: "definitions#/actors/<name>".'),
+export const actorRefSchema = z.looseObject({
+  $ref: z
+    .string()
+    .describe(
+      'Reference to a shared actor: "definitions#/actors/<name>". Extra keys override the resolved actor (local wins).',
+    ),
 });
 
 /**

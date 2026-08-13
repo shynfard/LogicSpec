@@ -58,13 +58,13 @@
             "properties": {
               "$ref": {
                 "type": "string",
-                "description": "Reference to a shared actor: \"definitions#/actors/<name>\"."
+                "description": "Reference to a shared actor: \"definitions#/actors/<name>\". Extra keys override the resolved actor (local wins)."
               }
             },
             "required": [
               "$ref"
             ],
-            "additionalProperties": false
+            "additionalProperties": {}
           },
           {
             "type": "object",
