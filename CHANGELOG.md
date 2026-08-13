@@ -42,6 +42,27 @@ actor kind). Every new field is optional, so all existing specs stay valid.
   `docs/step-types.md`, `docs/specification.md` and `docs/validation.md` document
   the construct, the `agent` kind and LS309.
 
+### Fixes (post-review hardening, still 0.9.0)
+
+- **Mermaid label injection via carriage return**: `escapeMermaid` stripped `\n`
+  but left a bare `\r` (or `\r\n`) intact, so a label containing `\r%%` could
+  start a fresh Mermaid line that opens a comment and breaks the diagram. Every
+  line-break form now collapses to a single space. Affects **all** labels, not
+  only agent zones.
+- **Suggestion-cost amplification (DoS)**: every unresolved reference (agent-zone
+  member, decision-table `next` cell, boundary/transition target) ran a
+  Levenshtein "did you mean" scan over the full step set, so a document with many
+  bad references cost O(references × steps) and could block the validator for
+  ~18s. Suggestion computation is now bounded by a per-validation-run budget
+  (500): once spent, further unresolved-reference diagnostics are still reported
+  but without a suggestion, capping total suggestion work at O(budget × steps).
+  Normal specs are far below the budget and keep every suggestion.
+- **Agent-zone subgraph id collision**: the flowchart renderer emitted the zone
+  cluster with a hardcoded `zone_<i>` id, which could collide with a step
+  legitimately named `zone_0`. The subgraph id is now reserved through the same
+  `NodeIdAllocator` as step nodes, so the two can never share an identifier
+  (output is byte-identical when no such step exists).
+
 ## 0.8.0
 
 An **additive, backward-compatible** extension: **boundary events**. Every new

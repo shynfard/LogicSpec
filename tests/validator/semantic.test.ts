@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_SUGGEST_BUDGET } from "../../src/diagnostics/suggest.js";
 import {
   type FeatureFile,
   parseEvents,
@@ -398,5 +399,67 @@ describe("object-input validation does not bypass structural checks", () => {
     }).not.toThrow();
     expect(result?.valid).toBe(false);
     expect(result?.diagnostics.length ?? 0).toBeGreaterThan(0);
+  });
+});
+
+describe("suggestion budget bounds a hostile document (DoS guard)", () => {
+  it("caps suggestion cost so thousands of unresolved references validate fast", () => {
+    // Every one of these steps points at the same unknown target. Before the
+    // per-run budget, each unresolved reference ran Levenshtein over the whole
+    // (uncapped) step set — O(refs × steps), quadratic in a doc where every step
+    // is a bad reference — which blocked for ~18s on a big spec. The budget caps
+    // total suggestion work at O(budget × steps), so cost is now linear in the
+    // document size and thousands of references validate in a fraction of a
+    // second (the residual time is ordinary parse/graph work, not suggestions).
+    const N = 2000;
+    const rows = [
+      "  start-step:\n    type: operation\n    call: svc.op\n    next: chekout",
+      ...Array.from(
+        { length: N },
+        (_, i) => `  s${i}:\n    type: operation\n    call: svc.op\n    next: chekout`,
+      ),
+      "  checkout:\n    type: final\n    outcome: success",
+    ].join("\n");
+    const source = featureWith(rows);
+
+    // Coarse "does not hang" smoke check (generous so parallel test workers
+    // don't flake it); the precise, deterministic guarantee is the suggestion
+    // cap asserted below — if the budget were removed, `withHint` would jump to
+    // N + 1 and the O(refs × steps) blow-up would return.
+    const started = Date.now();
+    const result = validateFeature(source);
+    expect(Date.now() - started).toBeLessThan(5000);
+
+    // Every unresolved reference is still reported (start-step + s0..s{N-1}).
+    const unresolved = result.diagnostics.filter((d) => d.code === "LS101");
+    expect(unresolved).toHaveLength(N + 1);
+
+    // Suggestions are capped: only the first budget-worth carry a "did you mean",
+    // the rest are emitted without one — never more than the budget, regardless
+    // of how many unresolved references the document piles up.
+    const withHint = unresolved.filter((d) => d.suggestion === "checkout");
+    const withoutHint = unresolved.filter((d) => d.suggestion === undefined);
+    expect(withHint.length).toBeGreaterThan(0);
+    expect(withHint.length).toBeLessThanOrEqual(DEFAULT_SUGGEST_BUDGET);
+    expect(withoutHint.length).toBeGreaterThan(0);
+    expect(withHint.length + withoutHint.length).toBe(N + 1);
+  });
+
+  it("still suggests for a normal spec with a single typo'd target", () => {
+    const source = featureWith(`
+  start-step:
+    type: page
+    actions:
+      go: { next: chekout }
+  checkout:
+    type: page
+    actions:
+      pay: { next: fin }
+  fin:
+    type: final
+    outcome: success
+`);
+    const diagnostic = validateFeature(source).diagnostics.find((d) => d.code === "LS101");
+    expect(diagnostic?.suggestion).toBe("checkout");
   });
 });

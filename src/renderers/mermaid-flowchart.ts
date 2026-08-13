@@ -56,7 +56,12 @@ export function renderMermaidFlowchart(
   graph.zones.forEach((zone, zoneIndex) => {
     const members = graph.nodes.filter((node) => zoneOfStep.get(node.id) === zoneIndex);
     if (members.length === 0) return; // never emit an empty cluster
-    lines.push(`  subgraph zone_${zoneIndex}["${escapeMermaid(zoneTitle(zone))}"]`);
+    // Reserve the subgraph id through the same allocator the step nodes use, so a
+    // step legitimately named `zone_N` and this cluster can never share an id.
+    // Reserving before the members are declared keeps the natural `zone_N` id for
+    // the subgraph (byte-identical output when no step collides).
+    const zoneId = ids.reserve(`zone_${zoneIndex}`);
+    lines.push(`  subgraph ${zoneId}["${escapeMermaid(zoneTitle(zone))}"]`);
     for (const node of members) {
       lines.push(`    ${nodeDeclaration(node, ids.id(node.id))}`);
     }

@@ -10,6 +10,7 @@ import {
   parseFeature,
   renderMermaid,
 } from "../../src/index.js";
+import { escapeMermaid } from "../../src/renderers/mermaid-common.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -91,6 +92,42 @@ steps:
     expect(output).not.toContain("%");
     expect(output).toContain("Discount 50#37;#37; off #37;#37;{init}");
     expect(output).toContain('-- "apply 10#37;#37; #37;#37; now" -->');
+  });
+
+  it("normalizes a carriage return in labels so a \\r%% payload cannot inject a line", () => {
+    // The double-quoted YAML escape "\\r" parses to a real CR (U+000D). Without
+    // CR normalization it would start a fresh Mermaid line that begins with "%%",
+    // opening a comment; with it, the CR collapses to a space on the same line.
+    const { feature, graph } = modelOf(`
+version: "1"
+feature: { id: cr, name: CarriageReturn }
+start: tricky
+steps:
+  tricky:
+    type: page
+    label: "before 50%%\\r%%{init} after"
+    actions:
+      go: { next: fin }
+  fin:
+    type: final
+    outcome: success
+`);
+    const output = renderMermaid(feature, graph);
+    // No raw carriage return survives anywhere in the output.
+    expect(output).not.toContain("\r");
+    // The CR collapsed to a space and every "%" is neutralized, so the payload
+    // stays inert text on a single line (no injected "%%" comment line).
+    expect(output).not.toContain("%");
+    expect(output).toContain("before 50#37;#37; #37;#37;{init} after");
+  });
+
+  it("collapses every newline form (\\n, bare \\r, \\r\\n) to a single space in escapeMermaid", () => {
+    expect(escapeMermaid("a\nb")).toBe("a b");
+    expect(escapeMermaid("a\rb")).toBe("a b");
+    expect(escapeMermaid("a\r\nb")).toBe("a b");
+    // A CR immediately before a comment token cannot survive to open a line.
+    expect(escapeMermaid("x\r%%y")).not.toContain("\r");
+    expect(escapeMermaid("x\r%%y")).not.toContain("%");
   });
 
   it("never emits reserved words or unsafe characters as node ids", () => {

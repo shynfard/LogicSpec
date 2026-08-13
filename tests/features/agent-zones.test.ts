@@ -283,6 +283,46 @@ describe("agent zones — rendering", () => {
     expect(output).toMatchSnapshot();
   });
 
+  it("gives a step named zone_0 and the zone subgraph distinct, non-colliding ids", () => {
+    // A step literally named "zone_0" claims the mermaid id "zone_0" first (top
+    // level nodes allocate before zones), so the zone-0 subgraph must reserve a
+    // fresh id through the allocator instead of hardcoding "zone_0".
+    const source = `version: "1"
+feature: { id: collide, name: Collide }
+start: zone_0
+steps:
+  zone_0:
+    type: operation
+    call: svc.begin
+    next: analyze
+  analyze:
+    type: operation
+    call: svc.analyze
+    next: decide
+  decide:
+    type: decision
+    cases:
+      - when: ok
+        next: done
+    default:
+      next: failed
+  done: { type: final, outcome: success }
+  failed: { type: final, outcome: failure }
+zones:
+  - label: Agent Region
+    steps: [analyze, decide]
+`;
+    const feature = normalizeFeature(parseFeature(source).data ?? never());
+    const output = renderMermaid(feature, buildGraph(feature), { view: "flow", direction: "TD" });
+
+    // The step keeps the natural id "zone_0" (operation node declaration).
+    expect(output).toContain("zone_0[[");
+    expect(output).toMatch(/START --> zone_0(?!_)/);
+    // The subgraph could not reuse "zone_0", so it took the next free id.
+    expect(output).toContain('subgraph zone_0_2["🤖 Agent Region"]');
+    expect(output).not.toContain("subgraph zone_0[");
+  });
+
   it("renders identically to the zone-free flowchart when no zones are declared", () => {
     const withoutZones = featureWith(baseSteps());
     const feature = normalizeFeature(parseFeature(withoutZones).data ?? never());

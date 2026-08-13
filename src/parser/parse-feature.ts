@@ -1,4 +1,5 @@
 import { type Diagnostic, hasErrors } from "../diagnostics/diagnostic.js";
+import { resetSuggestBudget } from "../diagnostics/suggest.js";
 import { type FeatureFile, featureFileSchema } from "../schema/feature.js";
 import { validateStructure } from "../validator/structural.js";
 import { loadYaml, type PathLocator } from "./yaml.js";
@@ -27,6 +28,9 @@ export interface ParseOptions {
  * validateFeature().
  */
 export function parseFeature(source: string, options: ParseOptions = {}): ParseResult<FeatureFile> {
+  // Fresh suggestion budget for this file's parse + structural pass, so a prior
+  // document that exhausted it cannot suppress this one's suggestions.
+  resetSuggestBudget();
   const { file } = options;
   const yaml = loadYaml(source, file);
   if (!yaml.ok) {

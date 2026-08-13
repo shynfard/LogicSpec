@@ -1,5 +1,6 @@
 import type { Severity } from "../diagnostics/codes.js";
 import { type Diagnostic, hasErrors } from "../diagnostics/diagnostic.js";
+import { resetSuggestBudget } from "../diagnostics/suggest.js";
 import { buildGraph, type FeatureGraph } from "../graph/edges.js";
 import { type NormalizedFeature, normalizeFeature } from "../graph/normalize.js";
 import { parseFeature } from "../parser/parse-feature.js";
@@ -62,6 +63,12 @@ export function validateFeature(
   input: string | FeatureFile,
   options: ValidateOptions = {},
 ): ValidationResult {
+  // One suggestion budget for this whole feature run (structural + semantic),
+  // shared across every unresolved-reference check so a hostile document cannot
+  // amplify Levenshtein cost by its reference count. The string path resets
+  // again inside parseFeature; both are harmless and keep each pass bounded.
+  resetSuggestBudget();
+
   let feature: FeatureFile;
   let diagnostics: Diagnostic[];
   let locate: SemanticContext["locate"];

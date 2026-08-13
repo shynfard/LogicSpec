@@ -1,7 +1,7 @@
 import path from "node:path";
 import { CODES } from "../diagnostics/codes.js";
 import { type Diagnostic, makeDiagnostic } from "../diagnostics/diagnostic.js";
-import { suggest, withSuggestion } from "../diagnostics/suggest.js";
+import { resetSuggestBudget, suggest, withSuggestion } from "../diagnostics/suggest.js";
 import type { Workspace } from "../workspace/loader.js";
 
 /**
@@ -11,6 +11,9 @@ import type { Workspace } from "../workspace/loader.js";
  * reported once per workspace, not once per feature.
  */
 export function validateCatalogs(workspace: Workspace): Diagnostic[] {
+  // Fresh suggestion budget for this workspace-level pass, independent of any
+  // feature validation that ran before it.
+  resetSuggestBudget();
   const diagnostics: Diagnostic[] = [];
 
   const servicesPath = workspace.catalogPaths.services;

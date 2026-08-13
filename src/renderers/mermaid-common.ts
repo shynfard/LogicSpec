@@ -8,7 +8,9 @@ import { type FinalOutcome, finalKind, type StepType } from "../schema/feature.j
  * VS Code, mermaid-cli) without depending on HTML escaping behavior.
  * `#` must be escaped first so entity codes we introduce stay intact.
  * `%` is neutralized (to `#37;`) so a `%%` in a label cannot open a Mermaid
- * comment and break that diagram line.
+ * comment and break that diagram line. Every line break — `\n`, a bare `\r`,
+ * or a `\r\n` pair — collapses to a single space so a label can never inject a
+ * new Mermaid line (e.g. a `\r%%` payload starting a comment on its own line).
  */
 export function escapeMermaid(text: string): string {
   return text
@@ -18,7 +20,7 @@ export function escapeMermaid(text: string): string {
     .replaceAll('"', "#quot;")
     .replaceAll("<", "#lt;")
     .replaceAll(">", "#gt;")
-    .replaceAll("\n", " ");
+    .replace(/\r\n|[\r\n]/g, " ");
 }
 
 /** Words Mermaid treats specially; never emit them as bare node ids. */
@@ -43,11 +45,14 @@ export class NodeIdAllocator {
   private readonly assigned = new Map<string, string>();
   private readonly used = new Set<string>();
 
-  id(stepId: string): string {
-    const existing = this.assigned.get(stepId);
-    if (existing !== undefined) return existing;
-
-    let candidate = stepId.replace(/[^A-Za-z0-9_]/g, "_");
+  /**
+   * Sanitizes `base` to a syntactically inert candidate and returns the first
+   * variant not already handed out, recording it as used. Shared by `id()` and
+   * `reserve()` so every id — whether it maps a step or names a structural
+   * construct — flows through the same collision-avoidance path.
+   */
+  private allocate(base: string): string {
+    let candidate = base.replace(/[^A-Za-z0-9_]/g, "_");
     if (!/^[A-Za-z]/.test(candidate) || RESERVED.has(candidate.toLowerCase())) {
       candidate = `n_${candidate}`;
     }
@@ -57,9 +62,26 @@ export class NodeIdAllocator {
       unique = `${candidate}_${counter}`;
       counter += 1;
     }
-    this.assigned.set(stepId, unique);
     this.used.add(unique);
     return unique;
+  }
+
+  id(stepId: string): string {
+    const existing = this.assigned.get(stepId);
+    if (existing !== undefined) return existing;
+    const unique = this.allocate(stepId);
+    this.assigned.set(stepId, unique);
+    return unique;
+  }
+
+  /**
+   * Reserves a unique id derived from `base` that is NOT bound to any step, so a
+   * structural id (e.g. an agent-zone subgraph) can never collide with a step
+   * whose id sanitizes to the same candidate — a step literally named `zone_0`
+   * and the `zone_0` subgraph get distinct ids.
+   */
+  reserve(base: string): string {
+    return this.allocate(base);
   }
 }
 
