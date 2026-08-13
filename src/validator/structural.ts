@@ -105,6 +105,10 @@ export function validateStructure(
         // per-kind requirements as a non-undefined value.
         const has = (field: EventField) =>
           step[field] !== undefined && !isBlank(step[field] as string | undefined);
+        // Raw presence for FORBIDDEN checks: a forbidden field that is present
+        // but blank (e.g. a timer with `name: ""`) is still forbidden. Using the
+        // blank-aware `has()` here would let an empty forbidden field slip past.
+        const present = (field: EventField) => step[field] !== undefined;
         const pushKind = (message: string, field?: string) => {
           const path = field ? at(field) : ["steps", id];
           diagnostics.push(
@@ -118,7 +122,7 @@ export function validateStructure(
         };
         const forbid = (fields: readonly EventField[], why: string) => {
           for (const field of fields) {
-            if (has(field)) pushKind(`must not set "${field}" ${why}.`, field);
+            if (present(field)) pushKind(`must not set "${field}" ${why}.`, field);
           }
         };
 

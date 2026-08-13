@@ -484,6 +484,30 @@ describe("typed events (eventKind, LS305)", () => {
 `);
     expect(codes(source)).toContain("LS305");
   });
+
+  it('rejects a blank FORBIDDEN field (timer with name: "") — LS305', () => {
+    // A forbidden field that is present but blank must still be rejected: the
+    // forbidden-field check tests raw presence, not blank-aware presence.
+    const source = featureWith(`
+  start-step:
+    type: event
+    direction: wait
+    eventKind: timer
+    after: 5m
+    name: ""
+    on:
+      received: { next: fin }
+  fin:
+    type: final
+    outcome: success
+`);
+    const diagnostics = parseFeature(source).diagnostics;
+    expect(diagnostics.some((d) => d.code === "LS305")).toBe(true);
+    // The diagnostic points at the offending forbidden field.
+    expect(
+      diagnostics.some((d) => d.code === "LS305" && d.message.includes('must not set "name"')),
+    ).toBe(true);
+  });
 });
 
 describe("blank descriptive guards (LS306)", () => {
