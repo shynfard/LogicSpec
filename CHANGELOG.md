@@ -3,6 +3,46 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.8.0
+
+An **additive, backward-compatible** extension: **boundary events**. Every new
+field is optional, so all existing specs stay valid.
+
+- **Boundary events**: a `subflow`, `page` or `parallel` step may carry an
+  optional `boundary` array — documented alternative paths taken when the step
+  **times out, errors, or receives a message/condition while in progress**
+  ("if this step runs past its SLA / fails mid-flight / is interrupted, divert
+  here"). Boundaries attach **only** to those three step types: they fill the
+  gap for a called sub-process past its SLA, a user page that times out, and a
+  concurrent region exceeding an SLA. Step types that already carry outcome maps
+  are excluded — `operation`/`subflow` use `on:`, a waiting `event` uses
+  `on.timeout`, a `wait` is itself the delay — so a boundary there is rejected
+  rather than adding a second way to say the same thing.
+- **Reuses the typed-event vocabulary**: each handler has an `eventKind`
+  (`timer` with `after`/`at`/`every`, `message`/`signal` with `event`, `error`
+  with an optional `name`, `conditional` with `when`), a required `next` target,
+  an optional `label`, and `interrupting` (default `true`). An interrupting
+  handler diverts the flow; a non-interrupting one spawns a parallel descriptive
+  path. Consistent with the rest of the DSL, a boundary is **descriptive and
+  never evaluated or scheduled** — the tool never fires a timer or tests a
+  condition.
+- New diagnostic **LS308** (`INVALID_BOUNDARY`): rejects a boundary on a
+  disallowed step type, and enforces per-kind field consistency with the same
+  rules typed events use (LS305), including the non-blank-required-field rule.
+  The event and boundary per-kind checks now share one implementation.
+- **Targets & reachability**: a boundary's `next` flows through the normal
+  transition machinery in `normalize.ts`, so an unresolved target is **LS101**
+  and a step reachable only through a boundary is reachable for **LS200**.
+- **Rendering & model**: each handler renders as a **plain labelled edge** to
+  its target (not a BPMN attached-circle glyph), marked `⏱ after 30d`,
+  `⚠ on-error`, `✉ on-message …`, or `? when …`, with a `(non-interrupting)`
+  suffix where applicable. Boundaries are exposed on the graph node
+  (`GraphNode.boundaries`) and the full authored handlers via MCP `get_step`.
+  New public types `BoundaryHandler`, `GraphBoundary`, the `boundary` edge kind,
+  and the `BOUNDARY_STEP_TYPES` constant are exported.
+- New `examples/fulfillment/` exercises boundaries on all three host types;
+  `docs/step-types.md` and `docs/validation.md` document the construct and LS308.
+
 ## 0.7.0
 
 An **additive, backward-compatible** extension: **decision tables**. Every new
