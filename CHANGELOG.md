@@ -3,6 +3,31 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.6.0
+
+Three **additive, backward-compatible** vocabulary extensions. Every field is
+optional, so all existing specs stay valid.
+
+- **Typed events**: an optional `eventKind` classifies an `event` step as
+  `timer`, `message`, `signal`, `error` or `conditional`. Timers carry exactly
+  one of `after` / `at` / `every` (`after`/`every` reuse the `wait` duration
+  format); message/signal keep the `event` name; error takes an optional
+  `name`; conditional takes a descriptive `when`. New diagnostic **LS305**
+  (`INVALID_EVENT_KIND`) enforces per-kind consistency; an unknown `eventKind`
+  is an LS002 schema error. The kind shows in the diagram marker
+  (`EVENT · TIMER`).
+- **Typed terminal states**: `final` steps accept an optional
+  `terminate: boolean` (default `false`) meaning "end the whole flow instance,
+  not just this path". A final's `kind` (`normal` / `error` / `terminate`) is
+  derived, not stored. A terminated final gets a distinct diagram marker
+  (`⦻ TERMINATE`).
+- **Transition guards**: an optional descriptive `when` predicate (never
+  evaluated, like a decision `cases[].when`) can annotate operation and subflow
+  `on:` outcomes and page `actions`. Guards render on the edge label as
+  `[when: …]`.
+- New `examples/reminders/` demonstrates all three constructs; `docs/step-types.md`
+  and `docs/validation.md` document the new fields and LS305.
+
 ## 0.5.11
 
 - Showcase screenshot (a real booking flow on the interactive canvas) in
