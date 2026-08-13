@@ -3,6 +3,41 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.10.0
+
+An **additive, backward-compatible** extension: **shared definitions** (`$ref`)
+for cross-file reuse. Every new field is optional and a feature that uses no
+`$ref` is byte-identical through the pipeline, so all existing specs stay valid.
+
+- **New optional catalog `definitions.yaml`** (referenced from
+  `logicspec.config.yaml` as `catalogs.definitions`). It holds `actors` — named
+  reusable actor definitions (same shape as a feature actor) — and `steps` —
+  named reusable **step templates** (a step body without an id: type, label,
+  actor and type-specific fields, transitions optional). The catalog path is
+  clamped to the workspace root like every other catalog (LS005).
+- **`$ref` in features**: a feature actor may be
+  `{ $ref: "definitions#/actors/<name>" }`, and a step body may be
+  `{ $ref: "definitions#/steps/<name>", …overrides }`. The step's map **key is
+  its id**; the resolved template is **shallow-merged** with the local keys and
+  **local wins**, so the caller supplies the id and may override or add
+  `next`/`on`/fields. Only intra-workspace `definitions#/actors|steps/<name>`
+  references are accepted — no arbitrary file/URL refs. Definitions may reference
+  other same-section definitions.
+- **Expand-on-load**: every `$ref` is resolved into a concrete actor/step in a
+  parser pre-pass **before** schema validation, so graph building, all
+  validators, the renderers and diff operate on the fully-resolved feature. A
+  step template that is invalid after merge (missing field, unknown type) still
+  surfaces the ordinary structural diagnostics against the expanded step.
+- New diagnostics: **LS110** (`UNKNOWN_REF`, error) — a `$ref` target does not
+  exist (with a nearest-name suggestion); **LS111** (`INVALID_REF`, error) — a
+  malformed `$ref` string or a section mismatch (an actor slot referencing a
+  step, or vice versa); **LS112** (`REF_CYCLE`, error) — shared definitions
+  reference each other in a cycle. `docs/validation.md` documents all three.
+- Schemas regenerated: new `schemas/definitions.schema.json`, and
+  `feature.schema.json` now accepts `$ref` on actors/steps. New public API:
+  `parseDefinitions`, `DefinitionsFile`, `Workspace.definitions`. Worked example
+  under `examples/shared/`.
+
 ## 0.9.1
 
 Security patch. The DSL is unchanged and every valid workspace stays valid.

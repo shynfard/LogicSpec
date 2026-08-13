@@ -1,6 +1,6 @@
 {
   "name": "logicspec",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "A small YAML DSL for describing application feature logic — validate it, visualize it with Mermaid, and use it as a behavioral source of truth for humans and AI coding agents.",
   "keywords": [
     "yaml",
