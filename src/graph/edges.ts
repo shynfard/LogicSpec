@@ -1,5 +1,10 @@
-import type { EventKind, HitPolicy, StepType } from "../schema/feature.js";
-import type { EdgeKind, NormalizedFeature } from "./normalize.js";
+import {
+  BOUNDARY_STEP_TYPES,
+  type EventKind,
+  type HitPolicy,
+  type StepType,
+} from "../schema/feature.js";
+import { boundaryLabel, type EdgeKind, type NormalizedFeature } from "./normalize.js";
 
 /** Decision-table summary exposed on a decision node for renderers and tools. */
 export interface GraphDecisionTable {
@@ -7,6 +12,17 @@ export interface GraphDecisionTable {
   inputs: string[];
   outputs: string[];
   ruleCount: number;
+}
+
+/** A boundary event handler summary exposed on a node for renderers and tools. */
+export interface GraphBoundary {
+  eventKind: EventKind;
+  /** Interrupting (default true) diverts the flow; non-interrupting spawns a parallel path. */
+  interrupting: boolean;
+  /** Handler target step id. */
+  next: string;
+  /** Rendered marker, e.g. "⏱ after 30d" or "⚠ on-error (non-interrupting)". */
+  label: string;
 }
 
 export interface GraphNode {
@@ -22,6 +38,8 @@ export interface GraphNode {
   terminate?: boolean;
   /** Present only on decision steps driven by a decision table. */
   decisionTable?: GraphDecisionTable;
+  /** Boundary event handlers; present only on subflow, page and parallel steps. */
+  boundaries?: GraphBoundary[];
 }
 
 export interface GraphEdge {
@@ -69,6 +87,15 @@ export function buildGraph(feature: NormalizedFeature): FeatureGraph {
             outputs: step.def.decisionTable.outputs,
             ruleCount: step.def.decisionTable.rules.length,
           }
+        : undefined,
+    boundaries:
+      BOUNDARY_STEP_TYPES.includes(step.type) && step.def.boundary !== undefined
+        ? step.def.boundary.map((handler) => ({
+            eventKind: handler.eventKind,
+            interrupting: handler.interrupting ?? true,
+            next: handler.next,
+            label: boundaryLabel(handler),
+          }))
         : undefined,
   }));
 

@@ -1,11 +1,94 @@
 import { CODES } from "../diagnostics/codes.js";
 import { type Diagnostic, type DocPath, makeDiagnostic } from "../diagnostics/diagnostic.js";
 import type { PathLocator } from "../parser/yaml.js";
-import { DECISION_TABLE_TARGET_COLUMN, type FeatureFile } from "../schema/feature.js";
+import {
+  BOUNDARY_STEP_TYPES,
+  DECISION_TABLE_TARGET_COLUMN,
+  type EventKind,
+  type FeatureFile,
+} from "../schema/feature.js";
 
 /** A string that is present but contains only whitespace. */
 function isBlank(value: string | undefined): boolean {
   return typeof value === "string" && value.trim().length === 0;
+}
+
+/** The per-kind fields shared by typed events and boundary handlers. */
+type EventKindField = "event" | "after" | "at" | "every" | "name" | "when";
+
+interface EventKindFields {
+  eventKind?: EventKind;
+  event?: string;
+  after?: string;
+  at?: string;
+  every?: string;
+  name?: string;
+  when?: string;
+}
+
+/**
+ * Per-kind field consistency shared by typed event steps (LS305) and boundary
+ * event handlers (LS308): the required field(s) for each kind must be present
+ * and non-blank, and any field belonging to a different kind is forbidden.
+ * Direction rules (a timer/conditional must `wait`) are event-only and applied
+ * by the caller. `subject` selects the noun used in messages ("event" or
+ * "boundary"); `push(message, field?)` reports one violation, optionally
+ * anchored to a field. For `subject: "event"` the messages are byte-identical
+ * to the original inline LS305 checks.
+ */
+function checkEventKindFields(
+  fields: EventKindFields,
+  subject: "event" | "boundary",
+  push: (message: string, field?: string) => void,
+): void {
+  // A blank string never satisfies a "required per kind" field: an empty
+  // event/when/at is as good as absent.
+  const has = (field: EventKindField) => fields[field] !== undefined && !isBlank(fields[field]);
+  // Raw presence for FORBIDDEN checks: a forbidden field present but blank
+  // (e.g. a timer with name: "") is still forbidden.
+  const present = (field: EventKindField) => fields[field] !== undefined;
+  const forbid = (list: readonly EventKindField[], why: string) => {
+    for (const field of list) {
+      if (present(field)) push(`must not set "${field}" ${why}.`, field);
+    }
+  };
+
+  switch (fields.eventKind) {
+    case undefined:
+    case "message":
+    case "signal": {
+      const lead = fields.eventKind ? `is a ${fields.eventKind} ${subject} and ` : "";
+      if (!has("event")) push(`${lead}must name an "event".`, "event");
+      forbid(
+        ["after", "at", "every", "name", "when"],
+        `unless it is a timer, error or conditional ${subject}`,
+      );
+      break;
+    }
+    case "timer": {
+      const timerFields = (["after", "at", "every"] as const).filter((f) => has(f));
+      if (timerFields.length !== 1) {
+        push(
+          `is a timer ${subject} and must set exactly one of "after", "at" or "every".`,
+          "eventKind",
+        );
+      }
+      forbid(["event", "name", "when"], `on a timer ${subject}`);
+      break;
+    }
+    case "error": {
+      if (present("name") && !has("name")) {
+        push('has a blank "name"; give the error a descriptive name or omit it.', "name");
+      }
+      forbid(["event", "after", "at", "every", "when"], `on an error ${subject}`);
+      break;
+    }
+    case "conditional": {
+      if (!has("when")) push(`is a conditional ${subject} and must set "when".`, "when");
+      forbid(["event", "after", "at", "every", "name"], `on a conditional ${subject}`);
+      break;
+    }
+  }
 }
 
 /**
@@ -99,16 +182,6 @@ export function validateStructure(
         }
 
         // ── eventKind consistency (LS305) ─────────────────────────────────
-        type EventField = "event" | "after" | "at" | "every" | "name" | "when";
-        // A blank string never satisfies a "required per kind" field: an empty
-        // `event`/`when`/`at` is as good as absent, so it must not slip past the
-        // per-kind requirements as a non-undefined value.
-        const has = (field: EventField) =>
-          step[field] !== undefined && !isBlank(step[field] as string | undefined);
-        // Raw presence for FORBIDDEN checks: a forbidden field that is present
-        // but blank (e.g. a timer with `name: ""`) is still forbidden. Using the
-        // blank-aware `has()` here would let an empty forbidden field slip past.
-        const present = (field: EventField) => step[field] !== undefined;
         const pushKind = (message: string, field?: string) => {
           const path = field ? at(field) : ["steps", id];
           diagnostics.push(
@@ -120,60 +193,22 @@ export function validateStructure(
             }),
           );
         };
-        const forbid = (fields: readonly EventField[], why: string) => {
-          for (const field of fields) {
-            if (present(field)) pushKind(`must not set "${field}" ${why}.`, field);
-          }
-        };
-
-        switch (step.eventKind) {
-          case undefined:
-          case "message":
-          case "signal": {
-            const lead = step.eventKind ? `is a ${step.eventKind} event and ` : "";
-            if (!has("event")) pushKind(`${lead}must name an "event".`, "event");
-            forbid(
-              ["after", "at", "every", "name", "when"],
-              "unless it is a timer, error or conditional event",
-            );
-            break;
-          }
-          case "timer": {
-            if (step.direction === "publish") {
-              pushKind(
-                'is a timer event and must use "direction: wait" — a timer is caught, never published.',
-                "direction",
-              );
-            }
-            const timerFields = (["after", "at", "every"] as const).filter((f) => has(f));
-            if (timerFields.length !== 1) {
-              pushKind(
-                'is a timer event and must set exactly one of "after", "at" or "every".',
-                "eventKind",
-              );
-            }
-            forbid(["event", "name", "when"], "on a timer event");
-            break;
-          }
-          case "error": {
-            if (step.name !== undefined && isBlank(step.name)) {
-              pushKind('has a blank "name"; give the error a descriptive name or omit it.', "name");
-            }
-            forbid(["event", "after", "at", "every", "when"], "on an error event");
-            break;
-          }
-          case "conditional": {
-            if (step.direction === "publish") {
-              pushKind(
-                'is a conditional event and must use "direction: wait" — a conditional event is caught, never published.',
-                "direction",
-              );
-            }
-            if (!has("when")) pushKind('is a conditional event and must set "when".', "when");
-            forbid(["event", "after", "at", "every", "name"], "on a conditional event");
-            break;
-          }
+        // Direction rules are event-specific: a timer and a conditional are
+        // catch events, so they must wait, never publish. Reported before the
+        // shared per-kind field checks to preserve diagnostic order.
+        if (step.eventKind === "timer" && step.direction === "publish") {
+          pushKind(
+            'is a timer event and must use "direction: wait" — a timer is caught, never published.',
+            "direction",
+          );
         }
+        if (step.eventKind === "conditional" && step.direction === "publish") {
+          pushKind(
+            'is a conditional event and must use "direction: wait" — a conditional event is caught, never published.',
+            "direction",
+          );
+        }
+        checkEventKindFields(step, "event", pushKind);
         break;
       }
       case "decision": {
@@ -294,6 +329,48 @@ export function validateStructure(
       }
       default:
         break;
+    }
+
+    // ── Boundary events (LS308) ─────────────────────────────────────────────
+    // `boundary` is a shared step field, so it parses on any step type; here we
+    // reject it on the step types that already carry outcome maps, and check
+    // each handler's per-kind fields with the same rules typed events use.
+    if (step.boundary !== undefined) {
+      if (!BOUNDARY_STEP_TYPES.includes(step.type)) {
+        const hint =
+          step.type === "operation"
+            ? ' An operation already handles outcomes with "on".'
+            : step.type === "event"
+              ? ' A waiting event already handles timeouts with "on.timeout".'
+              : step.type === "wait"
+                ? ' A wait already models a delay via "duration"/"next".'
+                : "";
+        diagnostics.push(
+          makeDiagnostic(CODES.INVALID_BOUNDARY, {
+            message: `Step "${id}" is a ${step.type} step; boundary events are only allowed on ${BOUNDARY_STEP_TYPES.join(", ")} steps.${hint}`,
+            file,
+            path: at("boundary"),
+            location: locate(at("boundary")),
+          }),
+        );
+      }
+      step.boundary.forEach((handler, index) => {
+        const pushBoundaryKind = (message: string, field?: string) => {
+          const path: DocPath =
+            field !== undefined
+              ? ["steps", id, "boundary", index, field]
+              : ["steps", id, "boundary", index];
+          diagnostics.push(
+            makeDiagnostic(CODES.INVALID_BOUNDARY, {
+              message: `Boundary ${index + 1} on step "${id}" ${message}`,
+              file,
+              path,
+              location: locate(path),
+            }),
+          );
+        };
+        checkEventKindFields(handler, "boundary", pushBoundaryKind);
+      });
     }
   }
 

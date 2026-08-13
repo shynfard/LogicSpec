@@ -1,0 +1,172 @@
+# yaml-language-server: $schema=../../schemas/feature.schema.json
+version: "1"
+
+# Demonstrates the v0.8.0 addition: BOUNDARY EVENTS.
+#
+# A boundary event is a documented alternative path taken when a step TIMES
+# OUT, ERRORS, or receives a MESSAGE/CONDITION while it is still in progress.
+# They attach only to the step types that cannot otherwise express this:
+#   * page     — a user step that times out or is interrupted mid-session
+#   * subflow  — a called sub-process running past its SLA or failing mid-flight
+#   * parallel — a whole concurrent region exceeding an SLA
+#
+# Operation and waiting-event steps already carry outcome maps (`on:`,
+# `on.timeout`), so a boundary there is rejected (LS308) rather than adding a
+# second way to say the same thing.
+#
+# Every boundary is DESCRIPTIVE: the tool never fires a timer or evaluates a
+# condition. Each renders as a plain labelled edge to its handler target, e.g.
+# `⏱ after 15m`, `⚠ on-error OutOfStock`, `✉ on-message PriceChanged`. A
+# non-interrupting handler spawns a parallel descriptive path and is marked
+# `(non-interrupting)`.
+
+feature:
+  id: order-fulfillment
+  name: Order Fulfillment
+  description: Checkout, fulfil the order through a sub-process, then notify the customer.
+
+start: checkout
+
+actors:
+
+  shopper:
+    kind: user
+    label: Shopper
+
+  payments:
+    kind: service
+    label: Payments
+
+  warehouse:
+    kind: service
+    label: Warehouse
+
+  notifier:
+    kind: system
+    label: Notifier
+
+steps:
+
+  checkout:
+    type: page
+    label: Checkout
+    actor: shopper
+    # Boundary events on a PAGE: the user step times out (interrupting), or a
+    # price change arrives mid-session (non-interrupting → a parallel path).
+    boundary:
+      - eventKind: timer
+        after: 15m
+        label: session idle
+        next: session-expired
+      - eventKind: message
+        event: PriceChanged
+        interrupting: false
+        next: refresh-prices
+    actions:
+      pay:
+        label: Pay now
+        next: process-payment
+      cancel:
+        label: Cancel
+        next: cancelled
+
+  refresh-prices:
+    type: operation
+    label: Refresh Prices
+    actor: payments
+    call: pricing.refresh
+    next: checkout
+
+  process-payment:
+    type: operation
+    label: Process Payment
+    actor: payments
+    call: payments.charge
+    on:
+      paid:
+        next: fulfil
+      declined:
+        next: payment-failed
+
+  fulfil:
+    type: subflow
+    label: Fulfil Order
+    actor: warehouse
+    flow: warehouse-fulfilment
+    # Boundary events on a SUBFLOW: the called sub-process runs past its SLA
+    # (interrupting), or an out-of-stock error surfaces mid-flight.
+    boundary:
+      - eventKind: timer
+        after: 2d
+        label: SLA breached
+        next: fulfilment-delayed
+      - eventKind: error
+        name: OutOfStock
+        next: backorder
+    on:
+      shipped:
+        next: notify
+      returned:
+        next: refunded
+
+  notify:
+    type: parallel
+    label: Notify Customer
+    actor: notifier
+    # Boundary event on a PARALLEL region: if the whole concurrent notification
+    # region exceeds its SLA, escalate — without interrupting the branches.
+    boundary:
+      - eventKind: timer
+        after: 1h
+        label: notifications slow
+        interrupting: false
+        next: escalate-notifications
+    branches:
+      email:
+        flow: send-email
+      sms:
+        flow: send-sms
+    wait: all
+    next: completed
+
+  escalate-notifications:
+    type: operation
+    label: Escalate to On-call
+    actor: notifier
+    call: ops.page-oncall
+    next: completed
+
+  fulfilment-delayed:
+    type: final
+    label: Fulfilment Delayed
+    outcome: failure
+
+  backorder:
+    type: final
+    label: Backordered
+    outcome: success
+
+  refunded:
+    type: final
+    label: Refunded
+    outcome: cancelled
+
+  session-expired:
+    type: final
+    label: Session Expired
+    outcome: cancelled
+
+  cancelled:
+    type: final
+    label: Cancelled
+    outcome: cancelled
+
+  payment-failed:
+    type: error
+    label: Payment Failed
+    message: The payment could not be completed.
+
+  completed:
+    type: final
+    label: Order Completed
+    outcome: success

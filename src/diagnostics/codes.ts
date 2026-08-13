@@ -141,6 +141,12 @@ export const CODES = {
     "error",
     "A decision table's shape is inconsistent (row width, empty rules/outputs, or combined with cases).",
   ),
+  INVALID_BOUNDARY: code(
+    "LS308",
+    "INVALID_BOUNDARY",
+    "error",
+    "A boundary event is on a disallowed step type, or its fields are inconsistent with its eventKind.",
+  ),
 
   // ── Advisory ──────────────────────────────────────────────────────────────
   NO_FAILURE_OUTCOME: code(

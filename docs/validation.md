@@ -11,7 +11,7 @@ YAML source
     ↓  syntax            → LS001
 Schema validation (Zod)  → LS002, LS300
     ↓
-Structural rules         → LS301, LS302, LS303, LS304, LS305, LS306, LS307
+Structural rules         → LS301, LS302, LS303, LS304, LS305, LS306, LS307, LS308
     ↓
 Normalized feature model
     ↓
@@ -94,6 +94,7 @@ Codes are stable and documented. They are never renumbered or reused.
 | LS305 | `INVALID_EVENT_KIND` | error | An event's fields contradict its `eventKind` (e.g. a timer without exactly one of `after`/`at`/`every`, a message without an `event` name, a conditional without `when`, a blank required field, or a `timer`/`conditional` published instead of waited) |
 | LS306 | `BLANK_GUARD` | error | A descriptive `when` guard on an operation/subflow outcome or a page action is present but blank |
 | LS307 | `INVALID_DECISION_TABLE` | error | A decision table's shape is invalid: combined with `cases`; no output columns; no rules; a rule whose `when`/`then` width does not match the declared inputs/outputs; more than one reserved `next` column; no `next` column and no `default` (a silent dead end); a `-`/blank reserved `next` cell; or a table over its bounds (1000 rules, 50 inputs/outputs, 500 characters per header/cell) |
+| LS308 | `INVALID_BOUNDARY` | error | A `boundary` event is on a step type other than `subflow`/`page`/`parallel`, or a handler's fields contradict its `eventKind` (a timer without exactly one of `after`/`at`/`every`, a message/signal without an `event`, a conditional without `when`, a blank required field, or a field belonging to another kind) |
 
 ### Advisory
 

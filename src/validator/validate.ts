@@ -75,9 +75,9 @@ export function validateFeature(
     locate = parsed.locate;
   } else {
     // An already-parsed object skipped the parser, so it also skipped the
-    // file-local structural checks (LS301–LS306). Run them here so no input
-    // path can bypass per-kind event consistency or the other structural
-    // rules. Source locations are unavailable for object inputs.
+    // file-local structural checks (LS301–LS308). Run them here so no input
+    // path can bypass per-kind event/boundary consistency or the other
+    // structural rules. Source locations are unavailable for object inputs.
     feature = input;
     diagnostics = validateStructure(feature, () => undefined, options.file);
     locate = undefined;

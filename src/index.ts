@@ -43,6 +43,7 @@ export { analyzeDataflow, type DataflowIssue } from "./graph/dataflow.js";
 export {
   buildGraph,
   type FeatureGraph,
+  type GraphBoundary,
   type GraphDecisionTable,
   type GraphEdge,
   type GraphNode,
@@ -84,6 +85,8 @@ export type { EventDefinition, EventsFile } from "./schema/events.js";
 // Schema types
 export {
   type Actor,
+  BOUNDARY_STEP_TYPES,
+  type BoundaryHandler,
   type ContextVar,
   DECISION_TABLE_TARGET_COLUMN,
   type DecisionRule,

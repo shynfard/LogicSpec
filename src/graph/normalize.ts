@@ -1,6 +1,8 @@
 import type { DocPath } from "../diagnostics/diagnostic.js";
 import {
   type Actor,
+  BOUNDARY_STEP_TYPES,
+  type BoundaryHandler,
   type ContextVar,
   DECISION_TABLE_TARGET_COLUMN,
   type DecisionTable,
@@ -10,7 +12,14 @@ import {
 } from "../schema/feature.js";
 
 /** How an edge came to exist. Renderers may style kinds differently. */
-export type EdgeKind = "action" | "outcome" | "decision" | "event" | "default" | "next";
+export type EdgeKind =
+  | "action"
+  | "outcome"
+  | "decision"
+  | "event"
+  | "default"
+  | "next"
+  | "boundary";
 
 export interface NormalizedTransition {
   to: string;
@@ -82,6 +91,47 @@ function decisionRuleLabel(table: DecisionTable, then: string[], index: number):
     }
   });
   return parts.length > 0 ? parts.join(", ") : `rule ${index + 1}`;
+}
+
+/**
+ * Builds the labeled-edge marker for a boundary handler, e.g. `⏱ after 30d`,
+ * `⚠ on-error`, `✉ on-message OrderPaid`, `? when cart is abandoned`. A custom
+ * `label` is appended, and a non-interrupting handler is suffixed
+ * `(non-interrupting)` since it spawns a parallel descriptive path rather than
+ * diverting the flow. Purely descriptive — the marker documents the trigger,
+ * nothing is ever fired or evaluated.
+ */
+export function boundaryLabel(handler: BoundaryHandler): string {
+  let marker: string;
+  switch (handler.eventKind) {
+    case "timer":
+      marker = handler.after
+        ? `⏱ after ${handler.after}`
+        : handler.at
+          ? `⏱ at ${handler.at}`
+          : handler.every
+            ? `⏱ every ${handler.every}`
+            : "⏱ timer";
+      break;
+    case "error":
+      marker = handler.name ? `⚠ on-error ${handler.name}` : "⚠ on-error";
+      break;
+    case "message":
+    case "signal": {
+      const verb = handler.eventKind === "signal" ? "on-signal" : "on-message";
+      marker = handler.event ? `✉ ${verb} ${handler.event}` : `✉ ${verb}`;
+      break;
+    }
+    case "conditional":
+      marker = handler.when ? `? when ${handler.when}` : "? when";
+      break;
+    default:
+      marker = "boundary";
+  }
+  const parts = [marker];
+  if (handler.label !== undefined && handler.label !== "") parts.push(handler.label);
+  if (handler.interrupting === false) parts.push("(non-interrupting)");
+  return parts.join(" ");
 }
 
 function transitionsOf(id: string, step: Step): NormalizedTransition[] {
@@ -209,6 +259,22 @@ function transitionsOf(id: string, step: Step): NormalizedTransition[] {
     }
     case "final":
       break;
+  }
+
+  // Boundary events attach a labeled divert edge to their `next`. All
+  // transition discovery lives here, so LS101 (unresolved target) and LS200
+  // (reachability) apply to boundary targets exactly like any other edge.
+  // Produced only for the step types that allow boundaries; LS308 rejects them
+  // elsewhere, so no phantom edges appear on operation/event/final steps.
+  if (BOUNDARY_STEP_TYPES.includes(step.type) && step.boundary !== undefined) {
+    step.boundary.forEach((handler, index) => {
+      transitions.push({
+        to: handler.next,
+        kind: "boundary",
+        label: boundaryLabel(handler),
+        path: [...base, "boundary", index, "next"],
+      });
+    });
   }
 
   return transitions;

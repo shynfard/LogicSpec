@@ -20,6 +20,7 @@ export * from "./edit/mutations.js";
 export {
   buildGraph,
   type FeatureGraph,
+  type GraphBoundary,
   type GraphDecisionTable,
   type GraphEdge,
   type GraphNode,
@@ -45,6 +46,8 @@ export type { EventDefinition, EventsFile } from "./schema/events.js";
 
 export {
   type Actor,
+  BOUNDARY_STEP_TYPES,
+  type BoundaryHandler,
   type ContextVar,
   DECISION_TABLE_TARGET_COLUMN,
   type DecisionRule,

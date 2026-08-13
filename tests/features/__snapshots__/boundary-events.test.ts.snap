@@ -1,0 +1,38 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`boundary-events example (examples/fulfillment) > renders each boundary kind as a plain labelled edge (golden) 1`] = `
+"flowchart TD
+  START(("Start"))
+  checkout["Checkout<br/>PAGE"]
+  refresh_prices[["Refresh Prices<br/>OPERATION"]]
+  process_payment[["Process Payment<br/>OPERATION"]]
+  fulfil[["Fulfil Order<br/>SUBFLOW"]]
+  notify[/"Notify Customer<br/>PARALLEL"/]
+  escalate_notifications[["Escalate to On-call<br/>OPERATION"]]
+  fulfilment_delayed((("Fulfilment Delayed<br/>FINAL · failure · ⊗ ERROR")))
+  backorder((("Backordered<br/>FINAL · success")))
+  refunded((("Refunded<br/>FINAL · cancelled")))
+  session_expired((("Session Expired<br/>FINAL · cancelled")))
+  cancelled((("Cancelled<br/>FINAL · cancelled")))
+  payment_failed["Payment Failed<br/>ERROR"]:::error
+  completed((("Order Completed<br/>FINAL · success")))
+
+  START --> checkout
+  checkout -- "Pay now" --> process_payment
+  checkout -- "Cancel" --> cancelled
+  checkout -- "⏱ after 15m session idle" --> session_expired
+  checkout -- "✉ on-message PriceChanged (non-interrupting)" --> refresh_prices
+  refresh_prices --> checkout
+  process_payment -- "paid" --> fulfil
+  process_payment -- "declined" --> payment_failed
+  fulfil -- "shipped" --> notify
+  fulfil -- "returned" --> refunded
+  fulfil -- "⏱ after 2d SLA breached" --> fulfilment_delayed
+  fulfil -- "⚠ on-error OutOfStock" --> backorder
+  notify --> completed
+  notify -- "⏱ after 1h notifications slow (non-interrupting)" --> escalate_notifications
+  escalate_notifications --> completed
+
+  classDef error stroke-width:2px,stroke-dasharray:4 3;
+"
+`;

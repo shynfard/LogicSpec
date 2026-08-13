@@ -17,6 +17,55 @@ import {
 
 export type { EventKind, FinalOutcome, HitPolicy };
 
+// ── Boundary events ──────────────────────────────────────────────────────────
+
+/**
+ * A boundary event handler: a documented alternative path taken when a timer
+ * fires, an error is caught, a message/signal arrives, or a condition becomes
+ * true WHILE the step is still in progress. It fills the gap for step types
+ * that cannot otherwise express mid-flight timeout / error / message handling —
+ * `subflow` (a called sub-process running past its SLA or failing mid-flight),
+ * `page` (a user step that times out or is interrupted) and `parallel` (a whole
+ * concurrent region exceeding an SLA). It is deliberately NOT allowed on step
+ * types that already carry outcome maps (operation/subflow `on:`, event
+ * `on.timeout`) — LS308 rejects it there rather than add a second way to say
+ * the same thing.
+ *
+ * Like wave-2 typed events, a boundary handler is DESCRIPTIVE, never evaluated
+ * or scheduled: the tool never fires a timer or tests a condition. It reuses the
+ * same `eventKind` classification and the same per-kind fields as a typed event;
+ * per-kind consistency is enforced by LS308, mirroring the event LS305 rules.
+ */
+export const boundaryHandlerSchema = z.strictObject({
+  eventKind: eventKindSchema.describe(
+    "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind.",
+  ),
+  interrupting: z
+    .boolean()
+    .optional()
+    .describe(
+      "When true (default), firing diverts the flow to `next`; when false, it spawns a parallel descriptive path. Both are descriptive — never fired.",
+    ),
+  // Timer boundary (eventKind: timer) — exactly one of the following.
+  after: durationSchema
+    .optional()
+    .describe("Timer relative delay (e.g. 30d). Descriptive, never scheduled."),
+  at: z.string().optional().describe("Timer absolute date/time. Descriptive, never evaluated."),
+  every: durationSchema
+    .optional()
+    .describe("Timer recurring cadence (e.g. 1d). Descriptive, never scheduled."),
+  // Message / signal boundary (eventKind: message | signal).
+  event: identifierSchema
+    .optional()
+    .describe("Event name for a message/signal boundary, resolved against the event catalog."),
+  // Error boundary (eventKind: error).
+  name: z.string().optional().describe("Error name/code. Descriptive, never evaluated."),
+  // Conditional boundary (eventKind: conditional).
+  when: z.string().optional().describe("Conditional predicate. Descriptive, never evaluated."),
+  label: z.string().optional().describe("Optional display label for the boundary edge."),
+  next: identifierSchema.describe("Target step id the boundary diverts to."),
+});
+
 // ── Shared step properties ───────────────────────────────────────────────────
 
 const stepBase = {
@@ -25,6 +74,12 @@ const stepBase = {
   description: z.string().optional(),
   tags: z.array(z.string()).optional(),
   notes: z.string().optional(),
+  boundary: z
+    .array(boundaryHandlerSchema)
+    .optional()
+    .describe(
+      "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+    ),
   extensions: extensionsSchema.optional(),
 };
 
@@ -364,6 +419,7 @@ export const featureFileSchema = z.strictObject({
   extensions: extensionsSchema.optional(),
 });
 
+export type BoundaryHandler = z.infer<typeof boundaryHandlerSchema>;
 export type PageAction = z.infer<typeof pageActionSchema>;
 export type PageLoad = z.infer<typeof pageLoadSchema>;
 export type PageStep = z.infer<typeof pageStepSchema>;
@@ -394,3 +450,12 @@ export const STEP_TYPES: readonly StepType[] = [
   "error",
   "final",
 ];
+
+/**
+ * Step types on which a `boundary` handler array is allowed (LS308). Boundary
+ * events attach only to step types that cannot otherwise express a mid-flight
+ * timeout / error / message divert: `page`, `subflow` and `parallel`. Operation
+ * and waiting-event steps already carry outcome maps, so they are excluded to
+ * avoid a second way to express the same handling.
+ */
+export const BOUNDARY_STEP_TYPES: readonly StepType[] = ["page", "subflow", "parallel"];

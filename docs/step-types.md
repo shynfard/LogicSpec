@@ -331,3 +331,69 @@ lapsed:
 ```
 
 A final's `kind` is derived, never stored: `terminate: true` ⇒ `terminate`; otherwise `outcome: failure` ⇒ `error`; everything else ⇒ `normal`. The three-way distinction renders as distinct diagram markers: a terminated final shows `⦻ TERMINATE`, an error terminal (`outcome: failure`) shows `⊗ ERROR`, and a normal terminal shows just its outcome. The derivation is exposed as `finalKind()` in the public API.
+
+---
+
+## Boundary events
+
+Some steps run for a while, and during that time something out of band can happen: a deadline passes, the work fails mid-flight, or a message or condition intervenes. A **boundary event** documents the alternative path taken when that happens — "if this step times out / errors / gets a message mid-flight, divert here."
+
+A `boundary` is an optional array on a step. It is allowed **only** on the three step types that cannot already express this:
+
+| Step | The gap it fills |
+|------|------------------|
+| `subflow` | a called sub-process running past its SLA, or failing mid-flight |
+| `page` | a user step that times out or is interrupted before the user acts |
+| `parallel` | a whole concurrent region exceeding an SLA |
+
+It is deliberately **not** allowed elsewhere. `operation` and `subflow` already map outcomes with `on:`, a waiting `event` already has `on.timeout`, and a `wait` is itself the delay — adding a boundary there would be a second way to say the same thing, so it is rejected (**LS308**). Boundaries are not needed on instantaneous steps (`decision`) or terminals (`error`, `final`).
+
+```yaml
+fulfil:
+  type: subflow
+  label: Fulfil Order
+  flow: warehouse-fulfilment
+  boundary:
+    - eventKind: timer          # the sub-process ran past its SLA
+      after: 2d
+      label: SLA breached
+      next: fulfilment-delayed
+    - eventKind: error          # an error surfaced mid-flight
+      name: OutOfStock
+      next: backorder
+  on:
+    shipped:
+      next: notify
+    returned:
+      next: refunded
+```
+
+Each handler reuses the typed-event `eventKind` vocabulary and its per-kind fields:
+
+| `eventKind` | Fields | Meaning |
+|-------------|--------|---------|
+| `timer` | exactly one of `after` / `at` / `every` | a deadline or cadence (reuses the `wait` duration format) |
+| `message` | `event` | a named message arrives while the step is in progress |
+| `signal` | `event` | a broadcast signal arrives |
+| `error` | optional `name` | the step fails mid-flight with this error name/code |
+| `conditional` | `when` | a descriptive predicate becomes true |
+
+Two more fields on every handler:
+
+* **`next`** (required) — the step the boundary diverts to. It resolves through the same machinery as any other transition, so an unresolved target is [LS101](validation.md) and a step reachable only through a boundary counts as reachable for [LS200](validation.md).
+* **`interrupting`** (default `true`) — an **interrupting** handler diverts the flow when it fires; a **non-interrupting** handler (`interrupting: false`) spawns a parallel descriptive path and leaves the step running. Both are documentation.
+
+Like every predicate in LogicSpec, a boundary is **descriptive, never evaluated or scheduled** — the tool never fires a timer or tests a condition; it only records the alternative path.
+
+**Rendering.** Boundaries are rendered as plain labelled edges to their target — LogicSpec deliberately avoids the BPMN attached-circle glyph. Each edge is marked by its trigger:
+
+| Kind | Marker |
+|------|--------|
+| `timer` | `⏱ after 30d` / `⏱ at …` / `⏱ every …` |
+| `error` | `⚠ on-error` (plus the name when set) |
+| `message` / `signal` | `✉ on-message …` / `✉ on-signal …` |
+| `conditional` | `? when …` |
+
+A custom `label` is appended, and a non-interrupting handler gains a `(non-interrupting)` suffix, e.g. `✉ on-message PriceChanged (non-interrupting)`. The boundaries are also exposed on the graph node (`GraphNode.boundaries`), and the full authored handlers are available through the MCP `get_step` tool.
+
+Rules (**LS308**): a boundary is allowed only on `subflow`, `page` and `parallel` steps; each handler's fields must be consistent with its `eventKind` (a `timer` needs exactly one of `after`/`at`/`every`; `message`/`signal` need an `event`; a `conditional` needs `when`; fields belonging to another kind are rejected; every required field must be non-blank) — the same per-kind rules typed events follow. See `examples/fulfillment/` for a feature that exercises all three host types.
