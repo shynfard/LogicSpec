@@ -67,7 +67,7 @@ Codes are stable and documented. They are never renumbered or reused.
 | LS102 | `UNKNOWN_ACTOR` | error | A step references an undeclared actor |
 | LS103 | `UNKNOWN_CONTEXT` | error | `requires`/`produces` references an undeclared context variable |
 | LS104 | `UNKNOWN_OPERATION` | error | `call` references a service or operation missing from the service catalog |
-| LS105 | `UNKNOWN_EVENT` | error | `event` references an event missing from the event catalog |
+| LS105 | `UNKNOWN_EVENT` | error | `event` references an event missing from the event catalog (an event step's `event`, or a `message`/`signal` boundary handler's `event`) |
 | LS106 | `UNKNOWN_SUBFLOW` | error | `flow` references a feature that does not exist in the workspace |
 | LS107 | `UNKNOWN_STATE` | error | A page `load.on` outcome targets a state the page does not declare |
 | LS108 | `UNKNOWN_OPENAPI_OPERATION` | error | An `openapi` reference names an `operationId` missing from the linked OpenAPI document |
@@ -94,7 +94,7 @@ Codes are stable and documented. They are never renumbered or reused.
 | LS305 | `INVALID_EVENT_KIND` | error | An event's fields contradict its `eventKind` (e.g. a timer without exactly one of `after`/`at`/`every`, a message without an `event` name, a conditional without `when`, a blank required field, or a `timer`/`conditional` published instead of waited) |
 | LS306 | `BLANK_GUARD` | error | A descriptive `when` guard on an operation/subflow outcome or a page action is present but blank |
 | LS307 | `INVALID_DECISION_TABLE` | error | A decision table's shape is invalid: combined with `cases`; no output columns; no rules; a rule whose `when`/`then` width does not match the declared inputs/outputs; more than one reserved `next` column; no `next` column and no `default` (a silent dead end); a `-`/blank reserved `next` cell; or a table over its bounds (1000 rules, 50 inputs/outputs, 500 characters per header/cell) |
-| LS308 | `INVALID_BOUNDARY` | error | A `boundary` event is on a step type other than `subflow`/`page`/`parallel`, or a handler's fields contradict its `eventKind` (a timer without exactly one of `after`/`at`/`every`, a message/signal without an `event`, a conditional without `when`, a blank required field, or a field belonging to another kind) |
+| LS308 | `INVALID_BOUNDARY` | error | A `boundary` event is on a step type other than `subflow`/`page`/`parallel`, a handler's fields contradict its `eventKind` (a timer without exactly one of `after`/`at`/`every`, a message/signal without an `event`, a conditional without `when`, a blank required field, or a field belonging to another kind), or the array exceeds 1000 handlers / a descriptive field exceeds 500 characters |
 
 ### Advisory
 

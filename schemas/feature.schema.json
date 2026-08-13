@@ -148,6 +148,7 @@
               },
               "boundary": {
                 "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+                "maxItems": 1000,
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -170,15 +171,18 @@
                     "after": {
                       "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "at": {
                       "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "every": {
                       "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "event": {
@@ -188,15 +192,18 @@
                     },
                     "name": {
                       "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "when": {
                       "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "label": {
                       "description": "Optional display label for the boundary edge.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "next": {
                       "type": "string",
@@ -352,6 +359,7 @@
               },
               "boundary": {
                 "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+                "maxItems": 1000,
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -374,15 +382,18 @@
                     "after": {
                       "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "at": {
                       "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "every": {
                       "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "event": {
@@ -392,15 +403,18 @@
                     },
                     "name": {
                       "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "when": {
                       "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "label": {
                       "description": "Optional display label for the boundary edge.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "next": {
                       "type": "string",
@@ -579,6 +593,7 @@
               },
               "boundary": {
                 "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+                "maxItems": 1000,
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -601,15 +616,18 @@
                     "after": {
                       "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "at": {
                       "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "every": {
                       "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "event": {
@@ -619,15 +637,18 @@
                     },
                     "name": {
                       "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "when": {
                       "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "label": {
                       "description": "Optional display label for the boundary edge.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "next": {
                       "type": "string",
@@ -740,6 +761,7 @@
               },
               "boundary": {
                 "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+                "maxItems": 1000,
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -762,15 +784,18 @@
                     "after": {
                       "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "at": {
                       "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "every": {
                       "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "event": {
@@ -780,15 +805,18 @@
                     },
                     "name": {
                       "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "when": {
                       "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "label": {
                       "description": "Optional display label for the boundary edge.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "next": {
                       "type": "string",
@@ -948,6 +976,7 @@
               },
               "boundary": {
                 "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+                "maxItems": 1000,
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -970,15 +999,18 @@
                     "after": {
                       "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "at": {
                       "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "every": {
                       "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "event": {
@@ -988,15 +1020,18 @@
                     },
                     "name": {
                       "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "when": {
                       "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "label": {
                       "description": "Optional display label for the boundary edge.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "next": {
                       "type": "string",
@@ -1067,6 +1102,7 @@
               },
               "boundary": {
                 "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+                "maxItems": 1000,
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -1089,15 +1125,18 @@
                     "after": {
                       "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "at": {
                       "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "every": {
                       "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "event": {
@@ -1107,15 +1146,18 @@
                     },
                     "name": {
                       "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "when": {
                       "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "label": {
                       "description": "Optional display label for the boundary edge.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "next": {
                       "type": "string",
@@ -1227,6 +1269,7 @@
               },
               "boundary": {
                 "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+                "maxItems": 1000,
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -1249,15 +1292,18 @@
                     "after": {
                       "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "at": {
                       "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "every": {
                       "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "event": {
@@ -1267,15 +1313,18 @@
                     },
                     "name": {
                       "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "when": {
                       "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "label": {
                       "description": "Optional display label for the boundary edge.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "next": {
                       "type": "string",
@@ -1370,6 +1419,7 @@
               },
               "boundary": {
                 "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+                "maxItems": 1000,
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -1392,15 +1442,18 @@
                     "after": {
                       "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "at": {
                       "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "every": {
                       "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "event": {
@@ -1410,15 +1463,18 @@
                     },
                     "name": {
                       "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "when": {
                       "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "label": {
                       "description": "Optional display label for the boundary edge.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "next": {
                       "type": "string",
@@ -1505,6 +1561,7 @@
               },
               "boundary": {
                 "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
+                "maxItems": 1000,
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -1527,15 +1584,18 @@
                     "after": {
                       "description": "Timer relative delay (e.g. 30d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "at": {
                       "description": "Timer absolute date/time. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "every": {
                       "description": "Timer recurring cadence (e.g. 1d). Descriptive, never scheduled.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
                     },
                     "event": {
@@ -1545,15 +1605,18 @@
                     },
                     "name": {
                       "description": "Error name/code. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "when": {
                       "description": "Conditional predicate. Descriptive, never evaluated.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "label": {
                       "description": "Optional display label for the boundary edge.",
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 500
                     },
                     "next": {
                       "type": "string",

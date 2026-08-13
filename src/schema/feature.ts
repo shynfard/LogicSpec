@@ -36,6 +36,31 @@ export type { EventKind, FinalOutcome, HitPolicy };
  * same `eventKind` classification and the same per-kind fields as a typed event;
  * per-kind consistency is enforced by LS308, mirroring the event LS305 rules.
  */
+
+/**
+ * Generous-but-safe upper bound on a step's `boundary` handler array. A boundary
+ * is descriptive documentation, not a runtime, so this cap is far larger than any
+ * hand-authored handler list yet small enough that a hostile document cannot make
+ * validation quadratic: each handler contributes a transition, a graph edge and an
+ * O(n·m) "did you mean" suggestion pass over the step set, so thousands of handlers
+ * pointing at unresolved targets would otherwise hang the validator. Mirrors the
+ * decision-table caps; exceeding it is LS308.
+ */
+export const MAX_BOUNDARY_HANDLERS = 1000;
+
+/**
+ * Max characters in any single descriptive boundary string field (`after`, `at`,
+ * `every`, `name`, `when`, `label`). Mirrors the decision-table cell-length cap;
+ * exceeding it is LS308.
+ */
+export const MAX_BOUNDARY_FIELD_LENGTH = 500;
+
+/** Shared LS308 message for an over-long descriptive boundary field. */
+const boundaryFieldTooLong = `has a boundary field longer than ${MAX_BOUNDARY_FIELD_LENGTH} characters; boundary fields are capped at ${MAX_BOUNDARY_FIELD_LENGTH}.`;
+
+/** A descriptive boundary string, length-bounded to cap resource use. */
+const boundedBoundaryField = z.string().max(MAX_BOUNDARY_FIELD_LENGTH, boundaryFieldTooLong);
+
 export const boundaryHandlerSchema = z.strictObject({
   eventKind: eventKindSchema.describe(
     "Boundary trigger classification (timer/message/signal/error/conditional). Reuses the event eventKind.",
@@ -48,10 +73,14 @@ export const boundaryHandlerSchema = z.strictObject({
     ),
   // Timer boundary (eventKind: timer) — exactly one of the following.
   after: durationSchema
+    .max(MAX_BOUNDARY_FIELD_LENGTH, boundaryFieldTooLong)
     .optional()
     .describe("Timer relative delay (e.g. 30d). Descriptive, never scheduled."),
-  at: z.string().optional().describe("Timer absolute date/time. Descriptive, never evaluated."),
+  at: boundedBoundaryField
+    .optional()
+    .describe("Timer absolute date/time. Descriptive, never evaluated."),
   every: durationSchema
+    .max(MAX_BOUNDARY_FIELD_LENGTH, boundaryFieldTooLong)
     .optional()
     .describe("Timer recurring cadence (e.g. 1d). Descriptive, never scheduled."),
   // Message / signal boundary (eventKind: message | signal).
@@ -59,10 +88,12 @@ export const boundaryHandlerSchema = z.strictObject({
     .optional()
     .describe("Event name for a message/signal boundary, resolved against the event catalog."),
   // Error boundary (eventKind: error).
-  name: z.string().optional().describe("Error name/code. Descriptive, never evaluated."),
+  name: boundedBoundaryField.optional().describe("Error name/code. Descriptive, never evaluated."),
   // Conditional boundary (eventKind: conditional).
-  when: z.string().optional().describe("Conditional predicate. Descriptive, never evaluated."),
-  label: z.string().optional().describe("Optional display label for the boundary edge."),
+  when: boundedBoundaryField
+    .optional()
+    .describe("Conditional predicate. Descriptive, never evaluated."),
+  label: boundedBoundaryField.optional().describe("Optional display label for the boundary edge."),
   next: identifierSchema.describe("Target step id the boundary diverts to."),
 });
 
@@ -76,6 +107,10 @@ const stepBase = {
   notes: z.string().optional(),
   boundary: z
     .array(boundaryHandlerSchema)
+    .max(
+      MAX_BOUNDARY_HANDLERS,
+      `declares more than ${MAX_BOUNDARY_HANDLERS} boundary handlers; a step is capped at ${MAX_BOUNDARY_HANDLERS} boundary handlers.`,
+    )
     .optional()
     .describe(
       "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",

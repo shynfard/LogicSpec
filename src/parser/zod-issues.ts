@@ -131,6 +131,23 @@ export function zodIssuesToDiagnostics(
       continue;
     }
 
+    // An over-limit boundary array (too many handlers) or an over-long boundary
+    // field reads as LS308, matching the boundary's other shape errors, rather
+    // than a raw Zod "too_big". The bound lives in the schema so the pipeline
+    // rejects the document before normalization/graph work can amplify thousands
+    // of handlers into a quadratic suggestion pass and hang the validator.
+    if (issue.code === "too_big" && path[0] === "steps" && path.includes("boundary")) {
+      diagnostics.push(
+        makeDiagnostic(CODES.INVALID_BOUNDARY, {
+          message: `Step "${String(path[1])}" ${issue.message}`,
+          file,
+          path,
+          location: locate(path),
+        }),
+      );
+      continue;
+    }
+
     diagnostics.push(
       makeDiagnostic(CODES.SCHEMA_ERROR, {
         message: issue.message,

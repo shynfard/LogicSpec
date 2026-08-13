@@ -78,7 +78,10 @@ export function validateSemantics(
     checkActor(step, actorIds, report);
     checkContextReferences(step, contextNames, report);
     if (services) checkCalls(step, services, report);
-    if (events) checkEvent(step, events, report);
+    if (events) {
+      checkEvent(step, events, report);
+      checkBoundaryEvents(step, events, report);
+    }
     if (knownFlows) checkFlows(step, knownFlows, report);
     if (context.flowOutcomes) checkSubflowOutcomes(step, context.flowOutcomes, report);
     checkPageStates(step, report);
@@ -258,6 +261,30 @@ function checkEvent(step: NormalizedStep, events: EventsFile, report: Reporter):
       suggest(def.event, Object.keys(events.events)),
     );
   }
+}
+
+/**
+ * Catalog-checks message/signal boundary event names, mirroring `checkEvent` for
+ * a normal event step (LS105). The boundary schema documents these `event` names
+ * as "resolved against the event catalog", so an unknown name is an LS105 miss
+ * with a nearest-name suggestion. Other kinds (timer/error/conditional) name no
+ * catalog event, and a missing required `event` is LS308's job, not this one.
+ */
+function checkBoundaryEvents(step: NormalizedStep, events: EventsFile, report: Reporter): void {
+  const boundary = step.def.boundary;
+  if (boundary === undefined) return;
+  boundary.forEach((handler, index) => {
+    if (handler.eventKind !== "message" && handler.eventKind !== "signal") return;
+    if (handler.event === undefined) return;
+    if (!events.events[handler.event]) {
+      report(
+        CODES.UNKNOWN_EVENT,
+        `Boundary ${index + 1} on step "${step.id}" references unknown event "${handler.event}".`,
+        ["steps", step.id, "boundary", index, "event"],
+        suggest(handler.event, Object.keys(events.events)),
+      );
+    }
+  });
 }
 
 function checkFlows(step: NormalizedStep, knownFlows: ReadonlySet<string>, report: Reporter): void {

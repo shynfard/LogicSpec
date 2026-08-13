@@ -5,11 +5,20 @@ import { describe, expect, it } from "vitest";
 import {
   buildGraph,
   normalizeFeature,
+  parseEvents,
   parseFeature,
   renderMermaid,
   validateFeature,
 } from "../../src/index.js";
 import { featureWith } from "../helpers.js";
+
+/** A minimal event catalog for boundary event-name resolution (LS105). */
+const EVENTS = parseEvents(`
+version: "1"
+events:
+  OrderPaid:
+    topic: order.paid
+`).data;
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -278,6 +287,80 @@ describe("boundary events — model & rendering", () => {
     const feature = normalizeFeature(parsed.data);
     const output = renderMermaid(feature, buildGraph(feature), { view: "flow", direction: "TD" });
     expect(output).toContain('start_step -- "⏱ after 15m (non-interrupting)" --> diverted');
+  });
+});
+
+describe("boundary events — catalog resolution (LS105)", () => {
+  /** A subflow host with a single message/signal boundary naming `event`. */
+  function subflowWithEventBoundary(kind: string, event: string): string {
+    return feat(`  start-step:
+    type: subflow
+    flow: child
+    next: done
+    boundary:
+      - eventKind: ${kind}
+        event: ${event}
+        next: diverted`);
+  }
+
+  it("flags an unknown message boundary event against the catalog (LS105)", () => {
+    const source = subflowWithEventBoundary("message", "Unknownish");
+    const diagnostics = validateFeature(source, { events: EVENTS }).diagnostics;
+    expect(diagnostics.some((d) => d.code === "LS105" && d.message.includes("Unknownish"))).toBe(
+      true,
+    );
+  });
+
+  it("flags an unknown signal boundary event against the catalog (LS105)", () => {
+    const source = subflowWithEventBoundary("signal", "Nopeish");
+    const diagnostics = validateFeature(source, { events: EVENTS }).diagnostics;
+    expect(diagnostics.some((d) => d.code === "LS105" && d.message.includes("Nopeish"))).toBe(true);
+  });
+
+  it("accepts a known message boundary event name (no LS105, clean)", () => {
+    const source = subflowWithEventBoundary("message", "OrderPaid");
+    const result = validateFeature(source, { events: EVENTS });
+    expect(result.diagnostics.some((d) => d.code === "LS105")).toBe(false);
+    expect(result.diagnostics).toEqual([]);
+    expect(result.valid).toBe(true);
+  });
+
+  it("does not run the catalog check for non message/signal kinds (timer)", () => {
+    const source = pageWithBoundary(`      - eventKind: timer
+        after: 15m
+        next: diverted`);
+    expect(validateFeature(source, { events: EVENTS }).diagnostics).toEqual([]);
+  });
+});
+
+describe("boundary events — resource bounds (LS308 DoS guard)", () => {
+  it("rejects an over-limit boundary array with LS308, not a hang", () => {
+    const handlers = Array.from(
+      { length: 1001 },
+      () => "      - eventKind: timer\n        after: 15m\n        next: diverted",
+    ).join("\n");
+    const source = pageWithBoundary(handlers);
+    const started = Date.now();
+    const result = validateFeature(source);
+    // Rejected promptly by the schema bound, well under any DoS threshold —
+    // normalization/graph work (the O(handlers·steps) suggest pass) never runs.
+    expect(Date.now() - started).toBeLessThan(5000);
+    expect(result.valid).toBe(false);
+    expect(
+      result.diagnostics.some(
+        (d) => d.code === "LS308" && d.message.includes("more than 1000 boundary handlers"),
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects a boundary field longer than the cap with LS308", () => {
+    const source = pageWithBoundary(`      - eventKind: conditional
+        when: "${"x".repeat(600)}"
+        next: diverted`);
+    const diagnostics = parseFeature(source).diagnostics;
+    expect(diagnostics.some((d) => d.code === "LS308" && d.message.includes("characters"))).toBe(
+      true,
+    );
   });
 });
 

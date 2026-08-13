@@ -43,6 +43,23 @@ field is optional, so all existing specs stay valid.
 - New `examples/fulfillment/` exercises boundaries on all three host types;
   `docs/step-types.md` and `docs/validation.md` document the construct and LS308.
 
+Hardening of the boundary-events feature after review (pre-release fixes, no
+version bump — the DSL is unchanged and every valid boundary stays valid):
+
+- **Bounded boundaries (resource-exhaustion guard).** A step's `boundary` array
+  is now capped at **1000 handlers**, and each descriptive field (`after`/`at`/
+  `every`/`name`/`when`/`label`) at **500 characters**. The bounds live in the
+  schema, so an over-limit document is rejected as **LS308** before
+  normalization/graph work can amplify thousands of handlers pointing at
+  unresolved targets into a quadratic "did you mean" pass and hang the validator.
+- **Catalog-checked boundary event names.** A `message`/`signal` boundary
+  handler's `event` name now resolves against the event catalog exactly like an
+  event step's — an unknown name is **LS105** with a nearest-name suggestion,
+  matching the boundary schema's documented contract.
+- **Object-input `validateFeature()` never throws.** A hand-built object with a
+  malformed boundary (e.g. `boundary: [null]`) is now Zod-gated and returns
+  diagnostics instead of throwing. The YAML/MCP path was already schema-gated.
+
 ## 0.7.0
 
 An **additive, backward-compatible** extension: **decision tables**. Every new

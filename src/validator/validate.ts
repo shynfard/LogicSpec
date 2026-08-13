@@ -3,7 +3,8 @@ import { type Diagnostic, hasErrors } from "../diagnostics/diagnostic.js";
 import { buildGraph, type FeatureGraph } from "../graph/edges.js";
 import { type NormalizedFeature, normalizeFeature } from "../graph/normalize.js";
 import { parseFeature } from "../parser/parse-feature.js";
-import type { FeatureFile } from "../schema/feature.js";
+import { zodIssuesToDiagnostics } from "../parser/zod-issues.js";
+import { type FeatureFile, featureFileSchema } from "../schema/feature.js";
 import { type SemanticContext, validateSemantics } from "./semantic.js";
 import { computeStats, type FeatureStats } from "./stats.js";
 import { validateStructure } from "./structural.js";
@@ -74,11 +75,29 @@ export function validateFeature(
     feature = parsed.data;
     locate = parsed.locate;
   } else {
-    // An already-parsed object skipped the parser, so it also skipped the
-    // file-local structural checks (LS301–LS308). Run them here so no input
-    // path can bypass per-kind event/boundary consistency or the other
-    // structural rules. Source locations are unavailable for object inputs.
-    feature = input;
+    // An already-parsed object skipped the parser and its Zod gate, so a
+    // hand-built object may be malformed in ways the FeatureFile type cannot
+    // prevent (e.g. `boundary: [null]`), which would otherwise throw downstream
+    // in structural traversal or normalization. Re-validate the shape here so a
+    // malformed object returns diagnostics instead of throwing — the YAML/MCP
+    // path is already Zod-gated; this keeps the object API contract from ever
+    // throwing. Source locations are unavailable for object inputs.
+    const reparsed = featureFileSchema.safeParse(input);
+    if (!reparsed.success) {
+      return {
+        valid: false,
+        diagnostics: zodIssuesToDiagnostics(
+          reparsed.error.issues,
+          input,
+          () => undefined,
+          options.file,
+        ),
+      };
+    }
+    feature = reparsed.data;
+    // The object also skipped the file-local structural checks (LS301–LS308);
+    // run them here so no input path can bypass per-kind event/boundary
+    // consistency or the other structural rules.
     diagnostics = validateStructure(feature, () => undefined, options.file);
     locate = undefined;
   }

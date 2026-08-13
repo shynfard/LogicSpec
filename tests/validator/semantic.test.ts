@@ -363,4 +363,40 @@ describe("object-input validation does not bypass structural checks", () => {
     };
     expect(validateFeature(feature).valid).toBe(true);
   });
+
+  it("returns diagnostics (never throws) for a null boundary handler", () => {
+    const feature = {
+      version: "1",
+      feature: { id: "demo", name: "Demo" },
+      start: "s",
+      steps: {
+        s: { type: "subflow", flow: "child", next: "fin", boundary: [null] },
+        fin: { type: "final", outcome: "success" },
+      },
+    } as unknown as FeatureFile;
+    let result: ReturnType<typeof validateFeature> | undefined;
+    expect(() => {
+      result = validateFeature(feature);
+    }).not.toThrow();
+    expect(result?.valid).toBe(false);
+    expect(result?.diagnostics.length ?? 0).toBeGreaterThan(0);
+  });
+
+  it("returns diagnostics (never throws) for a non-object boundary handler", () => {
+    const feature = {
+      version: "1",
+      feature: { id: "demo", name: "Demo" },
+      start: "s",
+      steps: {
+        s: { type: "subflow", flow: "child", next: "fin", boundary: ["notanobject"] },
+        fin: { type: "final", outcome: "success" },
+      },
+    } as unknown as FeatureFile;
+    let result: ReturnType<typeof validateFeature> | undefined;
+    expect(() => {
+      result = validateFeature(feature);
+    }).not.toThrow();
+    expect(result?.valid).toBe(false);
+    expect(result?.diagnostics.length ?? 0).toBeGreaterThan(0);
+  });
 });

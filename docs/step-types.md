@@ -385,6 +385,8 @@ Two more fields on every handler:
 
 Like every predicate in LogicSpec, a boundary is **descriptive, never evaluated or scheduled** — the tool never fires a timer or tests a condition; it only records the alternative path.
 
+An interrupting boundary is drawn **alongside** the step's normal outgoing edges — both appear in the diagram. The boundary edge shows the alternative path; drawing it next to the normal transitions does not imply both fire.
+
 **Rendering.** Boundaries are rendered as plain labelled edges to their target — LogicSpec deliberately avoids the BPMN attached-circle glyph. Each edge is marked by its trigger:
 
 | Kind | Marker |
@@ -396,4 +398,4 @@ Like every predicate in LogicSpec, a boundary is **descriptive, never evaluated 
 
 A custom `label` is appended, and a non-interrupting handler gains a `(non-interrupting)` suffix, e.g. `✉ on-message PriceChanged (non-interrupting)`. The boundaries are also exposed on the graph node (`GraphNode.boundaries`), and the full authored handlers are available through the MCP `get_step` tool.
 
-Rules (**LS308**): a boundary is allowed only on `subflow`, `page` and `parallel` steps; each handler's fields must be consistent with its `eventKind` (a `timer` needs exactly one of `after`/`at`/`every`; `message`/`signal` need an `event`; a `conditional` needs `when`; fields belonging to another kind are rejected; every required field must be non-blank) — the same per-kind rules typed events follow. See `examples/fulfillment/` for a feature that exercises all three host types.
+Rules (**LS308**): a boundary is allowed only on `subflow`, `page` and `parallel` steps; each handler's fields must be consistent with its `eventKind` (a `timer` needs exactly one of `after`/`at`/`every`; `message`/`signal` need an `event`; a `conditional` needs `when`; fields belonging to another kind are rejected; every required field must be non-blank) — the same per-kind rules typed events follow. A `message`/`signal` boundary's `event` name resolves against the event catalog just like an event step's, so an unknown name is [LS105](validation.md). The `boundary` array is bounded to keep validation cheap — at most 1000 handlers per step, and 500 characters per descriptive field (`after`/`at`/`every`/`name`/`when`/`label`); exceeding either bound is LS308. See `examples/fulfillment/` for a feature that exercises all three host types.
