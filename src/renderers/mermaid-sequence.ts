@@ -1,7 +1,12 @@
 import type { FeatureGraph } from "../graph/edges.js";
 import type { NormalizedFeature, NormalizedStep } from "../graph/normalize.js";
 import type { EventStep } from "../schema/feature.js";
-import { edgeLabel, escapeMermaid, NodeIdAllocator } from "./mermaid-common.js";
+import {
+  edgeLabel,
+  escapeMermaid,
+  NodeIdAllocator,
+  normalizeMermaidNewlines,
+} from "./mermaid-common.js";
 
 /** Human-readable description of an event step for a sequence-diagram note. */
 function eventNote(def: EventStep): string {
@@ -38,10 +43,12 @@ const UNASSIGNED_LABEL = "Unassigned";
 /**
  * Participant display names are emitted unquoted, so the sequence-statement
  * delimiters (`:` between alias and message, `;` as line separator) must not
- * appear in them.
+ * appear in them. Newlines (including a bare `\r`, which a naive `\r?\n`
+ * regex would miss) are normalized through the shared helper so a `\r%%`
+ * payload can never break out onto its own Mermaid line here either.
  */
 function participantDisplay(label: string): string {
-  return label.replace(/\r?\n/g, " ").replaceAll(";", ",").replaceAll(":", "-");
+  return normalizeMermaidNewlines(label).replaceAll(";", ",").replaceAll(":", "-");
 }
 
 /**

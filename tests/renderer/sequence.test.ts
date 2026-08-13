@@ -118,4 +118,36 @@ steps:
     expect(output).not.toContain('"here"');
     expect(output).not.toContain("<fast>");
   });
+
+  it("normalizes a carriage return in an actor label so a \\r%% payload cannot inject a line", () => {
+    // The double-quoted YAML escape "\\r" parses to a real CR (U+000D). The
+    // sequence renderer normalizes participant display names with its own
+    // regex (not the shared escapeMermaid), so this exercises that path
+    // specifically: without bare-\r handling, a `\r?\n`-only regex leaves the
+    // CR intact and a downstream `%%` opens a fresh Mermaid comment line.
+    const { feature, graph } = modelOf(`
+version: "1"
+feature: { id: cr, name: CarriageReturn }
+start: tricky
+actors:
+  weird: { kind: system, label: "Sys 50%%\\r%%{init} core" }
+steps:
+  tricky:
+    type: page
+    actor: weird
+    actions:
+      go:
+        label: "before 10%%\\r%%{init} after"
+        next: fin
+  fin:
+    type: final
+    outcome: success
+`);
+    const output = renderMermaidSequence(feature, graph);
+    // No raw carriage return survives anywhere in the output — neither in the
+    // unquoted participant declaration nor in the escaped message text.
+    expect(output).not.toContain("\r");
+    expect(output).toContain("participant weird as Sys 50%% %%{init} core");
+    expect(output).toContain("before 10#37;#37; #37;#37;{init} after");
+  });
 });

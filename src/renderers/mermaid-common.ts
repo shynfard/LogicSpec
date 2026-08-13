@@ -3,6 +3,18 @@ import type { EdgeKind } from "../graph/normalize.js";
 import { type FinalOutcome, finalKind, type StepType } from "../schema/feature.js";
 
 /**
+ * Collapses every line-break form — `\n`, a bare `\r`, or a `\r\n` pair — to a
+ * single space. Shared by every renderer that emits Mermaid text (quoted or
+ * not), so a label can never inject a new Mermaid line (e.g. a `\r%%` payload
+ * starting a comment on its own line). Single source of truth: renderers must
+ * call this instead of rolling their own `\r?\n`-style regex, which would
+ * leave a bare `\r` intact.
+ */
+export function normalizeMermaidNewlines(text: string): string {
+  return text.replace(/\r\n|[\r\n]/g, " ");
+}
+
+/**
  * Escapes user-provided text for use inside a quoted Mermaid label.
  * Mermaid entity codes keep the output safe in every renderer (GitHub,
  * VS Code, mermaid-cli) without depending on HTML escaping behavior.
@@ -13,14 +25,15 @@ import { type FinalOutcome, finalKind, type StepType } from "../schema/feature.j
  * new Mermaid line (e.g. a `\r%%` payload starting a comment on its own line).
  */
 export function escapeMermaid(text: string): string {
-  return text
-    .replaceAll("#", "#35;")
-    .replaceAll("%", "#37;")
-    .replaceAll("&", "#amp;")
-    .replaceAll('"', "#quot;")
-    .replaceAll("<", "#lt;")
-    .replaceAll(">", "#gt;")
-    .replace(/\r\n|[\r\n]/g, " ");
+  return normalizeMermaidNewlines(
+    text
+      .replaceAll("#", "#35;")
+      .replaceAll("%", "#37;")
+      .replaceAll("&", "#amp;")
+      .replaceAll('"', "#quot;")
+      .replaceAll("<", "#lt;")
+      .replaceAll(">", "#gt;"),
+  );
 }
 
 /** Words Mermaid treats specially; never emit them as bare node ids. */

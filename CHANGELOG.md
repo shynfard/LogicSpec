@@ -62,6 +62,14 @@ actor kind). Every new field is optional, so all existing specs stay valid.
   legitimately named `zone_0`. The subgraph id is now reserved through the same
   `NodeIdAllocator` as step nodes, so the two can never share an identifier
   (output is byte-identical when no such step exists).
+- **Mermaid label injection via carriage return, second path (sequence view)**:
+  the sequence-diagram renderer's participant-name sanitizer had its own
+  `\r?\n` newline normalization, separate from `escapeMermaid`, which likewise
+  left a bare `\r` intact — so a `\r%%` actor label could still inject a
+  Mermaid comment line in the sequence view even after the fix above. It now
+  reuses the same shared newline-normalizing helper as `escapeMermaid`
+  (`normalizeMermaidNewlines`), so every renderer collapses `\n`, `\r` and
+  `\r\n` identically from one source of truth.
 
 ## 0.8.0
 
