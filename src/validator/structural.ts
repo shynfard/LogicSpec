@@ -1,7 +1,7 @@
 import { CODES } from "../diagnostics/codes.js";
 import { type Diagnostic, type DocPath, makeDiagnostic } from "../diagnostics/diagnostic.js";
 import type { PathLocator } from "../parser/yaml.js";
-import type { FeatureFile } from "../schema/feature.js";
+import { DECISION_TABLE_TARGET_COLUMN, type FeatureFile } from "../schema/feature.js";
 
 /** A string that is present but contains only whitespace. */
 function isBlank(value: string | undefined): boolean {
@@ -234,6 +234,48 @@ export function validateStructure(
               );
             }
           });
+
+          // ── Reserved `next` output column ─────────────────────────────────
+          // The `next` column names each rule's transition target. It must be
+          // unambiguous (at most one), and a table with no target column has no
+          // per-rule branch, so it must fall through to a `default` — otherwise
+          // it is a silent dead end.
+          const nextColumns = table.outputs.reduce<number[]>((acc, header, i) => {
+            if (header === DECISION_TABLE_TARGET_COLUMN) acc.push(i);
+            return acc;
+          }, []);
+          if (nextColumns.length > 1) {
+            pushTable(
+              `has a decision table with ${nextColumns.length} reserved "${DECISION_TABLE_TARGET_COLUMN}" output columns; declare at most one.`,
+              "decisionTable",
+              "outputs",
+            );
+          }
+          if (nextColumns.length === 0 && step.default === undefined) {
+            pushTable(
+              `has a decision table with no reserved "${DECISION_TABLE_TARGET_COLUMN}" column and no "default", so it produces no outgoing transition. Add a "${DECISION_TABLE_TARGET_COLUMN}" output column or a "default".`,
+              "decisionTable",
+            );
+          }
+          // A `-`/blank cell in the reserved `next` column is not a real target.
+          // Flag it here with a dedicated message instead of the generic LS101
+          // unknown-target error (normalize skips these cells accordingly).
+          if (nextColumns.length >= 1) {
+            const nextColumn = nextColumns[0] as number;
+            table.rules.forEach((rule, index) => {
+              const cell = rule.then[nextColumn];
+              if (cell !== undefined && (cell.trim() === "" || cell.trim() === "-")) {
+                pushTable(
+                  `rule ${index + 1}'s reserved "${DECISION_TABLE_TARGET_COLUMN}" cell must name a real step; "-"/blank is not a valid target.`,
+                  "decisionTable",
+                  "rules",
+                  index,
+                  "then",
+                  nextColumn,
+                );
+              }
+            });
+          }
         }
         break;
       }

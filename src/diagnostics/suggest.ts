@@ -28,16 +28,30 @@ function levenshtein(a: string, b: string): number {
 }
 
 /**
+ * Longest name/candidate suggest() will run Levenshtein on. Beyond this a
+ * "did you mean" is meaningless anyway, and the guard caps the O(n·m) cost so an
+ * attacker-controlled long string (e.g. a decision-table target) cannot make
+ * suggestion generation quadratic and hang the validator.
+ */
+const MAX_SUGGEST_LENGTH = 64;
+
+/**
  * Returns the closest candidate within an edit-distance budget, or undefined.
  * The budget scales with the length of the misspelled name so short names
  * do not produce absurd suggestions.
  */
 export function suggest(name: string, candidates: Iterable<string>): string | undefined {
+  // An over-long name can never produce a useful suggestion and would only
+  // amplify the per-candidate Levenshtein cost; bail before doing any work.
+  if (name.length > MAX_SUGGEST_LENGTH) return undefined;
   const maxDistance = name.length <= 4 ? 1 : name.length <= 8 ? 2 : 3;
   let best: string | undefined;
   let bestDistance = maxDistance + 1;
   for (const candidate of candidates) {
     if (candidate === name) continue;
+    // Skip over-long candidates for the same reason — they bound each
+    // comparison to MAX_SUGGEST_LENGTH² work.
+    if (candidate.length > MAX_SUGGEST_LENGTH) continue;
     const d = levenshtein(name.toLowerCase(), candidate.toLowerCase());
     if (d < bestDistance) {
       bestDistance = d;

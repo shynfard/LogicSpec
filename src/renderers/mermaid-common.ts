@@ -7,10 +7,13 @@ import { type FinalOutcome, finalKind, type StepType } from "../schema/feature.j
  * Mermaid entity codes keep the output safe in every renderer (GitHub,
  * VS Code, mermaid-cli) without depending on HTML escaping behavior.
  * `#` must be escaped first so entity codes we introduce stay intact.
+ * `%` is neutralized (to `#37;`) so a `%%` in a label cannot open a Mermaid
+ * comment and break that diagram line.
  */
 export function escapeMermaid(text: string): string {
   return text
     .replaceAll("#", "#35;")
+    .replaceAll("%", "#37;")
     .replaceAll("&", "#amp;")
     .replaceAll('"', "#quot;")
     .replaceAll("<", "#lt;")

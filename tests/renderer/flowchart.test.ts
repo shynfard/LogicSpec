@@ -69,6 +69,30 @@ steps:
     expect(output).not.toMatch(/[^#]"hi"/); // no raw unescaped quotes inside labels
   });
 
+  it("neutralizes a %% comment token in labels so it cannot break the diagram", () => {
+    const { feature, graph } = modelOf(`
+version: "1"
+feature: { id: pct, name: Percent }
+start: tricky
+steps:
+  tricky:
+    type: page
+    label: 'Discount 50%% off %%{init}'
+    actions:
+      go:
+        label: 'apply 10%% %% now'
+        next: fin
+  fin:
+    type: final
+    outcome: success
+`);
+    const output = renderMermaid(feature, graph);
+    // Every "%" is rendered as the literal entity code, so no "%%" survives.
+    expect(output).not.toContain("%");
+    expect(output).toContain("Discount 50#37;#37; off #37;#37;{init}");
+    expect(output).toContain('-- "apply 10#37;#37; #37;#37; now" -->');
+  });
+
   it("never emits reserved words or unsafe characters as node ids", () => {
     const { feature, graph } = modelOf(`
 version: "1"

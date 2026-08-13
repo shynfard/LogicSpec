@@ -121,6 +121,10 @@ function transitionsOf(id: string, step: Step): NormalizedTransition[] {
           table.rules.forEach((rule, index) => {
             const to = rule.then[nextColumn];
             if (to === undefined) return; // malformed row width — LS307 covers it
+            // A blank or "-" target cell names no step; structural LS307 flags
+            // it, so skip it here rather than emit a spurious LS101.
+            const trimmed = to.trim();
+            if (trimmed === "" || trimmed === "-") return;
             transitions.push({
               to,
               kind: "decision",

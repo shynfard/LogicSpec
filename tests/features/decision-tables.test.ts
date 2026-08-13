@@ -191,6 +191,116 @@ describe("decision tables (LS307)", () => {
 `);
     expect(allCodes(source)).not.toContain("LS200");
   });
+
+  // ── Resource bounds (DoS guard) ────────────────────────────────────────────
+  it("rejects an over-limit table (too many rules) with LS307, not a hang/crash", () => {
+    const rules = Array.from(
+      { length: 1001 },
+      () => '        - when: ["-"]\n          then: ["approve"]',
+    ).join("\n");
+    const source = tableFeature(`
+    decisionTable:
+      inputs: [age]
+      outputs: [next]
+      rules:
+${rules}
+`);
+    const started = Date.now();
+    const diagnostics = parseFeature(source).diagnostics;
+    // Rejected promptly by the schema bound, well under any DoS threshold.
+    expect(Date.now() - started).toBeLessThan(5000);
+    expect(diagnostics.some((d) => d.code === "LS307")).toBe(true);
+    expect(
+      diagnostics.some((d) => d.code === "LS307" && d.message.includes("more than 1000 rules")),
+    ).toBe(true);
+  });
+
+  it("rejects a table cell longer than the cap with LS307", () => {
+    const source = tableFeature(`
+    decisionTable:
+      inputs: [age]
+      outputs: [next]
+      rules:
+        - when: ["${"x".repeat(600)}"]
+          then: ["approve"]
+`);
+    const diagnostics = parseFeature(source).diagnostics;
+    expect(diagnostics.some((d) => d.code === "LS307" && d.message.includes("characters"))).toBe(
+      true,
+    );
+  });
+
+  // ── Classification tables must continue (LS307) ────────────────────────────
+  it("rejects a table with no next column and no default (silent dead-end)", () => {
+    const source = tableFeature(`
+    decisionTable:
+      inputs: [age]
+      outputs: [tier]
+      rules:
+        - when: ["< 18"]
+          then: ["minor"]
+`);
+    const diagnostics = parseFeature(source).diagnostics;
+    expect(
+      diagnostics.some((d) => d.code === "LS307" && d.message.includes("no outgoing transition")),
+    ).toBe(true);
+  });
+
+  it("accepts a table with no next column when a default is present (no LS307)", () => {
+    // The table classifies only (tier), and the decision continues via default.
+    const source = tableFeature(
+      `
+    decisionTable:
+      inputs: [age]
+      outputs: [tier]
+      rules:
+        - when: ["< 18"]
+          then: ["minor"]
+        - when: [">= 18"]
+          then: ["adult"]
+    default:
+      next: approve
+`,
+    );
+    expect(allCodes(source)).not.toContain("LS307");
+  });
+
+  // ── Duplicate reserved next column (LS307) ─────────────────────────────────
+  it("rejects a table whose outputs declare more than one next column", () => {
+    const source = tableFeature(`
+    decisionTable:
+      inputs: [age]
+      outputs: [next, next]
+      rules:
+        - when: ["< 18"]
+          then: ["reject", "approve"]
+`);
+    expect(
+      parseFeature(source).diagnostics.some(
+        (d) => d.code === "LS307" && d.message.includes('reserved "next" output columns'),
+      ),
+    ).toBe(true);
+  });
+
+  // ── Blank / "-" reserved next cell (LS307, dedicated message) ──────────────
+  it("gives a dedicated LS307 for a blank/dash next cell instead of a generic LS101", () => {
+    const source = tableFeature(`
+    decisionTable:
+      inputs: [age]
+      outputs: [next]
+      rules:
+        - when: ["< 18"]
+          then: ["-"]
+        - when: [">= 18"]
+          then: ["approve"]
+`);
+    const diagnostics = validateFeature(source).diagnostics;
+    expect(
+      diagnostics.some((d) => d.code === "LS307" && d.message.includes("is not a valid target")),
+    ).toBe(true);
+    // The dedicated message replaces the generic unknown-target error.
+    expect(diagnostics.some((d) => d.code === "LS101" && d.message.includes('"-"'))).toBe(false);
+  });
 });
 
 describe("decision-table example (examples/pricing)", () => {

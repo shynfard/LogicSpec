@@ -93,19 +93,48 @@ const decisionCaseSchema = z.strictObject({
 export const DECISION_TABLE_TARGET_COLUMN = "next";
 
 /**
+ * Generous-but-safe upper bounds on a decision table. A decision table is
+ * descriptive documentation, not a runtime rule engine, so these caps are far
+ * larger than any hand-authored table yet small enough that a hostile document
+ * cannot exhaust memory (a large grid inflates linearly through normalization,
+ * graph building and the O(n·m) suggestion pass). Exceeding any bound is LS307.
+ */
+export const DECISION_TABLE_LIMITS = {
+  /** Maximum number of rules (rows). */
+  rules: 1000,
+  /** Maximum number of input columns. */
+  inputs: 50,
+  /** Maximum number of output columns. */
+  outputs: 50,
+  /** Maximum characters in any single header or cell (including a `next` target). */
+  cellLength: 500,
+} as const;
+
+/** Parity cap on free-form decision `cases`, mirroring the decision-table rule cap. */
+export const MAX_DECISION_CASES = 1000;
+
+/** A single header or cell string, length-bounded to cap resource use. */
+const boundedCell = z
+  .string()
+  .max(
+    DECISION_TABLE_LIMITS.cellLength,
+    `has a cell longer than ${DECISION_TABLE_LIMITS.cellLength} characters; decision-table cells are capped at ${DECISION_TABLE_LIMITS.cellLength}.`,
+  );
+
+/**
  * One rule (row) of a decision table. Both arrays are positional: a `when` cell
  * per input column and a `then` cell per output column. Every cell is
  * descriptive text — like a decision `when`, nothing here is ever evaluated.
  */
 const decisionRuleSchema = z.strictObject({
   when: z
-    .array(z.string())
+    .array(boundedCell)
     .describe(
       'One predicate cell per input column, in order. "-" or "" means any. Never evaluated.',
     ),
   // biome-ignore lint/suspicious/noThenProperty: canonical DMN decision-table output field; a Zod schema object, not a thenable.
   then: z
-    .array(z.string())
+    .array(boundedCell)
     .describe("One value cell per output column, in order. Never evaluated."),
 });
 
@@ -117,10 +146,18 @@ const decisionRuleSchema = z.strictObject({
  */
 const decisionTableSchema = z.strictObject({
   inputs: z
-    .array(z.string())
+    .array(boundedCell)
+    .max(
+      DECISION_TABLE_LIMITS.inputs,
+      `has more than ${DECISION_TABLE_LIMITS.inputs} input columns; decision tables are capped at ${DECISION_TABLE_LIMITS.inputs}.`,
+    )
     .describe('Input column headers — the things being tested, e.g. ["age", "country"].'),
   outputs: z
-    .array(z.string())
+    .array(boundedCell)
+    .max(
+      DECISION_TABLE_LIMITS.outputs,
+      `has more than ${DECISION_TABLE_LIMITS.outputs} output columns; decision tables are capped at ${DECISION_TABLE_LIMITS.outputs}.`,
+    )
     .describe(
       'Output column headers (at least one). A reserved "next" column names the target step; the rest are descriptive results, e.g. ["tier", "next"].',
     ),
@@ -131,6 +168,10 @@ const decisionTableSchema = z.strictObject({
     ),
   rules: z
     .array(decisionRuleSchema)
+    .max(
+      DECISION_TABLE_LIMITS.rules,
+      `has more than ${DECISION_TABLE_LIMITS.rules} rules; decision tables are capped at ${DECISION_TABLE_LIMITS.rules}.`,
+    )
     .describe("Rule rows. Each row has one when-cell per input and one then-cell per output."),
 });
 
@@ -138,7 +179,10 @@ export const decisionStepSchema = z.strictObject({
   type: z.literal("decision"),
   ...stepBase,
   expression: z.string().optional().describe("Descriptive expression. Never evaluated."),
-  cases: z.array(decisionCaseSchema).optional(),
+  cases: z
+    .array(decisionCaseSchema)
+    .max(MAX_DECISION_CASES, `a decision may not declare more than ${MAX_DECISION_CASES} cases.`)
+    .optional(),
   decisionTable: decisionTableSchema
     .optional()
     .describe("A DMN-style decision table. Mutually exclusive with cases."),

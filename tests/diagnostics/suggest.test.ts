@@ -19,4 +19,17 @@ describe("suggest", () => {
     expect(suggest("ab", ["xy"])).toBeUndefined();
     expect(suggest("ab", ["ac"])).toBe("ac");
   });
+
+  it("returns no suggestion (quickly) for an over-long name — DoS guard", () => {
+    const long = "x".repeat(5000);
+    const candidates = Array.from({ length: 500 }, (_, i) => `step-${i}`);
+    const started = Date.now();
+    expect(suggest(long, candidates)).toBeUndefined();
+    // Without the length guard this is O(n·m) and would hang; capped it is instant.
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
+
+  it("skips over-long candidates rather than comparing against them", () => {
+    expect(suggest("checkout", ["y".repeat(5000)])).toBeUndefined();
+  });
 });

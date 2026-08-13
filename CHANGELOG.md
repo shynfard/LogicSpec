@@ -42,6 +42,33 @@ Also fixed: a **forbidden** event field that was present but blank (e.g. a
 check used blank-aware presence. Forbidden-field checks now test raw presence;
 required-field checks stay blank-aware.
 
+Hardening of the decision-table feature after review (all under **LS307**, no
+version bump — the DSL is unchanged and every valid table stays valid):
+
+- **Bounded tables (resource-exhaustion guard).** A decision table is now capped
+  at **1000 rules**, **50 input columns**, **50 output columns**, and **500
+  characters per header or cell**. Free-form `cases` gets a matching **1000**
+  cap. The bounds live in the schema, so an over-limit document is rejected
+  before normalization/graph work can amplify it. Over-limit tables report
+  **LS307**; over-limit `cases` report LS002.
+- **Suggestion cost cap.** `suggest()` (the "did you mean" helper) now skips
+  Levenshtein for any name or candidate longer than 64 characters, so an
+  attacker-controlled long target (e.g. a 300-character decision-table `next`
+  cell) can no longer make suggestion generation quadratic and hang the
+  validator. This protects both decision-table targets and `cases`.
+- **Classification tables must continue.** A table with no reserved `next`
+  column **and** no `default` produced zero outgoing transitions — a silent dead
+  end. It is now **LS307**. A table with a `next` column, or one with a
+  `default`, is unaffected.
+- **At most one `next` column.** A table whose `outputs` name `next` more than
+  once is now **LS307** (previously only the first column was honored).
+- **Blank/`-` targets get a dedicated message.** A `-` or blank cell in the
+  reserved `next` column now reports a dedicated **LS307** ("must name a real
+  step") instead of a generic LS101 unknown-target error.
+- **Mermaid `%%` escape.** `escapeMermaid` now neutralizes `%` (to `#37;`), so a
+  `%%` in any label, header, cell or target can no longer open a Mermaid comment
+  and break that diagram line. Applies to all labels, not just tables.
+
 ## 0.6.0
 
 Three **additive, backward-compatible** vocabulary extensions. Every field is

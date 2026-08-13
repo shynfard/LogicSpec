@@ -93,7 +93,7 @@ Codes are stable and documented. They are never renumbered or reused.
 | LS304 | `EMPTY_PARALLEL` | error | A parallel step has no branches |
 | LS305 | `INVALID_EVENT_KIND` | error | An event's fields contradict its `eventKind` (e.g. a timer without exactly one of `after`/`at`/`every`, a message without an `event` name, a conditional without `when`, a blank required field, or a `timer`/`conditional` published instead of waited) |
 | LS306 | `BLANK_GUARD` | error | A descriptive `when` guard on an operation/subflow outcome or a page action is present but blank |
-| LS307 | `INVALID_DECISION_TABLE` | error | A decision table's shape is inconsistent: combined with `cases`, no output columns, no rules, or a rule whose `when`/`then` width does not match the declared inputs/outputs |
+| LS307 | `INVALID_DECISION_TABLE` | error | A decision table's shape is invalid: combined with `cases`; no output columns; no rules; a rule whose `when`/`then` width does not match the declared inputs/outputs; more than one reserved `next` column; no `next` column and no `default` (a silent dead end); a `-`/blank reserved `next` cell; or a table over its bounds (1000 rules, 50 inputs/outputs, 500 characters per header/cell) |
 
 ### Advisory
 
