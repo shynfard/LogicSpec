@@ -188,6 +188,7 @@
                     "event": {
                       "description": "Event name for a message/signal boundary, resolved against the event catalog.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
                     },
                     "name": {
@@ -207,6 +208,7 @@
                     },
                     "next": {
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
                       "description": "Target step id the boundary diverts to."
                     }
@@ -399,6 +401,7 @@
                     "event": {
                       "description": "Event name for a message/signal boundary, resolved against the event catalog.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
                     },
                     "name": {
@@ -418,6 +421,7 @@
                     },
                     "next": {
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
                       "description": "Target step id the boundary diverts to."
                     }
@@ -633,6 +637,7 @@
                     "event": {
                       "description": "Event name for a message/signal boundary, resolved against the event catalog.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
                     },
                     "name": {
@@ -652,6 +657,7 @@
                     },
                     "next": {
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
                       "description": "Target step id the boundary diverts to."
                     }
@@ -801,6 +807,7 @@
                     "event": {
                       "description": "Event name for a message/signal boundary, resolved against the event catalog.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
                     },
                     "name": {
@@ -820,6 +827,7 @@
                     },
                     "next": {
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
                       "description": "Target step id the boundary diverts to."
                     }
@@ -1016,6 +1024,7 @@
                     "event": {
                       "description": "Event name for a message/signal boundary, resolved against the event catalog.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
                     },
                     "name": {
@@ -1035,6 +1044,7 @@
                     },
                     "next": {
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
                       "description": "Target step id the boundary diverts to."
                     }
@@ -1142,6 +1152,7 @@
                     "event": {
                       "description": "Event name for a message/signal boundary, resolved against the event catalog.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
                     },
                     "name": {
@@ -1161,6 +1172,7 @@
                     },
                     "next": {
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
                       "description": "Target step id the boundary diverts to."
                     }
@@ -1309,6 +1321,7 @@
                     "event": {
                       "description": "Event name for a message/signal boundary, resolved against the event catalog.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
                     },
                     "name": {
@@ -1328,6 +1341,7 @@
                     },
                     "next": {
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
                       "description": "Target step id the boundary diverts to."
                     }
@@ -1459,6 +1473,7 @@
                     "event": {
                       "description": "Event name for a message/signal boundary, resolved against the event catalog.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
                     },
                     "name": {
@@ -1478,6 +1493,7 @@
                     },
                     "next": {
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
                       "description": "Target step id the boundary diverts to."
                     }
@@ -1601,6 +1617,7 @@
                     "event": {
                       "description": "Event name for a message/signal boundary, resolved against the event catalog.",
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
                     },
                     "name": {
@@ -1620,6 +1637,7 @@
                     },
                     "next": {
                       "type": "string",
+                      "maxLength": 500,
                       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
                       "description": "Target step id the boundary diverts to."
                     }

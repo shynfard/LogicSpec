@@ -362,6 +362,35 @@ describe("boundary events — resource bounds (LS308 DoS guard)", () => {
       true,
     );
   });
+
+  it("rejects a boundary with a `next` field longer than the cap with LS308", () => {
+    const source = pageWithBoundary(`      - eventKind: timer
+        after: 15m
+        next: "${"x".repeat(600)}"`);
+    const diagnostics = parseFeature(source).diagnostics;
+    expect(diagnostics.some((d) => d.code === "LS308" && d.message.includes("characters"))).toBe(
+      true,
+    );
+  });
+
+  it("rejects a boundary with an `event` field longer than the cap with LS308", () => {
+    const source = pageWithBoundary(`      - eventKind: message
+        event: "${"x".repeat(600)}"
+        next: diverted`);
+    const diagnostics = parseFeature(source).diagnostics;
+    expect(diagnostics.some((d) => d.code === "LS308" && d.message.includes("characters"))).toBe(
+      true,
+    );
+  });
+
+  it("accepts a boundary with normal-length `event`/`next` fields (clean)", () => {
+    const source = pageWithBoundary(`      - eventKind: message
+        event: OrderPaid
+        next: diverted`);
+    const result = validateFeature(source, { events: EVENTS });
+    expect(result.diagnostics).toEqual([]);
+    expect(result.valid).toBe(true);
+  });
 });
 
 describe("boundary-events example (examples/fulfillment)", () => {

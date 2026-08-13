@@ -50,8 +50,8 @@ export const MAX_BOUNDARY_HANDLERS = 1000;
 
 /**
  * Max characters in any single descriptive boundary string field (`after`, `at`,
- * `every`, `name`, `when`, `label`). Mirrors the decision-table cell-length cap;
- * exceeding it is LS308.
+ * `every`, `name`, `when`, `label`, `event`, `next`). Mirrors the decision-table
+ * cell-length cap; exceeding it is LS308.
  */
 export const MAX_BOUNDARY_FIELD_LENGTH = 500;
 
@@ -85,6 +85,7 @@ export const boundaryHandlerSchema = z.strictObject({
     .describe("Timer recurring cadence (e.g. 1d). Descriptive, never scheduled."),
   // Message / signal boundary (eventKind: message | signal).
   event: identifierSchema
+    .max(MAX_BOUNDARY_FIELD_LENGTH, boundaryFieldTooLong)
     .optional()
     .describe("Event name for a message/signal boundary, resolved against the event catalog."),
   // Error boundary (eventKind: error).
@@ -94,7 +95,9 @@ export const boundaryHandlerSchema = z.strictObject({
     .optional()
     .describe("Conditional predicate. Descriptive, never evaluated."),
   label: boundedBoundaryField.optional().describe("Optional display label for the boundary edge."),
-  next: identifierSchema.describe("Target step id the boundary diverts to."),
+  next: identifierSchema
+    .max(MAX_BOUNDARY_FIELD_LENGTH, boundaryFieldTooLong)
+    .describe("Target step id the boundary diverts to."),
 });
 
 // ── Shared step properties ───────────────────────────────────────────────────
