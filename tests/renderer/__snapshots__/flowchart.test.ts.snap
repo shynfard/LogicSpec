@@ -1,5 +1,22 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`mermaid flowchart renderer > marks normal, error and terminate finals with distinct markers (finalKind) 1`] = `
+"flowchart TD
+  START(("Start"))
+  d{"d<br/>DECISION"}
+  done((("done<br/>FINAL · success")))
+  failed((("failed<br/>FINAL · failure · ⊗ ERROR")))
+  halted((("halted<br/>FINAL · failure · ⦻ TERMINATE")))
+
+  START --> d
+  d -- "ok" --> done
+  d -- "bad" --> failed
+  d -- "stop" --> halted
+
+  classDef error stroke-width:2px,stroke-dasharray:4 3;
+"
+`;
+
 exports[`mermaid flowchart renderer > renders the booking example deterministically (golden) 1`] = `
 "flowchart TD
   START(("Start"))

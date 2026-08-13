@@ -1,6 +1,6 @@
 import type { GraphNode } from "../graph/edges.js";
 import type { EdgeKind } from "../graph/normalize.js";
-import type { StepType } from "../schema/feature.js";
+import { type FinalOutcome, finalKind, type StepType } from "../schema/feature.js";
 
 /**
  * Escapes user-provided text for use inside a quoted Mermaid label.
@@ -64,7 +64,19 @@ export class NodeIdAllocator {
 function typeMarker(node: GraphNode): string {
   if (node.type === "final") {
     const base = `FINAL · ${node.outcome ?? "success"}`;
-    return node.terminate === true ? `${base} · ⦻ TERMINATE` : base;
+    // Single canonical derivation of the normal/error/terminate distinction:
+    // a terminated final wins the TERMINATE marker, a `failure` outcome reads
+    // as an error terminal, everything else is a normal terminal.
+    switch (
+      finalKind({ outcome: (node.outcome ?? "success") as FinalOutcome, terminate: node.terminate })
+    ) {
+      case "terminate":
+        return `${base} · ⦻ TERMINATE`;
+      case "error":
+        return `${base} · ⊗ ERROR`;
+      default:
+        return base;
+    }
   }
   if (node.type === "event" && node.eventKind !== undefined) {
     return `EVENT · ${node.eventKind.toUpperCase()}`;

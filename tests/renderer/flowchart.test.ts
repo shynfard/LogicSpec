@@ -92,6 +92,34 @@ steps:
     expect(output).toContain("end_of_flow");
   });
 
+  it("marks normal, error and terminate finals with distinct markers (finalKind)", () => {
+    const { feature, graph } = modelOf(`
+version: "1"
+feature: { id: terminals, name: Terminals }
+start: d
+steps:
+  d:
+    type: decision
+    cases:
+      - { when: ok, next: done }
+      - { when: bad, next: failed }
+      - { when: stop, next: halted }
+  done: { type: final, outcome: success }
+  failed: { type: final, outcome: failure }
+  halted: { type: final, outcome: failure, terminate: true }
+`);
+    const output = renderMermaid(feature, graph);
+    // Error terminal: a failure outcome with no terminate.
+    expect(output).toContain("FINAL · failure · ⊗ ERROR");
+    // Terminate wins over the error branch.
+    expect(output).toContain("FINAL · failure · ⦻ TERMINATE");
+    // Normal terminal carries no error/terminate marker.
+    expect(output).toContain("FINAL · success");
+    expect(output).not.toContain("FINAL · success · ⊗");
+    expect(output).not.toContain("FINAL · success · ⦻");
+    expect(output).toMatchSnapshot();
+  });
+
   it("uses distinct shapes per step type", () => {
     const { feature, graph } = modelOf(`
 version: "1"

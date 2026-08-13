@@ -76,7 +76,15 @@ export type { LogicSpecConfig, RenderDirection, RenderView } from "./schema/conf
 export { CONFIG_FILE_NAME } from "./schema/config.js";
 export type { EventDefinition, EventsFile } from "./schema/events.js";
 // Schema types
-export type { Actor, ContextVar, FeatureFile, Step, StepType } from "./schema/feature.js";
+export {
+  type Actor,
+  type ContextVar,
+  type FeatureFile,
+  type FinalKind,
+  finalKind,
+  type Step,
+  type StepType,
+} from "./schema/feature.js";
 export { generateJsonSchemas } from "./schema/json-schema.js";
 export type { Service, ServiceOperation, ServicesFile } from "./schema/services.js";
 export { validateCatalogs } from "./validator/catalogs.js";
