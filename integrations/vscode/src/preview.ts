@@ -268,7 +268,9 @@ export class FeaturePreview {
         }
       }
     }
-    if (step.def.type === "event") {
+    // Timer/error/conditional events name no catalog event, so `event` is
+    // optional now — only offer the catalog link when the event is named.
+    if (step.def.type === "event" && step.def.event !== undefined) {
       links.push({ kind: "event", label: `events.yaml → ${step.def.event}`, event: step.def.event });
     }
     if (step.def.type === "subflow") {
