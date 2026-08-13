@@ -120,11 +120,15 @@ export const eventStepSchema = z.strictObject({
   // Timer events (eventKind: timer) — exactly one of the following.
   after: durationSchema
     .optional()
-    .describe("Timer relative delay, using the wait duration format (e.g. 15m)."),
+    .describe(
+      "Timer relative delay, using the wait duration format (e.g. 15m). Descriptive, never scheduled.",
+    ),
   at: z.string().optional().describe("Timer absolute date/time. Descriptive, never evaluated."),
   every: durationSchema
     .optional()
-    .describe("Timer recurring interval, using the wait duration format (e.g. 1d)."),
+    .describe(
+      "Timer recurring cadence, using the wait duration format (e.g. 1d). Descriptive, never scheduled.",
+    ),
   // Error events (eventKind: error).
   name: z.string().optional().describe("Error event name/code. Descriptive, never evaluated."),
   // Conditional events (eventKind: conditional).

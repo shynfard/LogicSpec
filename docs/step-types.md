@@ -165,7 +165,7 @@ An optional `eventKind` classifies the event, BPMN-style. When it is absent the 
 
 | `eventKind` | Fields | Notes |
 |-------------|--------|-------|
-| `timer` | exactly one of `after` / `at` / `every` | `after` and `every` reuse the `wait` duration format (`15m`, `1d`); `at` is a descriptive date/time |
+| `timer` | exactly one of `after` / `at` / `every` | `after` and `every` reuse the `wait` duration format (`15m`, `1d`); `at` is a descriptive date/time. All three are **descriptive, never scheduled** — `every` is a documented cadence, not a live schedule |
 | `message` | `event` | a named message, resolved against the event catalog |
 | `signal` | `event` | a broadcast signal, resolved against the event catalog |
 | `error` | optional `name` | a descriptive error name/code |
@@ -184,7 +184,9 @@ renewal-window:
       next: charge-card
 ```
 
-Rules (LS305): an unknown `eventKind` is rejected (LS002); a `timer` needs exactly one of `after`/`at`/`every`; `message`/`signal`/generic events must name an `event`; a `conditional` must set `when`; and fields belonging to another kind (a timer field on a message event, an `event` name on a timer, …) are rejected. The kind shows in the diagram marker (`EVENT · TIMER`) so a timer reads differently from a message.
+Rules (LS305): an unknown `eventKind` is rejected (LS002); a `timer` needs exactly one of `after`/`at`/`every`; `message`/`signal`/generic events must name an `event`; a `conditional` must set `when`; and fields belonging to another kind (a timer field on a message event, an `event` name on a timer, …) are rejected. Every required per-kind field must be **non-blank** — an empty string (`event: ""`, `when: ""`, `at: ""`) does not satisfy the requirement. A `timer` and a `conditional` are *catch* events: they must use `direction: wait`, never `direction: publish`. The kind shows in the diagram marker (`EVENT · TIMER`) so a timer reads differently from a message.
+
+> **`eventKind: error` (an error *event*) is not the `error` *step type*.** They are different concepts that happen to share a word. An **error event** (`type: event`, `eventKind: error`) models catching or emitting an error signal within the event vocabulary — it is still an event step and follows the publish/wait rules. The **`error` step** (below) is a first-class failure state with an optional recovery `actions` map; without actions it is a terminal failure. Reach for the `error` step when you are modelling a failure the flow lands in and may recover from; reach for `eventKind: error` only when you are classifying an actual event as error-shaped. Don't conflate them.
 
 ## `wait`
 
@@ -287,4 +289,4 @@ lapsed:
   terminate: true
 ```
 
-A final's `kind` is derived, never stored: `terminate: true` ⇒ `terminate`; otherwise `outcome: failure` ⇒ `error`; everything else ⇒ `normal`. A terminated final gets a distinct diagram marker (`⦻ TERMINATE`).
+A final's `kind` is derived, never stored: `terminate: true` ⇒ `terminate`; otherwise `outcome: failure` ⇒ `error`; everything else ⇒ `normal`. The three-way distinction renders as distinct diagram markers: a terminated final shows `⦻ TERMINATE`, an error terminal (`outcome: failure`) shows `⊗ ERROR`, and a normal terminal shows just its outcome. The derivation is exposed as `finalKind()` in the public API.

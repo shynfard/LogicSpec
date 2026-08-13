@@ -28,6 +28,24 @@ optional, so all existing specs stay valid.
 - New `examples/reminders/` demonstrates all three constructs; `docs/step-types.md`
   and `docs/validation.md` document the new fields and LS305.
 
+Pre-release hardening of the same `0.6.0` vocabulary (no DSL change):
+
+- **Object-input validation** now runs the file-local structural checks
+  (LS301–LS306) too — previously `validateFeature()` on an already-parsed
+  object skipped them, so LS305 could be bypassed programmatically.
+- **LS305 hardened**: required per-kind event fields must be **non-blank** (an
+  empty `event`/`when`/`at` no longer satisfies the requirement), and a
+  `timer`/`conditional` event must use `direction: wait` (they are catch
+  events and cannot be published).
+- **LS306** (`BLANK_GUARD`): a descriptive `when` guard on an operation/subflow
+  outcome or a page action that is present but blank is now rejected.
+- **Error terminals render distinctly**: a `final` with `outcome: failure`
+  (and no `terminate`) now shows `⊗ ERROR`, completing the
+  normal / error / terminate three-way. The derivation is the single canonical
+  `finalKind()`, now exported from the public API.
+- `after` / `every` timer fields document that they are descriptive, never
+  scheduled.
+
 ## 0.5.11
 
 - Showcase screenshot (a real booking flow on the interactive canvas) in

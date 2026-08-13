@@ -501,7 +501,7 @@
                 "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
               },
               "after": {
-                "description": "Timer relative delay, using the wait duration format (e.g. 15m).",
+                "description": "Timer relative delay, using the wait duration format (e.g. 15m). Descriptive, never scheduled.",
                 "type": "string",
                 "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
               },
@@ -510,7 +510,7 @@
                 "type": "string"
               },
               "every": {
-                "description": "Timer recurring interval, using the wait duration format (e.g. 1d).",
+                "description": "Timer recurring cadence, using the wait duration format (e.g. 1d). Descriptive, never scheduled.",
                 "type": "string",
                 "pattern": "^\\d+\\s*(ms|s|m|h|d|w)(\\s*\\d+\\s*(ms|s|m|h|d|w))*$"
               },
