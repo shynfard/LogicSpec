@@ -3,6 +3,27 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.10.1
+
+A **security patch** for the `$ref` expander. No DSL or API changes; specs are
+unaffected.
+
+- **Fix (parser): bound `$ref` expansion output bytes (memory-amplification
+  DoS).** `expandFeatureRefs` capped the *depth* and *count* of `$ref`
+  resolutions but not the *bytes* cloned. A crafted catalog with one moderately
+  large concrete definition (e.g. a 500 KB step template) referenced by a few
+  thousand `$ref` nodes in a single feature spent only a fraction of the
+  100k-resolution budget yet retained `refs × defSize` bytes — amplifying a
+  ~1.5 MB workspace into >1 GB and OOM-aborting the Node process inside
+  `structuredClone` (an uncatchable process abort, on every consumer's `validate`
+  path). Expansion now enforces a third cap, `MAX_TOTAL_EXPANDED_BYTES` (5 MB of
+  cumulative expanded definition content): each concrete definition is measured
+  once and, *before* cloning, an expansion that would exceed the budget stops and
+  reports **LS112** ("expansion output too large") instead of allocating past it.
+  The process can never over-allocate; the diagnostic is always graceful, never a
+  throw. Non-`$ref` and small/legitimate `$ref` specs are byte-identical and
+  unaffected.
+
 ## 0.10.0
 
 An **additive, backward-compatible** extension: **shared definitions** (`$ref`)
