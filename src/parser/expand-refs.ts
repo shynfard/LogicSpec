@@ -37,13 +37,29 @@ export const MAX_REF_DEPTH = 100;
  */
 export const MAX_TOTAL_RESOLUTIONS = 100_000;
 
+/**
+ * Cumulative cap on the BYTES of expanded definition content a single expansion
+ * may clone. MAX_REF_DEPTH and MAX_TOTAL_RESOLUTIONS bound the DEPTH and COUNT of
+ * resolutions, but neither bounds the SIZE: one moderately-large concrete
+ * definition (e.g. a 500 KB step template) referenced by a few thousand `$ref`
+ * nodes spends only a few thousand of the 100k resolution budget yet would
+ * retain `refs × defSize` bytes — a memory-amplification DoS that can OOM-abort
+ * the Node process inside `structuredClone` (an uncatchable process abort, not a
+ * throw). This third cap bounds the total expanded bytes so the process can
+ * never over-allocate: exceeding it is reported as LS112 ("expansion output too
+ * large") BEFORE any clone, never a crash. Generous for legitimate reuse, far
+ * below an OOM.
+ */
+export const MAX_TOTAL_EXPANDED_BYTES = 5_000_000;
+
 /** Why a definition could not be resolved. */
 type DefError =
   | { kind: "unknown"; name: string }
   | { kind: "malformed"; ref: string }
   | { kind: "mismatch"; ref: string; section: DefinitionSection }
   | { kind: "cycle"; trail: string; loop: readonly string[] }
-  | { kind: "too-deep"; trail: string };
+  | { kind: "too-deep"; trail: string }
+  | { kind: "too-large"; trail: string };
 
 type DefResolution = { value: Record<string, unknown> } | { error: DefError };
 
@@ -53,6 +69,27 @@ interface ResolveState {
   defSteps: Record<string, unknown>;
   /** Remaining resolution budget (decremented per resolveDefinition call). */
   remaining: number;
+  /**
+   * Cumulative bytes of concrete definition content cloned so far this
+   * expansion. Guarded against MAX_TOTAL_EXPANDED_BYTES BEFORE each clone.
+   */
+  expandedBytes: number;
+  /**
+   * Per-definition-id (`section/name`) size proxy, memoized so a definition
+   * referenced N times is measured once, not N times.
+   */
+  sizeCache: Map<string, number>;
+}
+
+/**
+ * Cheap byte-size proxy for a concrete definition: the length of its JSON
+ * serialization. Used to bound cumulative clone output; a plain parsed-YAML
+ * object always serializes, but fail safe (treat an unmeasurable definition as
+ * budget-exhausting) so the byte bound can never be silently bypassed.
+ */
+function estimateDefinitionSize(def: Record<string, unknown>): number {
+  const json = JSON.stringify(def);
+  return typeof json === "string" ? json.length : MAX_TOTAL_EXPANDED_BYTES;
 }
 
 function asObjectMap(node: unknown): Record<string, unknown> {
@@ -137,7 +174,22 @@ function resolveDefinition(
     if ("error" in inner) return inner;
     return { value: mergeOverrides(inner.value, def) };
   }
-  return { value: structuredClone(def as Record<string, unknown>) };
+  // Byte budget: bound the CUMULATIVE size of cloned definition content, not just
+  // the COUNT of resolutions. Measure this concrete definition ONCE (cached by
+  // id) and STOP before cloning if this clone would push the running total past
+  // the cap — so a large definition fanned out across many `$ref`s can never
+  // over-allocate and OOM-abort the process inside structuredClone.
+  const concrete = def as Record<string, unknown>;
+  let defSize = state.sizeCache.get(key);
+  if (defSize === undefined) {
+    defSize = estimateDefinitionSize(concrete);
+    state.sizeCache.set(key, defSize);
+  }
+  if (state.expandedBytes + defSize > MAX_TOTAL_EXPANDED_BYTES) {
+    return { error: { kind: "too-large", trail: shortTrail([...trail, key]) } };
+  }
+  state.expandedBytes += defSize;
+  return { value: structuredClone(concrete) };
 }
 
 /**
@@ -174,6 +226,8 @@ export function expandFeatureRefs(
     defActors: asObjectMap(definitions?.actors),
     defSteps: asObjectMap(definitions?.steps),
     remaining: MAX_TOTAL_RESOLUTIONS,
+    expandedBytes: 0,
+    sizeCache: new Map(),
   };
 
   const push = (dcode: DiagnosticCode, message: string, path: DocPath) => {
@@ -231,6 +285,13 @@ export function expandFeatureRefs(
         push(
           CODES.REF_CYCLE,
           `${capitalize(noun)} "${id}" resolves through a $ref chain deeper than ${MAX_REF_DEPTH} levels (possible runaway reference): ${error.trail}.`,
+          path,
+        );
+        break;
+      case "too-large":
+        push(
+          CODES.REF_CYCLE,
+          `${capitalize(noun)} "${id}" expands shared definitions past the ${MAX_TOTAL_EXPANDED_BYTES}-byte reuse budget (expansion output too large — possible memory amplification from many $refs to one large definition): ${error.trail}.`,
           path,
         );
         break;
@@ -310,6 +371,8 @@ export function validateDefinitionsGraph(
     defActors: asObjectMap(definitions.actors),
     defSteps: asObjectMap(definitions.steps),
     remaining: MAX_TOTAL_RESOLUTIONS,
+    expandedBytes: 0,
+    sizeCache: new Map(),
   };
   const reportedCycles = new Set<string>();
 
@@ -324,6 +387,11 @@ export function validateDefinitionsGraph(
       // Only reference-bearing definitions have a chain to resolve here;
       // concrete definitions are validated by their own schema pass.
       if (!hasRefKey(map[name])) continue;
+      // Each definition is resolved independently at load and its clone is
+      // discarded (not retained in an output map), so the byte budget guards a
+      // single chain here, not the cumulative catalog — reset it per definition
+      // to avoid a false LS112 across many independent large definitions.
+      state.expandedBytes = 0;
       const resolution = resolveDefinition(state, section, name, []);
       if (!("error" in resolution)) continue;
       const error = resolution.error;
@@ -388,6 +456,18 @@ export function validateDefinitionsGraph(
           diagnostics.push(
             makeDiagnostic(CODES.REF_CYCLE, {
               message: `Shared ${noun} definition "${name}" resolves through a $ref chain deeper than ${MAX_REF_DEPTH} levels (possible runaway reference): ${error.trail}.`,
+              file,
+              path,
+              location: locate(path),
+            }),
+          );
+          return diagnostics;
+        case "too-large":
+          // A single definition whose expansion alone exceeds the byte budget is
+          // pathological; one diagnostic suffices.
+          diagnostics.push(
+            makeDiagnostic(CODES.REF_CYCLE, {
+              message: `Shared ${noun} definition "${name}" expands past the ${MAX_TOTAL_EXPANDED_BYTES}-byte reuse budget (expansion output too large): ${error.trail}.`,
               file,
               path,
               location: locate(path),

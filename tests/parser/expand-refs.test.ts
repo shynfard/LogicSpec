@@ -8,6 +8,7 @@ import {
   renderMermaid,
   validateFeature,
 } from "../../src/index.js";
+import { expandFeatureRefs, MAX_TOTAL_EXPANDED_BYTES } from "../../src/parser/expand-refs.js";
 import { MINIMAL_FEATURE } from "../helpers.js";
 
 const DEFINITIONS = `
@@ -317,6 +318,105 @@ steps:
     // The renderer sees the expanded step: its overridden label appears, no $ref.
     expect(mermaid).toContain("Do It");
     expect(mermaid).not.toContain("$ref");
+  });
+});
+
+describe("byte budget for $ref expansion (memory-amplification DoS, C1)", () => {
+  /** A no-op locator; these unit tests exercise byte-bounding, not source spans. */
+  const noLocate = () => undefined;
+
+  /** A definitions catalog with ONE large concrete step template `big`. */
+  function bigDefinitions(labelBytes: number): DefinitionsFile {
+    return {
+      version: "1",
+      steps: { big: { type: "operation", label: "x".repeat(labelBytes) } },
+    } as unknown as DefinitionsFile;
+  }
+
+  /** A raw feature object whose `steps` are `count` `$ref`s to `definitions#/steps/big`. */
+  function fanOutFeature(count: number): Record<string, unknown> {
+    const steps: Record<string, unknown> = {};
+    for (let i = 0; i < count; i++) {
+      steps[`s${i}`] = { $ref: "definitions#/steps/big" };
+    }
+    return {
+      version: "1",
+      feature: { id: "demo", name: "Demo" },
+      start: "s0",
+      actors: {},
+      steps,
+    };
+  }
+
+  /** YAML text for a feature whose steps are `count` `$ref`s to `definitions#/steps/big`. */
+  function fanOutFeatureYaml(count: number): string {
+    const lines = ['version: "1"', "feature:", "  id: demo", "  name: Demo", "start: s0", "steps:"];
+    for (let i = 0; i < count; i++) {
+      lines.push(`  s${i}:`, '    $ref: "definitions#/steps/big"');
+    }
+    return `${lines.join("\n")}\n`;
+  }
+
+  it("bounds cumulative expanded bytes and emits LS112 instead of over-allocating", () => {
+    // One ~700 KB template referenced 12× would retain ~8.4 MB > the 5 MB cap;
+    // a genuine attack (thousands of refs to a 500 KB template) scales this to
+    // >1 GB and OOM-aborts the process inside structuredClone. The budget must
+    // stop cloning at the cap and report LS112 — never materialize the fan-out.
+    const bigLen = 700_000;
+    const refCount = 12;
+    const defs = bigDefinitions(bigLen);
+    const raw = fanOutFeature(refCount);
+
+    let result: ReturnType<typeof expandFeatureRefs> | undefined;
+    expect(() => {
+      result = expandFeatureRefs(raw, defs, noLocate);
+    }).not.toThrow();
+
+    // The over-budget refs are reported as LS112 (reused REF_CYCLE code).
+    expect(result?.diagnostics.some((d) => d.code === "LS112")).toBe(true);
+
+    // Critically: the RETURNED expansion is bounded near the cap — it never
+    // materializes refCount × bigLen (~8.4 MB, and gigabytes for a real attack).
+    const materialized = JSON.stringify(result?.value).length;
+    expect(materialized).toBeLessThan(MAX_TOTAL_EXPANDED_BYTES + bigLen);
+    // ...and is far below the unbounded fan-out size, proving it stopped early.
+    expect(materialized).toBeLessThan(refCount * bigLen);
+  });
+
+  it("surfaces LS112 through the full parse path (never throws / OOMs)", () => {
+    const defs = bigDefinitions(700_000);
+    const source = fanOutFeatureYaml(12);
+
+    let parsed: ReturnType<typeof parseFeature> | undefined;
+    expect(() => {
+      parsed = parseFeature(source, { definitions: defs });
+    }).not.toThrow();
+    expect(parsed?.ok).toBe(false);
+    expect(parsed?.diagnostics.some((d) => d.code === "LS112")).toBe(true);
+  });
+
+  it("still expands a normal multi-ref feature that stays well under the cap", () => {
+    // 20 references to a small template total a few KB — legitimate reuse must
+    // be unaffected by the byte budget.
+    const lines = ['version: "1"', "feature:", "  id: demo", "  name: Demo", "start: op0"];
+    lines.push("actors:", "  notifier:", '    $ref: "definitions#/actors/notifier"');
+    lines.push("steps:");
+    const n = 20;
+    for (let i = 0; i < n; i++) {
+      lines.push(`  op${i}:`, '    $ref: "definitions#/steps/send-notification"');
+      lines.push(`    next: ${i + 1 < n ? `op${i + 1}` : "done"}`);
+    }
+    lines.push("  done:", "    type: final", "    outcome: success");
+    const source = `${lines.join("\n")}\n`;
+
+    const result = parseFeature(source, { definitions: definitions() });
+    expect(result.ok).toBe(true);
+    expect(result.diagnostics).toEqual([]);
+    // Every ref resolved to a concrete operation; no `$ref` survives.
+    for (let i = 0; i < n; i++) {
+      expect(result.data?.steps[`op${i}`]).toMatchObject({ type: "operation", actor: "notifier" });
+      expect(result.data?.steps[`op${i}`]).not.toHaveProperty("$ref");
+    }
   });
 });
 
