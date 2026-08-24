@@ -129,6 +129,17 @@ export function createDashboardServer(
       return;
     }
 
+    // Built client assets, same as the mermaid check above: must be served
+    // from disk regardless of whether workspaceDir has a
+    // logicspec.config.yaml — VS Code's startDashboard() calls
+    // createDashboardServer() with no upfront workspace check, so a
+    // no-config folder must still be able to load the SPA shell's JS/CSS
+    // instead of getting the "no workspace" 500 below.
+    if (url.pathname.startsWith("/assets/")) {
+      serveStatic(res, path.join(CLIENT_DIR, url.pathname));
+      return;
+    }
+
     // The client SPA owns "/" and "/features/:id" now. Intercept them here,
     // ahead of the server-rendered page routes below — those routes stay
     // textually intact (Tasks 2-3 turn them into /api/* JSON endpoints) but
@@ -168,11 +179,6 @@ export function createDashboardServer(
       }
       const related = computeRelated(record, records, featureDependents(workspace));
       sendHtml(res, renderFeatureDetailPage(record, related));
-      return;
-    }
-
-    if (url.pathname.startsWith("/assets/")) {
-      serveStatic(res, path.join(CLIENT_DIR, url.pathname));
       return;
     }
 
