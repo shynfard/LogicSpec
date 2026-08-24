@@ -9,6 +9,7 @@ import { runGraph } from "./graph.js";
 import { runInit } from "./init.js";
 import { runInspect } from "./inspect.js";
 import { type RenderFormat, runRender } from "./render.js";
+import { runServe } from "./serve.js";
 import { EXIT_USAGE } from "./shared.js";
 import { runValidate } from "./validate.js";
 import { runWatch } from "./watch.js";
@@ -99,6 +100,27 @@ export function buildProgram(): Command {
     .action((dir: string | undefined) => {
       process.exitCode = runWatch(dir);
     });
+
+  program
+    .command("serve")
+    .description(
+      `run a local read-only dashboard over the workspace (default: http://127.0.0.1:${27000})`,
+    )
+    .argument("[dir]", "workspace directory (default: current)")
+    .option("--port <port>", "port to listen on (default: 27000)", (value) => {
+      const parsed = Number(value);
+      if (!Number.isInteger(parsed) || parsed < 0 || parsed > 65535) {
+        throw new CommanderError(EXIT_USAGE, "logicspec.invalidOption", `Invalid port "${value}".`);
+      }
+      return parsed;
+    })
+    .option("--host <host>", "host to bind (default: 127.0.0.1)")
+    .option("--open", "open the dashboard in your default browser")
+    .action(
+      (dir: string | undefined, options: { port?: number; host?: string; open?: boolean }) => {
+        process.exitCode = runServe(dir, options);
+      },
+    );
 
   program
     .command("export")
