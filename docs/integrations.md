@@ -46,6 +46,7 @@ fully self-contained (the core is bundled — no CLI required).
 * **LogicSpec: Preview Workspace Graph** — a live feature/subflow/event dependency panel; clicking a feature opens its file.
 * **LogicSpec: Validate Workspace** — validates every feature file and summarizes.
 * **LogicSpec: Start Dashboard** — launches the local dashboard server (above) and opens it in your default browser.
+* **Activity Bar "LogicSpec" view** — a Features list (like Explorer/Search) for the workspace: every feature with a validity icon, click to open its file, right-click "Open in Dashboard" to jump straight to that feature's dashboard page (starting the server if needed), and a title-bar button to start the dashboard.
 
 Positions on the interactive canvas are view-only — never persisted.
 
