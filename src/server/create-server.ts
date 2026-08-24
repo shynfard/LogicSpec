@@ -2,12 +2,13 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { countBySeverity } from "../diagnostics/diagnostic.js";
 import { featureDependents, loadWorkspace } from "../workspace/loader.js";
 import { watchTargetsFor, watchWorkspace } from "../workspace/watch.js";
 import { defaultMermaidAssetPath } from "./assets.js";
+import type { FeatureRecord } from "./data.js";
 import { findFeatureRecord, loadFeatureRecords } from "./data.js";
 import { escapeHtml, layout } from "./html.js";
-import { renderDashboardPage } from "./pages/dashboard.js";
 import { renderFeatureDetailPage } from "./pages/feature-detail.js";
 import { computeRelated } from "./related.js";
 
@@ -64,6 +65,24 @@ function serveIndexHtml(res: http.ServerResponse): void {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     res.end(data);
   });
+}
+
+function serializeFeatureSummary(record: FeatureRecord) {
+  const counts = countBySeverity(record.result.diagnostics);
+  return {
+    id: record.id,
+    name: record.name,
+    path: record.target.display,
+    valid: record.result.valid,
+    errorCount: counts.error,
+    warningCount: counts.warning,
+    steps: record.result.stats?.steps ?? 0,
+  };
+}
+
+function sendJson(res: http.ServerResponse, value: unknown, status = 200): void {
+  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
+  res.end(JSON.stringify(value));
 }
 
 /**
@@ -164,8 +183,11 @@ export function createDashboardServer(
 
     const records = loadFeatureRecords(workspace, workspaceDir);
 
-    if (url.pathname === "/") {
-      sendHtml(res, renderDashboardPage(records));
+    if (url.pathname === "/api/features") {
+      sendJson(
+        res,
+        [...records].sort((a, b) => a.id.localeCompare(b.id)).map(serializeFeatureSummary),
+      );
       return;
     }
 
