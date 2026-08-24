@@ -12,10 +12,11 @@ export const processIo: Io = {
   err: (line) => process.stderr.write(`${line}\n`),
 };
 
-const useColor = (): boolean => process.stdout.isTTY === true && process.env.NO_COLOR === undefined;
+const shouldUseColor = (): boolean =>
+  process.stdout.isTTY === true && process.env.NO_COLOR === undefined;
 
 function paint(text: string, ansi: string): string {
-  return useColor() ? `[${ansi}m${text}[0m` : text;
+  return shouldUseColor() ? `[${ansi}m${text}[0m` : text;
 }
 
 export const color = {

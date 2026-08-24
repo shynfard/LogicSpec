@@ -1,5 +1,7 @@
 import fs from "node:fs";
 import http from "node:http";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { featureDependents, loadWorkspace } from "../workspace/loader.js";
 import { watchTargetsFor, watchWorkspace } from "../workspace/watch.js";
 import { defaultMermaidAssetPath } from "./assets.js";
@@ -21,6 +23,47 @@ function sendHtml(res: http.ServerResponse, html: string, status = 200): void {
 
 function notFound(res: http.ServerResponse): void {
   sendHtml(res, layout({ title: "Not found", body: "<p>Not found.</p>" }), 404);
+}
+
+// Resolved two levels up then back down into dist/server/public, not as a
+// sibling of *this* file: `src/server/` and `dist/server/` sit at the same
+// depth below the package root, so this same relative path is correct both
+// when running the compiled dist/server/create-server.js in production AND
+// when Vitest runs src/server/create-server.ts directly in tests — a plain
+// sibling `public/` path would only exist next to the compiled file.
+const here = path.dirname(fileURLToPath(import.meta.url));
+const CLIENT_DIR = path.resolve(here, "../../dist/server/public");
+
+const CONTENT_TYPES: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".json": "application/json; charset=utf-8",
+};
+
+function serveStatic(res: http.ServerResponse, filePath: string): void {
+  fs.readFile(filePath, (error, data) => {
+    if (error) {
+      serveIndexHtml(res);
+      return;
+    }
+    const contentType = CONTENT_TYPES[path.extname(filePath)] ?? "application/octet-stream";
+    res.writeHead(200, { "Content-Type": contentType });
+    res.end(data);
+  });
+}
+
+function serveIndexHtml(res: http.ServerResponse): void {
+  fs.readFile(path.join(CLIENT_DIR, "index.html"), (error, data) => {
+    if (error) {
+      res.writeHead(500, { "Content-Type": "text/plain" });
+      res.end("Dashboard client is not built — run `npm run build` first.");
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.end(data);
+  });
 }
 
 /**
@@ -86,6 +129,15 @@ export function createDashboardServer(
       return;
     }
 
+    // The client SPA owns "/" and "/features/:id" now. Intercept them here,
+    // ahead of the server-rendered page routes below — those routes stay
+    // textually intact (Tasks 2-3 turn them into /api/* JSON endpoints) but
+    // are unreachable for these two paths from this point on.
+    if (url.pathname === "/" || url.pathname.startsWith("/features/")) {
+      serveIndexHtml(res);
+      return;
+    }
+
     const workspace = loadWorkspace(workspaceDir);
     if (workspace.configPath === undefined) {
       sendHtml(
@@ -119,7 +171,12 @@ export function createDashboardServer(
       return;
     }
 
-    notFound(res);
+    if (url.pathname.startsWith("/assets/")) {
+      serveStatic(res, path.join(CLIENT_DIR, url.pathname));
+      return;
+    }
+
+    serveIndexHtml(res);
   });
 
   server.on("close", () => {

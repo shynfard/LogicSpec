@@ -21,15 +21,27 @@ afterEach(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()));
 });
 
-// "/" and "/features/:id" are now served by the client SPA (see
-// tests/server/spa-fallback.test.ts) — the dashboard-listing and
-// feature-detail-page assertions this file used to have here moved there
-// (or, for feature-detail, will be replaced by an API test in a later
-// task). This file keeps only the coverage that's still about
-// createDashboardServer's own routes.
-describe("createDashboardServer", () => {
-  it("serves the mermaid asset", async () => {
-    const res = await fetch(`${base}/assets/mermaid.min.js`);
+describe("SPA fallback", () => {
+  it("serves the built index.html for the root path", async () => {
+    const res = await fetch(`${base}/`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/html");
+    expect(await res.text()).toContain('<div id="root">');
+  });
+
+  it("serves index.html for a client-side route too", async () => {
+    const res = await fetch(`${base}/features/booking`);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain('<div id="root">');
+  });
+
+  it("serves the built JS bundle", async () => {
+    const indexRes = await fetch(`${base}/`);
+    const html = await indexRes.text();
+    const scriptMatch = /src="(\/assets\/[^"]+\.js)"/.exec(html);
+    expect(scriptMatch).not.toBeNull();
+    const scriptPath = scriptMatch?.[1] as string;
+    const res = await fetch(`${base}${scriptPath}`);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("javascript");
   });
