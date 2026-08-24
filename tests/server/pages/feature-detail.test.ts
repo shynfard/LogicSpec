@@ -34,6 +34,14 @@ describe("renderFeatureDetailPage", () => {
     }
   });
 
+  it("embeds a node-click map for diagram navigation", () => {
+    const { workspace, records, booking } = bookingRecord();
+    const related = computeRelated(booking, records, featureDependents(workspace));
+    const html = renderFeatureDetailPage(booking, related);
+    expect(html).toContain('id="node-click-map"');
+    expect(html).toContain("nodeClickMap");
+  });
+
   it("shows an invalid-spec fallback instead of crashing when the feature is broken", () => {
     const { workspace, records, booking } = bookingRecord();
     const broken = {

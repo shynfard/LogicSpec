@@ -2,6 +2,7 @@ import { countBySeverity } from "../../diagnostics/diagnostic.js";
 import { inspectFeature } from "../../inspect.js";
 import { renderMermaid } from "../../renderers/markdown.js";
 import type { RenderView } from "../../schema/config.js";
+import { buildNodeClickMap } from "../click-map.js";
 import type { FeatureRecord } from "../data.js";
 import { badge, escapeHtml, layout } from "../html.js";
 import type { RelatedFeatureRef, RelatedFeatures } from "../related.js";
@@ -24,11 +25,13 @@ function diagramTab(record: FeatureRecord): string {
     return `<div data-diagram-view="${view}"${hidden}><pre class="mermaid">${escapeHtml(mermaid)}</pre></div>`;
   }).join("\n");
   const options = DIAGRAM_VIEWS.map((v) => `<option value="${v}">${v}</option>`).join("");
+  const clickMap = JSON.stringify(buildNodeClickMap(normalized, graph));
   return [
     `<label>View <select id="diagram-view-select">${options}</select></label>`,
     '<div id="diagram-container">',
     blocks,
     "</div>",
+    `<script type="application/json" id="node-click-map">${clickMap}</script>`,
   ].join("\n");
 }
 
@@ -127,6 +130,30 @@ const TAB_SCRIPT = `
     mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
     mermaid.run();
   }
+  var clickMapEl = document.getElementById("node-click-map");
+  var nodeClickMap = clickMapEl ? JSON.parse(clickMapEl.textContent || "{}") : {};
+  var diagramContainer = document.getElementById("diagram-container");
+  if (diagramContainer) {
+    diagramContainer.addEventListener("click", function (event) {
+      var nodeEl = event.target.closest ? event.target.closest("g.node[id]") : null;
+      if (!nodeEl) return;
+      var match = /^flowchart-(.+)-\\d+$/.exec(nodeEl.id);
+      if (!match) return;
+      var target = nodeClickMap[match[1]];
+      if (!target) return;
+      if (target.flow) {
+        location.href = "/features/" + encodeURIComponent(target.flow);
+        return;
+      }
+      activateTab("steps");
+      var row = document.getElementById("step-" + target.stepId);
+      if (row) {
+        row.scrollIntoView({ block: "center" });
+        row.classList.add("highlight");
+        setTimeout(function () { row.classList.remove("highlight"); }, 1500);
+      }
+    });
+  }
 `;
 
 /** `GET /features/:id` — full detail: diagram, steps, source, inspect, diagnostics, related. */
@@ -149,7 +176,8 @@ export function renderFeatureDetailPage(record: FeatureRecord, related: RelatedF
     `<p class="muted">${escapeHtml(record.id)} · ${escapeHtml(record.target.display)}</p>`,
     `<nav class="tabs">${tabButtons}</nav>`,
     ...TABS.map(
-      (tab, i) => `<div class="tab-panel${i === 0 ? " active" : ""}" data-tab="${tab}">${panels[tab]}</div>`,
+      (tab, i) =>
+        `<div class="tab-panel${i === 0 ? " active" : ""}" data-tab="${tab}">${panels[tab]}</div>`,
     ),
   ].join("\n");
   return layout({
