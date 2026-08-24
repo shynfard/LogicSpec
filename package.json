@@ -50,7 +50,7 @@
     "lint": "biome check src tests scripts client",
     "lint:fix": "biome check --write src tests scripts client",
     "format": "biome format --write src tests scripts client",
-    "test": "vitest run",
+    "test": "vitest run && vitest run --config vitest.client.config.ts",
     "test:watch": "vitest",
     "schemas": "npm run build && node scripts/generate-schemas.mjs",
     "prepack": "npm run build"
