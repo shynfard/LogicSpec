@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { findFeatureFiles, loadWorkspace } from "logicspec";
 import * as vscode from "vscode";
+import { disposeDashboard, startDashboard } from "./dashboard.js";
 import { debounce, type Debounced } from "./debounce.js";
 import type { MappedDiagnostic } from "./mapping.js";
 import { graphStartDir, WorkspaceGraphPreview } from "./graph-preview.js";
@@ -106,6 +107,16 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("logicspec.validateWorkspace", () => {
       validateWorkspace(collection);
     }),
+    vscode.commands.registerCommand("logicspec.startDashboard", () => {
+      const startDir = graphStartDir();
+      if (startDir === undefined) {
+        void vscode.window.showWarningMessage(
+          "LogicSpec: open a folder or file inside a LogicSpec workspace first.",
+        );
+        return;
+      }
+      startDashboard(context, startDir);
+    }),
   );
 }
 
@@ -146,5 +157,6 @@ function validateWorkspace(collection: vscode.DiagnosticCollection): void {
 }
 
 export function deactivate(): void {
-  // Disposables are handled via context.subscriptions.
+  disposeDashboard();
+  // Other disposables are handled via context.subscriptions.
 }

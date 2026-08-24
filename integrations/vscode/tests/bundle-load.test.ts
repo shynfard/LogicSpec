@@ -55,6 +55,9 @@ function makeVscodeStub(registered: string[]): Record<string, unknown> {
         showWarningMessage: () => undefined,
         showInformationMessage: () => undefined,
       },
+      env: {
+        openExternal: async () => true,
+      },
       commands: {
         registerCommand: (id: string) => {
           registered.push(id);
@@ -109,6 +112,7 @@ describe.skipIf(!fs.existsSync(bundlePath))("built extension bundle", () => {
       await extension.activate({ subscriptions: [], extensionUri: {} });
       expect(registered).toContain("logicspec.previewFeature");
       expect(registered).toContain("logicspec.validateWorkspace");
+      expect(registered).toContain("logicspec.startDashboard");
     } finally {
       moduleAny._load = originalLoad;
     }
