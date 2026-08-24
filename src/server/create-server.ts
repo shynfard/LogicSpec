@@ -12,6 +12,7 @@ import { defaultMermaidAssetPath } from "./assets.js";
 import { buildNodeClickMap } from "./click-map.js";
 import type { FeatureRecord } from "./data.js";
 import { findFeatureRecord, loadFeatureRecords } from "./data.js";
+import { mcpInfo } from "./mcp-info.js";
 import { computeRelated } from "./related.js";
 
 export interface DashboardServerOptions {
@@ -249,6 +250,11 @@ export function createDashboardServer(
         res,
         [...records].sort((a, b) => a.id.localeCompare(b.id)).map(serializeFeatureSummary),
       );
+      return;
+    }
+
+    if (url.pathname === "/api/mcp") {
+      sendJson(res, mcpInfo(workspaceDir));
       return;
     }
 
