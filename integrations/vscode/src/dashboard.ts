@@ -16,10 +16,11 @@ function listenAndOpen(
   server: ReturnType<typeof createDashboardServer>,
   port: number,
   dir: string,
+  openPath: string,
 ): void {
   server.once("error", (error: NodeJS.ErrnoException) => {
     if (error.code === "EADDRINUSE" && port !== 0) {
-      listenAndOpen(server, 0, dir);
+      listenAndOpen(server, 0, dir, openPath);
       return;
     }
     void vscode.window.showErrorMessage(`LogicSpec: dashboard server failed — ${error.message}`);
@@ -29,7 +30,7 @@ function listenAndOpen(
     const boundPort = typeof address === "object" && address !== null ? address.port : port;
     const url = `http://${HOST}:${boundPort}`;
     current = { server, url, dir };
-    void vscode.env.openExternal(vscode.Uri.parse(url));
+    void vscode.env.openExternal(vscode.Uri.parse(url + openPath));
   });
 }
 
@@ -39,11 +40,19 @@ function listenAndOpen(
  * extension's own build-time-copied `media/mermaid.min.js` instead of
  * letting the server resolve `node_modules/mermaid`: the packaged
  * extension ships without `node_modules` (.vscodeignore).
+ *
+ * `openPath` (default the dashboard root) lets callers jump straight to a
+ * specific page — e.g. the feature tree's "Open in Dashboard" action opens
+ * `/features/<id>` directly instead of the listing.
  */
-export function startDashboard(context: vscode.ExtensionContext, startDir: string): void {
+export function startDashboard(
+  context: vscode.ExtensionContext,
+  startDir: string,
+  openPath = "/",
+): void {
   if (current !== undefined) {
     if (current.dir === startDir) {
-      void vscode.env.openExternal(vscode.Uri.parse(current.url));
+      void vscode.env.openExternal(vscode.Uri.parse(current.url + openPath));
       return;
     }
     current.server.close();
@@ -56,7 +65,7 @@ export function startDashboard(context: vscode.ExtensionContext, startDir: strin
     "mermaid.min.js",
   ).fsPath;
   const server = createDashboardServer(startDir, { mermaidAssetPath });
-  listenAndOpen(server, DEFAULT_PORT, startDir);
+  listenAndOpen(server, DEFAULT_PORT, startDir, openPath);
 }
 
 export function disposeDashboard(): void {

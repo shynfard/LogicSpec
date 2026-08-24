@@ -39,8 +39,31 @@
         "command": "logicspec.startDashboard",
         "title": "LogicSpec: Start Dashboard",
         "icon": "$(globe)"
+      },
+      {
+        "command": "logicspec.openFeatureInDashboard",
+        "title": "LogicSpec: Open in Dashboard",
+        "icon": "$(globe)"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "logicspec",
+          "title": "LogicSpec",
+          "icon": "$(list-tree)"
+        }
+      ]
+    },
+    "views": {
+      "logicspec": [
+        {
+          "id": "logicspecFeatures",
+          "name": "Features",
+          "when": "workspaceFolderCount > 0"
+        }
+      ]
+    },
     "menus": {
       "editor/title": [
         {
@@ -71,6 +94,20 @@
           "command": "logicspec.previewFeature",
           "when": "resourceFilename =~ /\\.feature\\.yaml$/",
           "group": "navigation"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "logicspec.startDashboard",
+          "when": "view == logicspecFeatures",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "logicspec.openFeatureInDashboard",
+          "when": "view == logicspecFeatures && viewItem == logicspecFeature",
+          "group": "inline"
         }
       ]
     },

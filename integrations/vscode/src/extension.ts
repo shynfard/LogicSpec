@@ -1,8 +1,9 @@
 import fs from "node:fs";
-import { findFeatureFiles, loadWorkspace } from "logicspec";
+import { featureStem, findFeatureFiles, loadWorkspace } from "logicspec";
 import * as vscode from "vscode";
 import { disposeDashboard, startDashboard } from "./dashboard.js";
 import { debounce, type Debounced } from "./debounce.js";
+import { FeatureTreeItem, FeatureTreeProvider } from "./features-tree.js";
 import type { MappedDiagnostic } from "./mapping.js";
 import { graphStartDir, WorkspaceGraphPreview } from "./graph-preview.js";
 import { FeaturePreview } from "./preview.js";
@@ -33,6 +34,11 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const debouncers = new Map<string, Debounced<[]>>();
 
+  const featureTree = new FeatureTreeProvider();
+  context.subscriptions.push(
+    vscode.window.createTreeView("logicspecFeatures", { treeDataProvider: featureTree }),
+  );
+
   const refresh = (document: vscode.TextDocument): void => {
     if (document.uri.scheme !== "file") return;
     const kind = fileKind(document.uri.fsPath);
@@ -53,6 +59,7 @@ export function activate(context: vscode.ExtensionContext): void {
         }
       }
     }
+    featureTree.refresh();
   };
 
   const debouncedRefresh = (document: vscode.TextDocument): void => {
@@ -117,6 +124,21 @@ export function activate(context: vscode.ExtensionContext): void {
       }
       startDashboard(context, startDir);
     }),
+    vscode.commands.registerCommand(
+      "logicspec.openFeatureInDashboard",
+      (item?: FeatureTreeItem) => {
+        if (item === undefined) return;
+        const startDir = graphStartDir();
+        if (startDir === undefined) {
+          void vscode.window.showWarningMessage(
+            "LogicSpec: open a folder or file inside a LogicSpec workspace first.",
+          );
+          return;
+        }
+        const id = item.ref.id ?? featureStem(item.ref.path);
+        startDashboard(context, startDir, `/features/${encodeURIComponent(id)}`);
+      },
+    ),
   );
 }
 

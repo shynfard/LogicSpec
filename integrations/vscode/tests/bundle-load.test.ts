@@ -54,6 +54,7 @@ function makeVscodeStub(registered: string[]): Record<string, unknown> {
         onDidChangeActiveTextEditor: () => disposable,
         showWarningMessage: () => undefined,
         showInformationMessage: () => undefined,
+        createTreeView: () => disposable,
       },
       env: {
         openExternal: async () => true,
@@ -84,6 +85,24 @@ function makeVscodeStub(registered: string[]): Record<string, unknown> {
         fire() {}
         dispose() {}
       },
+      TreeItem: class TreeItem {
+        label: unknown;
+        collapsibleState: unknown;
+        constructor(label: unknown, collapsibleState: unknown) {
+          this.label = label;
+          this.collapsibleState = collapsibleState;
+        }
+      },
+      TreeItemCollapsibleState: { None: 0, Collapsed: 1, Expanded: 2 },
+      ThemeIcon: class ThemeIcon {
+        constructor(
+          public id: string,
+          public color?: unknown,
+        ) {}
+      },
+      ThemeColor: class ThemeColor {
+        constructor(public id: string) {}
+      },
     },
     { get: (target, key) => (key in target ? Reflect.get(target, key) : passthrough) },
   ) as Record<string, unknown>;
@@ -113,6 +132,7 @@ describe.skipIf(!fs.existsSync(bundlePath))("built extension bundle", () => {
       expect(registered).toContain("logicspec.previewFeature");
       expect(registered).toContain("logicspec.validateWorkspace");
       expect(registered).toContain("logicspec.startDashboard");
+      expect(registered).toContain("logicspec.openFeatureInDashboard");
     } finally {
       moduleAny._load = originalLoad;
     }
