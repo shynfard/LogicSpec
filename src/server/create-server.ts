@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import http from "node:http";
 import { featureDependents, loadWorkspace } from "../workspace/loader.js";
+import { watchTargetsFor, watchWorkspace } from "../workspace/watch.js";
 import { defaultMermaidAssetPath } from "./assets.js";
 import { findFeatureRecord, loadFeatureRecords } from "./data.js";
 import { escapeHtml, layout } from "./html.js";
@@ -33,8 +34,25 @@ export function createDashboardServer(
   options: DashboardServerOptions = {},
 ): http.Server {
   const mermaidAssetPath = options.mermaidAssetPath ?? defaultMermaidAssetPath();
+  const sseClients = new Set<http.ServerResponse>();
+  const broadcastReload = (): void => {
+    for (const client of sseClients) client.write("data: reload\n\n");
+  };
 
-  return http.createServer((req, res) => {
+  const initialWorkspace = loadWorkspace(workspaceDir);
+  const watcher =
+    initialWorkspace.configPath !== undefined
+      ? watchWorkspace(
+          watchTargetsFor(initialWorkspace, workspaceDir),
+          () => broadcastReload(),
+          () => {
+            // A watcher error is non-fatal for a read-only dashboard: the
+            // worst case is a stale page until the user refreshes by hand.
+          },
+        )
+      : undefined;
+
+  const server = http.createServer((req, res) => {
     if (req.method !== "GET") {
       res.writeHead(405, { "Content-Type": "text/plain" });
       res.end("Method not allowed");
@@ -42,6 +60,18 @@ export function createDashboardServer(
     }
 
     const url = new URL(req.url ?? "/", "http://localhost");
+
+    if (url.pathname === "/events") {
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      });
+      res.write("\n");
+      sseClients.add(res);
+      req.on("close", () => sseClients.delete(res));
+      return;
+    }
 
     if (url.pathname === "/assets/mermaid.min.js") {
       fs.readFile(mermaidAssetPath, (error, data) => {
@@ -91,4 +121,11 @@ export function createDashboardServer(
 
     notFound(res);
   });
+
+  server.on("close", () => {
+    for (const client of sseClients) client.end();
+    watcher?.close();
+  });
+
+  return server;
 }
