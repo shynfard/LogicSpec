@@ -30,6 +30,10 @@ Any other stdio MCP client works the same way — point it at the `logicspec mcp
 
 Tool-level failures (unknown feature, unknown step) come back as `isError` tool results with a plain-text explanation; protocol misuse (unknown tool, invalid arguments) is a JSON-RPC error.
 
+## Dashboard server
+
+`logicspec serve [dir]` runs a local, read-only HTTP dashboard over a workspace at `http://127.0.0.1:27000` by default (`--port`, `--host`, `--open`). Every feature is listed and clickable; each detail page has a diagram (view switcher, clickable subflow nodes — reusing the same node-id-map click pattern as the VS Code preview, not Mermaid's `click` directive), raw source, the `inspect` model, diagnostics, and cross-feature links (subflow calls, dependents, shared events). Live-reloads on every save via Server-Sent Events. No editing — for that, use the visual editor below.
+
 ## VS Code extension (`integrations/vscode/`)
 
 Published on the Marketplace as
@@ -41,6 +45,7 @@ fully self-contained (the core is bundled — no CLI required).
 * **Step inspector**: single-click a node for its complete data and links that open the exact `services.yaml` operation, `events.yaml` event, subflow feature files and transition targets; double-click jumps straight to the step's YAML.
 * **LogicSpec: Preview Workspace Graph** — a live feature/subflow/event dependency panel; clicking a feature opens its file.
 * **LogicSpec: Validate Workspace** — validates every feature file and summarizes.
+* **LogicSpec: Start Dashboard** — launches the local dashboard server (above) and opens it in your default browser.
 
 Positions on the interactive canvas are view-only — never persisted.
 

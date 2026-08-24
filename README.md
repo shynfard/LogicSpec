@@ -81,6 +81,7 @@ logicspec init                                  # scaffold config, catalogs, exa
 logicspec validate features/signup.feature.yaml # validate one file (or a directory)
 logicspec render features/signup.feature.yaml   # generate .logicspec/signup.md with a Mermaid diagram
 logicspec watch                                 # re-validate and re-render on every save
+logicspec serve                                 # browse the workspace at http://localhost:27000
 ```
 
 Prefer the editor? Install the **[LogicSpec VS Code extension](https://marketplace.visualstudio.com/items?itemName=Shynfard.logicspec-vscode)** — diagnostics as you type plus an interactive draggable canvas, no CLI required.
@@ -249,6 +250,10 @@ Human-readable summary of a feature: actors, steps by type, operations called, e
 ### `logicspec watch [dir]`
 
 Watches the workspace. On every save: parse → validate → print diagnostics → regenerate diagrams *only if valid*. Changing a feature also re-renders every feature that invokes it as a subflow; catalog or config changes re-render everything.
+
+### `logicspec serve [dir]`
+
+Runs a local, read-only dashboard over the workspace: every feature listed and clickable, each with a full-detail page — diagram (with a view switcher and clickable subflow nodes), raw YAML source, the same stable model `inspect --json` returns, validation diagnostics, and cross-references (subflow calls, dependents, shared events). Defaults to `http://127.0.0.1:27000`; `--port`, `--host` and `--open` (launch your default browser) override the defaults. Live-reloads on every save.
 
 ### `logicspec export [dir]`
 
