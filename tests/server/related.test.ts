@@ -35,6 +35,8 @@ describe("computeRelated", () => {
     const fabricated = { ...booking, ref: { ...booking.ref, flows: ["nonexistent-flow"] } };
     const related = computeRelated(fabricated, records, dependents);
 
-    expect(related.subflows).toEqual([{ id: "nonexistent-flow", name: "nonexistent-flow", known: false }]);
+    expect(related.subflows).toEqual([
+      { id: "nonexistent-flow", name: "nonexistent-flow", known: false },
+    ]);
   });
 });

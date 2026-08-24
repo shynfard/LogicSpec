@@ -18,6 +18,8 @@ function card(record: FeatureRecord): string {
 export function renderDashboardPage(records: readonly FeatureRecord[]): string {
   const sorted = [...records].sort((a, b) => a.id.localeCompare(b.id));
   const body =
-    sorted.length === 0 ? "<p>No features found in this workspace.</p>" : sorted.map(card).join("\n");
+    sorted.length === 0
+      ? "<p>No features found in this workspace.</p>"
+      : sorted.map(card).join("\n");
   return layout({ title: "LogicSpec Dashboard", body });
 }
