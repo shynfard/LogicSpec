@@ -3,6 +3,31 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.11.0
+
+**New: `logicspec serve` — a local, read-only dashboard.** No DSL or schema
+changes; every existing spec is unaffected.
+
+- **`logicspec serve [dir]`** runs a local HTTP dashboard (`http://127.0.0.1:27000`
+  by default; `--port`, `--host`, `--open`) listing every feature in the
+  workspace as a clickable card. Each feature's detail page has a **Diagram**
+  tab (flow/swimlane/sequence/event-model, with a view switcher — clicking a
+  subflow node jumps to that feature, other nodes scroll-to-highlight in
+  **Steps**), a **Steps** table, the raw **Source** YAML, the same **Inspect**
+  model `inspect --json` returns, **Diagnostics**, and **Related** (subflow
+  calls, dependents, and features connected through a shared event). Nothing
+  is written to disk — every route re-reads and re-validates the workspace on
+  request, and the page **live-reloads** on every save via Server-Sent Events.
+- Diagram click-through reuses the same Mermaid node-id-map click pattern as
+  the VS Code preview (`mermaidNodeIdMap`) instead of Mermaid's `click`
+  directive, which requires `securityLevel: "loose"` — `securityLevel: "strict"`
+  throughout.
+- **VS Code**: new **LogicSpec: Start Dashboard** command launches the same
+  server and opens it in your default browser.
+- New public API: `createDashboardServer` (`src/server/`). New dependency:
+  `mermaid` (its prebuilt browser bundle, read from `node_modules` at request
+  time — no bundler).
+
 ## 0.10.1
 
 A **security patch** for the `$ref` expander. No DSL or API changes; specs are

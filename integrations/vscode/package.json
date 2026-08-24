@@ -2,7 +2,7 @@
   "name": "logicspec-vscode",
   "displayName": "LogicSpec",
   "description": "Diagnostics and live Mermaid preview for LogicSpec feature specifications (experimental).",
-  "version": "0.5.12",
+  "version": "0.5.13",
   "private": true,
   "publisher": "Shynfard",
   "license": "Apache-2.0",
