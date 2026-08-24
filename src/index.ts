@@ -66,6 +66,8 @@ export { type InspectReport, inspectFeature } from "./inspect.js";
 export { createMcpHandler, type McpServerOptions } from "./mcp/server.js";
 export { runMcpServer } from "./mcp/stdio.js";
 export { parseDefinitions } from "./parser/parse-definitions.js";
+// Dashboard server (Node-only)
+export { createDashboardServer, type DashboardServerOptions } from "./server/create-server.js";
 export { parseEvents } from "./parser/parse-events.js";
 // Parsing
 export { type ParseOptions, type ParseResult, parseFeature } from "./parser/parse-feature.js";
