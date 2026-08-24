@@ -3,27 +3,20 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { countBySeverity } from "../diagnostics/diagnostic.js";
+import { inspectFeature } from "../inspect.js";
+import { renderMermaid } from "../renderers/markdown.js";
+import type { RenderView } from "../schema/config.js";
 import { featureDependents, loadWorkspace } from "../workspace/loader.js";
 import { watchTargetsFor, watchWorkspace } from "../workspace/watch.js";
 import { defaultMermaidAssetPath } from "./assets.js";
+import { buildNodeClickMap } from "./click-map.js";
 import type { FeatureRecord } from "./data.js";
 import { findFeatureRecord, loadFeatureRecords } from "./data.js";
-import { escapeHtml, layout } from "./html.js";
-import { renderFeatureDetailPage } from "./pages/feature-detail.js";
 import { computeRelated } from "./related.js";
 
 export interface DashboardServerOptions {
   /** Overrides the default `node_modules/mermaid` resolution (VS Code passes its own). */
   mermaidAssetPath?: string;
-}
-
-function sendHtml(res: http.ServerResponse, html: string, status = 200): void {
-  res.writeHead(status, { "Content-Type": "text/html; charset=utf-8" });
-  res.end(html);
-}
-
-function notFound(res: http.ServerResponse): void {
-  sendHtml(res, layout({ title: "Not found", body: "<p>Not found.</p>" }), 404);
 }
 
 // Resolved two levels up then back down into dist/server/public, not as a
@@ -83,6 +76,67 @@ function serializeFeatureSummary(record: FeatureRecord) {
 function sendJson(res: http.ServerResponse, value: unknown, status = 200): void {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(value));
+}
+
+const DIAGRAM_VIEWS: readonly RenderView[] = ["flow", "swimlane", "sequence", "event-model"];
+
+function serializeFeatureDetail(
+  record: import("./data.js").FeatureRecord,
+  related: import("./related.js").RelatedFeatures,
+) {
+  const { normalized, graph } = record.result;
+  const diagnostics = record.result.diagnostics.map((d) => ({
+    code: d.code,
+    severity: d.severity,
+    message: d.message,
+    line: d.location?.line,
+    column: d.location?.column,
+  }));
+
+  const base = {
+    id: record.id,
+    name: record.name,
+    path: record.target.display,
+    source: record.source,
+    valid: record.result.valid,
+    diagnostics,
+    related,
+  };
+
+  if (!record.result.valid || normalized === undefined || graph === undefined) {
+    return base;
+  }
+
+  const mermaid: Record<string, string> = {};
+  for (const view of DIAGRAM_VIEWS) {
+    try {
+      mermaid[view] = renderMermaid(normalized, graph, { view });
+    } catch {
+      mermaid[view] = "";
+    }
+  }
+
+  return {
+    ...base,
+    diagram: {
+      steps: normalized.steps.map((s) => {
+        const def = s.def as { requires?: string[]; produces?: string[] };
+        return {
+          id: s.id,
+          type: s.type,
+          label: s.label,
+          actor: s.actor,
+          requires: def.requires ?? [],
+          produces: def.produces ?? [],
+        };
+      }),
+      edges: graph.edges.map((e) => ({ from: e.from, to: e.to, kind: e.kind, label: e.label })),
+      actors: normalized.actors.map((a) => ({ id: a.id, label: a.label })),
+      mermaid,
+      clickMap: buildNodeClickMap(normalized, graph),
+    },
+    inspect: inspectFeature(normalized, graph),
+  };
 }
 
 /**
@@ -159,10 +213,15 @@ export function createDashboardServer(
       return;
     }
 
-    // The client SPA owns "/" and "/features/:id" now. Intercept them here,
-    // ahead of the server-rendered page routes below — those routes stay
-    // textually intact (Tasks 2-3 turn them into /api/* JSON endpoints) but
-    // are unreachable for these two paths from this point on.
+    // The client SPA owns "/" and "/features/:id" now — the server-rendered
+    // page routes that used to live at these exact paths were replaced by
+    // /api/features and /api/features/:id in Tasks 2-3. This intercept still
+    // earns its keep, though: it must run *before* the "no workspace" gate
+    // below. Without it, opening the dashboard on a folder with no
+    // logicspec.config.yaml would 500 at "/" and "/features/*" instead of
+    // loading the SPA shell — breaking the same VS Code "Start Dashboard
+    // from an arbitrary folder" flow that /assets/* is special-cased for
+    // above (see spa-fallback.test.ts).
     if (url.pathname === "/" || url.pathname.startsWith("/features/")) {
       serveIndexHtml(res);
       return;
@@ -170,14 +229,16 @@ export function createDashboardServer(
 
     const workspace = loadWorkspace(workspaceDir);
     if (workspace.configPath === undefined) {
-      sendHtml(
-        res,
-        layout({
-          title: "No workspace",
-          body: `<p>No logicspec.config.yaml found from ${escapeHtml(workspaceDir)} upward.</p>`,
-        }),
-        500,
-      );
+      if (url.pathname.startsWith("/api/")) {
+        sendJson(
+          res,
+          { error: `No logicspec.config.yaml found from ${workspaceDir} upward.` },
+          500,
+        );
+      } else {
+        res.writeHead(500, { "Content-Type": "text/plain" });
+        res.end(`No logicspec.config.yaml found from ${workspaceDir} upward.`);
+      }
       return;
     }
 
@@ -191,16 +252,16 @@ export function createDashboardServer(
       return;
     }
 
-    const detailMatch = /^\/features\/([^/]+)$/.exec(url.pathname);
+    const detailMatch = /^\/api\/features\/([^/]+)$/.exec(url.pathname);
     const rawId = detailMatch?.[1];
     if (rawId !== undefined) {
       const record = findFeatureRecord(records, decodeURIComponent(rawId));
       if (record === undefined) {
-        notFound(res);
+        sendJson(res, { error: "not found" }, 404);
         return;
       }
       const related = computeRelated(record, records, featureDependents(workspace));
-      sendHtml(res, renderFeatureDetailPage(record, related));
+      sendJson(res, serializeFeatureDetail(record, related));
       return;
     }
 
