@@ -83,7 +83,9 @@ export function FeatureDetail({ id }: { id: string }) {
       <Tabs defaultValue="diagram">
         <TabsList>
           <TabsTrigger value="diagram">Diagram</TabsTrigger>
-          <TabsTrigger value="steps">Steps</TabsTrigger>
+          <TabsTrigger value="steps" data-tab-trigger="steps">
+            Steps
+          </TabsTrigger>
           <TabsTrigger value="source">Source</TabsTrigger>
           <TabsTrigger value="inspect">Inspect</TabsTrigger>
           <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>

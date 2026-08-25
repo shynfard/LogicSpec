@@ -27,4 +27,18 @@ describe("buildNodeClickMap", () => {
     expect(subflowEntry).toEqual({ stepId: "s1", flow: "other-feature" });
     expect(finalEntry).toEqual({ stepId: "s2" });
   });
+
+  it("keys entries by the raw step id, not a Mermaid-sanitized id", () => {
+    // The interactive canvas (client/src/pages/feature-detail/Canvas.tsx)
+    // looks up `clickMap[node.id]` where `node.id` is the raw step id used
+    // throughout `diagram.steps`/`diagram.edges` — never the Mermaid node id
+    // (which sanitizes hyphens to underscores). Guards against silently
+    // reverting to the mermaid-id keying this function used before.
+    const normalized = normalizeFeature(feature);
+    const graph = buildGraph(normalized);
+    const map = buildNodeClickMap(normalized, graph);
+
+    expect(map.s1).toEqual({ stepId: "s1", flow: "other-feature" });
+    expect(map.s2).toEqual({ stepId: "s2" });
+  });
 });

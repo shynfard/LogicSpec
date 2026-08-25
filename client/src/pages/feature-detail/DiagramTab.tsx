@@ -6,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Canvas } from "./Canvas";
 import { MermaidView } from "./MermaidView";
 
 const VIEWS = ["interactive", "flow", "swimlane", "sequence", "event-model"] as const;
@@ -44,7 +45,12 @@ export function DiagramTab({ diagram }: { diagram: DiagramData }) {
         </SelectContent>
       </Select>
       {view === "interactive" ? (
-        <p className="p-4 text-muted-foreground">Interactive canvas — coming in Task 9.</p>
+        <Canvas
+          steps={diagram.steps}
+          edges={diagram.edges}
+          actors={diagram.actors}
+          clickMap={diagram.clickMap}
+        />
       ) : (
         <MermaidView source={diagram.mermaid[view] ?? ""} />
       )}

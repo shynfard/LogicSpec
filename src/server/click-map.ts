@@ -1,6 +1,5 @@
 import type { FeatureGraph } from "../graph/edges.js";
 import type { NormalizedFeature } from "../graph/normalize.js";
-import { mermaidNodeIdMap } from "../renderers/mermaid-common.js";
 
 export interface ClickTarget {
   stepId: string;
@@ -9,24 +8,26 @@ export interface ClickTarget {
 }
 
 /**
- * Mermaid node id → click target for one feature's diagram. Reuses
- * `mermaidNodeIdMap` (the same id-allocation the VS Code webview uses) so
- * the dashboard's delegated click listener needs no Mermaid `click`
- * directives — those require `securityLevel: "loose"`, already rejected in
- * docs/superpowers/specs/2026-08-10-vscode-clickable-preview-design.md.
+ * Step id → click target for one feature's diagram. Keyed by the raw step
+ * id (the same id used in `diagram.steps[].id`/`diagram.edges[].from|to`
+ * and, in the interactive canvas, the React Flow node id) — NOT the
+ * Mermaid-sanitized node id `mermaidNodeIdMap` produces (hyphens become
+ * underscores there). The interactive canvas (`Canvas.tsx`) looks nodes up
+ * by their own id directly, so this must match that id space; the
+ * Mermaid-rendered views currently have no delegated click listener that
+ * would need the Mermaid id space instead.
  */
 export function buildNodeClickMap(
   normalized: NormalizedFeature,
   graph: FeatureGraph,
 ): Record<string, ClickTarget> {
-  const idMap = mermaidNodeIdMap(graph);
   const byStepId = new Map(normalized.steps.map((s) => [s.id, s]));
   const map: Record<string, ClickTarget> = {};
-  for (const [mermaidId, stepId] of idMap) {
-    const step = byStepId.get(stepId);
+  for (const node of graph.nodes) {
+    const step = byStepId.get(node.id);
     let flow: string | undefined;
     if (step !== undefined && step.def.type === "subflow") flow = step.def.flow;
-    map[mermaidId] = flow !== undefined ? { stepId, flow } : { stepId };
+    map[node.id] = flow !== undefined ? { stepId: node.id, flow } : { stepId: node.id };
   }
   return map;
 }
