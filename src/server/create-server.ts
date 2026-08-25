@@ -14,25 +14,54 @@ import { findFeatureRecord, loadFeatureRecords } from "./data.js";
 import { mcpInfo } from "./mcp-info.js";
 import { computeRelated } from "./related.js";
 
-// biome-ignore lint/suspicious/noEmptyInterface: kept as an interface for forward compatibility, no options yet
-export interface DashboardServerOptions {}
+export interface DashboardServerOptions {
+  /**
+   * Absolute path to the built client's public directory (the one
+   * containing `index.html` and `assets/`). Optional — when omitted,
+   * `defaultClientDir()` computes it. Callers that bundle this module with
+   * esbuild's CJS output (the VS Code extension) must always supply this:
+   * see `defaultClientDir()` for why relative-path introspection cannot
+   * recover the right directory once bundled.
+   */
+  publicDir?: string;
+}
 
-// Resolved two levels up then back down into dist/server/public, not as a
-// sibling of *this* file: `src/server/` and `dist/server/` sit at the same
-// depth below the package root, so this same relative path is correct both
-// when running the compiled dist/server/create-server.js in production AND
-// when Vitest runs src/server/create-server.ts directly in tests — a plain
-// sibling `public/` path would only exist next to the compiled file.
-//
-// esbuild's CJS bundle (used by the VS Code extension) leaves `import.meta.url`
-// empty — its own build warns this explicitly — but does provide a real,
-// per-module `__dirname`. Real ESM (the CLI, Vitest) has no `__dirname` at all,
-// so `import.meta.url` is the right source there. `typeof __dirname` never
-// throws even when the identifier isn't declared, so this check is safe in
-// both module systems.
-const here =
-  typeof __dirname !== "undefined" ? __dirname : path.dirname(fileURLToPath(import.meta.url));
-const CLIENT_DIR = path.resolve(here, "../../dist/server/public");
+/**
+ * Computes the default client public directory when the caller doesn't
+ * supply `options.publicDir`. Lazy by design — called only from inside
+ * `createDashboardServer()`, never at module load — so a caller that always
+ * provides `publicDir` (the VS Code extension) never even attempts this
+ * context-sensitive resolution.
+ *
+ * Resolved two levels up then back down into dist/server/public, not as a
+ * sibling of *this* file: `src/server/` and `dist/server/` sit at the same
+ * depth below the package root, so this relative path is correct both when
+ * running the compiled dist/server/create-server.js in production AND when
+ * Vitest runs src/server/create-server.ts directly in tests — a plain
+ * sibling `public/` path would only exist next to the compiled file.
+ *
+ * esbuild's CJS bundle (used by the VS Code extension) leaves
+ * `import.meta.url` empty — its own build warns this explicitly — but does
+ * provide a real, per-module `__dirname`, so the `typeof __dirname` check
+ * below avoids the crash there. But `__dirname` alone is NOT a full fix for
+ * the bundled extension: esbuild produces exactly ONE bundled module for
+ * the whole extension (`integrations/vscode/dist/extension.cjs`), so every
+ * line of code in that bundle shares the SAME `__dirname`
+ * (`integrations/vscode/dist/`) regardless of which original source file it
+ * came from — there is no relative-path formula from there that reaches
+ * the real `dist/server/public` (which isn't even copied into the
+ * extension's own packaged output by default). That's why `publicDir`
+ * exists: the VS Code extension always supplies it explicitly instead of
+ * relying on this function. This function stays correct for the contexts
+ * where per-file `__dirname`/`import.meta.url` is meaningful — the CLI and
+ * Vitest — and its `__dirname` fallback remains as a safety net for any
+ * other hypothetical CJS-bundled caller that doesn't supply an override.
+ */
+function defaultClientDir(): string {
+  const here =
+    typeof __dirname !== "undefined" ? __dirname : path.dirname(fileURLToPath(import.meta.url));
+  return path.resolve(here, "../../dist/server/public");
+}
 
 const CONTENT_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -42,10 +71,10 @@ const CONTENT_TYPES: Record<string, string> = {
   ".json": "application/json; charset=utf-8",
 };
 
-function serveStatic(res: http.ServerResponse, filePath: string): void {
+function serveStatic(res: http.ServerResponse, filePath: string, clientDir: string): void {
   fs.readFile(filePath, (error, data) => {
     if (error) {
-      serveIndexHtml(res);
+      serveIndexHtml(res, clientDir);
       return;
     }
     const contentType = CONTENT_TYPES[path.extname(filePath)] ?? "application/octet-stream";
@@ -54,8 +83,8 @@ function serveStatic(res: http.ServerResponse, filePath: string): void {
   });
 }
 
-function serveIndexHtml(res: http.ServerResponse): void {
-  fs.readFile(path.join(CLIENT_DIR, "index.html"), (error, data) => {
+function serveIndexHtml(res: http.ServerResponse, clientDir: string): void {
+  fs.readFile(path.join(clientDir, "index.html"), (error, data) => {
     if (error) {
       res.writeHead(500, { "Content-Type": "text/plain" });
       res.end("Dashboard client is not built — run `npm run build` first.");
@@ -153,9 +182,9 @@ function serializeFeatureDetail(
  */
 export function createDashboardServer(
   workspaceDir: string,
-  // biome-ignore lint/correctness/noUnusedFunctionParameters: reserved for forward-compat options, currently unused
   options: DashboardServerOptions = {},
 ): http.Server {
+  const CLIENT_DIR = options.publicDir ?? defaultClientDir();
   const sseClients = new Set<http.ServerResponse>();
   const broadcastReload = (): void => {
     for (const client of sseClients) client.write("data: reload\n\n");
@@ -201,7 +230,7 @@ export function createDashboardServer(
     // no-config folder must still be able to load the SPA shell's JS/CSS
     // instead of getting the "no workspace" 500 below.
     if (url.pathname.startsWith("/assets/")) {
-      serveStatic(res, path.join(CLIENT_DIR, url.pathname));
+      serveStatic(res, path.join(CLIENT_DIR, url.pathname), CLIENT_DIR);
       return;
     }
 
@@ -215,7 +244,7 @@ export function createDashboardServer(
     // from an arbitrary folder" flow that /assets/* is special-cased for
     // above (see spa-fallback.test.ts).
     if (url.pathname === "/" || url.pathname.startsWith("/features/")) {
-      serveIndexHtml(res);
+      serveIndexHtml(res, CLIENT_DIR);
       return;
     }
 
@@ -262,7 +291,7 @@ export function createDashboardServer(
       return;
     }
 
-    serveIndexHtml(res);
+    serveIndexHtml(res, CLIENT_DIR);
   });
 
   server.on("close", () => {

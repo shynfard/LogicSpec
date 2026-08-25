@@ -2,7 +2,9 @@
 /**
  * Bundles the extension to CJS and copies the Mermaid browser bundle into
  * media/ for the preview webview. The LogicSpec core is bundled straight
- * from ../../src so no root build is required.
+ * from ../../src so no root build is required — EXCEPT for the dashboard
+ * client (see the copy step below), which does require a root build: the
+ * built SPA isn't source the extension can bundle itself, it's Vite output.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -25,6 +27,25 @@ if (mermaidSource === undefined) {
 }
 fs.mkdirSync(path.join(root, "media"), { recursive: true });
 fs.copyFileSync(mermaidSource, path.join(root, "media", "mermaid.min.js"));
+
+/**
+ * The dashboard server (`createDashboardServer`) always needs an explicit
+ * `publicDir` when running inside this bundled extension — see
+ * src/server/create-server.ts for why relative-path introspection can't
+ * recover the built SPA's location once esbuild flattens everything into
+ * one CJS module. That means the built SPA has to physically live inside
+ * this package. Copy the root package's Vite build output in as media/dashboard/
+ * so dashboard.ts can point publicDir at it via extensionUri.
+ */
+const dashboardSource = path.join(root, "..", "..", "dist", "server", "public");
+if (!fs.existsSync(dashboardSource)) {
+  console.error(
+    `dashboard client bundle not found at ${dashboardSource} — run 'npm run build' at the repo root first.`,
+  );
+  process.exit(1);
+}
+const dashboardDest = path.join(root, "media", "dashboard");
+fs.cpSync(dashboardSource, dashboardDest, { recursive: true });
 
 /** @type {import("esbuild").BuildOptions} */
 const options = {

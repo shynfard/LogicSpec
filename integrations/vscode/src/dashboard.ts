@@ -56,7 +56,9 @@ export function startDashboard(
     current = undefined;
   }
 
-  const server = createDashboardServer(startDir);
+  const server = createDashboardServer(startDir, {
+    publicDir: vscode.Uri.joinPath(context.extensionUri, "media", "dashboard").fsPath,
+  });
   listenAndOpen(server, DEFAULT_PORT, startDir, openPath);
 }
 
