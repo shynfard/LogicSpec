@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useLiveReload } from "@/lib/liveReload";
 
 interface McpTool {
   name: string;
@@ -16,17 +17,14 @@ export function McpInfo() {
   const [data, setData] = useState<McpInfoData | null>(null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  const load = () => {
     fetch("/api/mcp")
       .then((res) => res.json())
-      .then((body: McpInfoData) => {
-        if (!cancelled) setData(body);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+      .then((body: McpInfoData) => setData(body));
+  };
+
+  useEffect(load, []);
+  useLiveReload(load);
 
   if (data === null) return <p className="p-6 text-muted-foreground">Loading…</p>;
 

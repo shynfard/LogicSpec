@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { useLiveReload } from "@/lib/liveReload";
 import { Link } from "@/lib/router";
 
 interface FeatureSummary {
@@ -34,17 +35,14 @@ function ValidityBadge({ feature }: { feature: FeatureSummary }) {
 export function FeatureList() {
   const [features, setFeatures] = useState<FeatureSummary[] | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  const load = () => {
     fetch("/api/features")
       .then((res) => res.json())
-      .then((data: FeatureSummary[]) => {
-        if (!cancelled) setFeatures(data);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+      .then((data: FeatureSummary[]) => setFeatures(data));
+  };
+
+  useEffect(load, []);
+  useLiveReload(load);
 
   if (features === null) return <p className="p-6 text-muted-foreground">Loading…</p>;
   if (features.length === 0)

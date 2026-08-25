@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLiveReload } from "@/lib/liveReload";
 import { Link } from "@/lib/router";
 import { DiagnosticsTab } from "./feature-detail/DiagnosticsTab";
 import { DiagramTab } from "./feature-detail/DiagramTab";
@@ -51,18 +52,18 @@ export interface FeatureDetailData {
 export function FeatureDetail({ id }: { id: string }) {
   const [data, setData] = useState<FeatureDetailData | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    setData(null);
+  const load = () => {
     fetch(`/api/features/${encodeURIComponent(id)}`)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("not found"))))
-      .then((body: FeatureDetailData) => {
-        if (!cancelled) setData(body);
-      });
-    return () => {
-      cancelled = true;
-    };
+      .then((body: FeatureDetailData) => setData(body));
+  };
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: load is rebuilt every render; only re-run when id changes (useLiveReload below always calls the current load)
+  useEffect(() => {
+    setData(null);
+    load();
   }, [id]);
+  useLiveReload(load);
 
   if (data === null) return <p className="p-6 text-muted-foreground">Loading…</p>;
 
