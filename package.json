@@ -58,7 +58,6 @@
   "dependencies": {
     "chokidar": "^4.0.3",
     "commander": "^14.0.0",
-    "mermaid": "^11.0.0",
     "yaml": "^2.8.0",
     "zod": "^4.0.0"
   },
@@ -74,6 +73,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.460.0",
+    "mermaid": "^11.0.0",
     "radix-ui": "^1.6.7",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

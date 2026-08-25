@@ -36,10 +36,7 @@ function listenAndOpen(
 
 /**
  * `LogicSpec: Start Dashboard` — one server per VS Code session, reused
- * across invocations for the same workspace directory. Passes the
- * extension's own build-time-copied `media/mermaid.min.js` instead of
- * letting the server resolve `node_modules/mermaid`: the packaged
- * extension ships without `node_modules` (.vscodeignore).
+ * across invocations for the same workspace directory.
  *
  * `openPath` (default the dashboard root) lets callers jump straight to a
  * specific page — e.g. the feature tree's "Open in Dashboard" action opens
@@ -59,12 +56,7 @@ export function startDashboard(
     current = undefined;
   }
 
-  const mermaidAssetPath = vscode.Uri.joinPath(
-    context.extensionUri,
-    "media",
-    "mermaid.min.js",
-  ).fsPath;
-  const server = createDashboardServer(startDir, { mermaidAssetPath });
+  const server = createDashboardServer(startDir);
   listenAndOpen(server, DEFAULT_PORT, startDir, openPath);
 }
 

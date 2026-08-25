@@ -8,17 +8,14 @@ import { renderMermaid } from "../renderers/markdown.js";
 import type { RenderView } from "../schema/config.js";
 import { featureDependents, loadWorkspace } from "../workspace/loader.js";
 import { watchTargetsFor, watchWorkspace } from "../workspace/watch.js";
-import { defaultMermaidAssetPath } from "./assets.js";
 import { buildNodeClickMap } from "./click-map.js";
 import type { FeatureRecord } from "./data.js";
 import { findFeatureRecord, loadFeatureRecords } from "./data.js";
 import { mcpInfo } from "./mcp-info.js";
 import { computeRelated } from "./related.js";
 
-export interface DashboardServerOptions {
-  /** Overrides the default `node_modules/mermaid` resolution (VS Code passes its own). */
-  mermaidAssetPath?: string;
-}
+// biome-ignore lint/suspicious/noEmptyInterface: kept as an interface for forward compatibility, no options yet
+export interface DashboardServerOptions {}
 
 // Resolved two levels up then back down into dist/server/public, not as a
 // sibling of *this* file: `src/server/` and `dist/server/` sit at the same
@@ -148,9 +145,9 @@ function serializeFeatureDetail(
  */
 export function createDashboardServer(
   workspaceDir: string,
+  // biome-ignore lint/correctness/noUnusedFunctionParameters: reserved for forward-compat options, currently unused
   options: DashboardServerOptions = {},
 ): http.Server {
-  const mermaidAssetPath = options.mermaidAssetPath ?? defaultMermaidAssetPath();
   const sseClients = new Set<http.ServerResponse>();
   const broadcastReload = (): void => {
     for (const client of sseClients) client.write("data: reload\n\n");
@@ -190,22 +187,8 @@ export function createDashboardServer(
       return;
     }
 
-    if (url.pathname === "/assets/mermaid.min.js") {
-      fs.readFile(mermaidAssetPath, (error, data) => {
-        if (error) {
-          res.writeHead(404, { "Content-Type": "text/plain" });
-          res.end("mermaid asset not found");
-          return;
-        }
-        res.writeHead(200, { "Content-Type": "application/javascript; charset=utf-8" });
-        res.end(data);
-      });
-      return;
-    }
-
-    // Built client assets, same as the mermaid check above: must be served
-    // from disk regardless of whether workspaceDir has a
-    // logicspec.config.yaml — VS Code's startDashboard() calls
+    // Built client assets must be served from disk regardless of whether
+    // workspaceDir has a logicspec.config.yaml — VS Code's startDashboard() calls
     // createDashboardServer() with no upfront workspace check, so a
     // no-config folder must still be able to load the SPA shell's JS/CSS
     // instead of getting the "no workspace" 500 below.
