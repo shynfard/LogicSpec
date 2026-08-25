@@ -23,7 +23,15 @@ export interface DashboardServerOptions {}
 // when running the compiled dist/server/create-server.js in production AND
 // when Vitest runs src/server/create-server.ts directly in tests — a plain
 // sibling `public/` path would only exist next to the compiled file.
-const here = path.dirname(fileURLToPath(import.meta.url));
+//
+// esbuild's CJS bundle (used by the VS Code extension) leaves `import.meta.url`
+// empty — its own build warns this explicitly — but does provide a real,
+// per-module `__dirname`. Real ESM (the CLI, Vitest) has no `__dirname` at all,
+// so `import.meta.url` is the right source there. `typeof __dirname` never
+// throws even when the identifier isn't declared, so this check is safe in
+// both module systems.
+const here =
+  typeof __dirname !== "undefined" ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 const CLIENT_DIR = path.resolve(here, "../../dist/server/public");
 
 const CONTENT_TYPES: Record<string, string> = {
