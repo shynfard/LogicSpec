@@ -10,7 +10,7 @@ no push ever publishes by itself.
    `integrations/vscode/package.json`, `integrations/obsidian/manifest.json` +
    `versions.json` when those change).
 2. Update `CHANGELOG.md`.
-3. Run the full gate locally: `npm run typecheck && npm run lint && npm test && npm run build`.
+3. Run the full gate locally: `npm run typecheck && npm run lint && npm run build && npm test`.
 4. Commit, tag `vX.Y.Z` (must match `package.json` — the publish job enforces
    this), push the tag.
 5. In the GitLab pipeline for the tag, trigger the manual jobs you want:

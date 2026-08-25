@@ -44,8 +44,8 @@ core:
     - npm ci
     - npm run typecheck
     - npm run lint
-    - npm test
     - npm run build
+    - npm test
     - node dist/cli/main.js validate examples/booking
     - node dist/cli/main.js render examples/booking/booking.feature.yaml --output /tmp/ls-ci
     - node dist/cli/main.js graph examples/booking --output /tmp/ls-ci
@@ -57,15 +57,18 @@ core-node20:
   script:
     - npm ci
     - npm run typecheck
-    - npm test
     - npm run build
+    - npm test
 
 integrations:
   stage: test
   script:
     # Integrations bundle the core FROM SOURCE (../../src); its yaml/zod
-    # imports resolve against the root node_modules — install it first.
+    # imports resolve against the root node_modules — install it first. The
+    # VS Code extension's build also copies the built dashboard client from
+    # dist/server/public, so the root build must run before it.
     - npm ci
+    - npm run build
     - cd integrations/vscode && npm ci && npm run typecheck && npm run build && npm test && cd ../..
     - cd integrations/editor && npm ci && npm run typecheck && npm run build && npm test && cd ../..
     - cd integrations/obsidian && npm ci && npm run typecheck && npm run build && npm test && cd ../..
@@ -78,6 +81,7 @@ vsix:
   needs: [core, integrations]
   script:
     - npm ci
+    - npm run build
     - cd integrations/vscode
     - npm ci
     - npm run build
@@ -116,6 +120,7 @@ publish-npm:
     - npm ci
     - npm run typecheck
     - npm run lint
+    - npm run build
     - npm test
     - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
     # prepack builds dist; publishes exactly the `files` allowlist.

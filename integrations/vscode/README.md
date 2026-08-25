@@ -38,9 +38,10 @@ stays optional, for committed GitHub docs.
 ## Development
 
 ```bash
+npm install && npm run build   # from the repo root, once — builds dist/server/public
 cd integrations/vscode
 npm install
-npm run build        # bundles dist/extension.cjs + copies mermaid into media/
+npm run build        # bundles dist/extension.cjs + copies mermaid and the dashboard client into media/
 ```
 
 Open this folder in VS Code and press **F5** (launch config included) to start
@@ -53,7 +54,9 @@ npm test             # vitest (pure modules: mapping, debounce)
 ```
 
 The extension bundles the LogicSpec core **from source** (`../../src`) via an
-esbuild alias — no root build is required.
+esbuild alias, but its "Start Dashboard" command serves the built dashboard
+client (`dist/server/public`, copied into `media/dashboard/` at build time) —
+so a root build **is** required before `npm run build` here.
 
 ## Packaging
 
