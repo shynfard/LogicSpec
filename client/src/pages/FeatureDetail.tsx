@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLiveReload } from "@/lib/liveReload";
@@ -51,11 +51,20 @@ export interface FeatureDetailData {
 
 export function FeatureDetail({ id }: { id: string }) {
   const [data, setData] = useState<FeatureDetailData | null>(null);
+  const idRef = useRef(id);
+  idRef.current = id;
 
   const load = () => {
-    fetch(`/api/features/${encodeURIComponent(id)}`)
+    const requestedId = id;
+    fetch(`/api/features/${encodeURIComponent(requestedId)}`)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("not found"))))
-      .then((body: FeatureDetailData) => setData(body));
+      .then((body: FeatureDetailData) => {
+        // Guard against a stale response overwriting fresher data: `load` is shared
+        // between the mount/id-change effect and useLiveReload, so two fetches for
+        // different ids can be in flight at once and resolve out of order. Only
+        // apply this response if the id it was requested for is still current.
+        if (idRef.current === requestedId) setData(body);
+      });
   };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: load is rebuilt every render; only re-run when id changes (useLiveReload below always calls the current load)
