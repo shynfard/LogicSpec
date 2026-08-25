@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { Link, useRoute } from "@/lib/router";
 import { FeatureDetail } from "@/pages/FeatureDetail";
 import { FeatureList } from "@/pages/FeatureList";
+import { McpInfo } from "@/pages/McpInfo";
 import "./index.css";
 
 function App() {
@@ -21,7 +22,7 @@ function App() {
       <main>
         {route.name === "list" ? <FeatureList /> : null}
         {route.name === "detail" ? <FeatureDetail id={route.id} /> : null}
-        {route.name === "mcp" ? <p className="p-6">MCP page — coming in Task 10.</p> : null}
+        {route.name === "mcp" ? <McpInfo /> : null}
         {route.name === "not-found" ? <p className="p-6">Not found.</p> : null}
       </main>
     </div>
