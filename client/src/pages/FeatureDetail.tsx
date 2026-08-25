@@ -28,6 +28,9 @@ export interface FeatureDetailData {
       type: string;
       label: string;
       actor?: string;
+      description?: string;
+      notes?: string;
+      tags?: string[];
       requires?: string[];
       produces?: string[];
     }>;
@@ -55,58 +58,62 @@ export function FeatureDetail({ id }: { id: string }) {
   if (data === null) return <p className="p-6 text-muted-foreground">Loading…</p>;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 p-6">
-      <Link to="/" className="text-sm hover:underline">
-        &larr; Dashboard
-      </Link>
-      <h1 className="flex items-center gap-2 text-2xl font-bold">
-        {data.name}
-        <Badge variant={data.valid ? "default" : "destructive"}>
-          {data.valid ? "valid" : "invalid"}
-        </Badge>
-      </h1>
-      <p className="text-xs text-muted-foreground">
-        {data.id} · {data.path}
-      </p>
+    <div className="space-y-4 p-6">
+      <div className="mx-auto max-w-4xl space-y-4">
+        <Link to="/" className="text-sm hover:underline">
+          &larr; Dashboard
+        </Link>
+        <h1 className="flex items-center gap-2 text-2xl font-bold">
+          {data.name}
+          <Badge variant={data.valid ? "default" : "destructive"}>
+            {data.valid ? "valid" : "invalid"}
+          </Badge>
+        </h1>
+        <p className="text-xs text-muted-foreground">
+          {data.id} · {data.path}
+        </p>
+      </div>
       <Tabs defaultValue="diagram">
-        <TabsList>
-          <TabsTrigger value="diagram">Diagram</TabsTrigger>
-          <TabsTrigger value="steps" data-tab-trigger="steps">
-            Steps
-          </TabsTrigger>
-          <TabsTrigger value="source">Source</TabsTrigger>
-          <TabsTrigger value="inspect">Inspect</TabsTrigger>
-          <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
-          <TabsTrigger value="related">Related</TabsTrigger>
-        </TabsList>
+        <div className="mx-auto max-w-4xl">
+          <TabsList>
+            <TabsTrigger value="diagram">Diagram</TabsTrigger>
+            <TabsTrigger value="steps">Steps</TabsTrigger>
+            <TabsTrigger value="source">Source</TabsTrigger>
+            <TabsTrigger value="inspect">Inspect</TabsTrigger>
+            <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
+            <TabsTrigger value="related">Related</TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="diagram">
           {data.diagram === undefined ? (
-            <p className="p-4 text-muted-foreground">Spec is invalid — see the Diagnostics tab.</p>
+            <p className="mx-auto max-w-4xl p-4 text-muted-foreground">
+              Spec is invalid — see the Diagnostics tab.
+            </p>
           ) : (
             <DiagramTab diagram={data.diagram} />
           )}
         </TabsContent>
-        <TabsContent value="steps">
+        <TabsContent value="steps" className="mx-auto max-w-4xl">
           {data.diagram === undefined ? (
             <p className="p-4 text-muted-foreground">Spec is invalid — see the Diagnostics tab.</p>
           ) : (
             <StepsTab steps={data.diagram.steps} />
           )}
         </TabsContent>
-        <TabsContent value="source">
+        <TabsContent value="source" className="mx-auto max-w-4xl">
           <SourceTab source={data.source} />
         </TabsContent>
-        <TabsContent value="inspect">
+        <TabsContent value="inspect" className="mx-auto max-w-4xl">
           {data.inspect === undefined ? (
             <p className="p-4 text-muted-foreground">Spec is invalid — see the Diagnostics tab.</p>
           ) : (
             <InspectTab inspect={data.inspect} />
           )}
         </TabsContent>
-        <TabsContent value="diagnostics">
+        <TabsContent value="diagnostics" className="mx-auto max-w-4xl">
           <DiagnosticsTab diagnostics={data.diagnostics} path={data.path} />
         </TabsContent>
-        <TabsContent value="related">
+        <TabsContent value="related" className="mx-auto max-w-4xl">
           <RelatedTab related={data.related} />
         </TabsContent>
       </Tabs>

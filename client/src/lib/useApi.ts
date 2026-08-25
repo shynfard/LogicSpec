@@ -7,6 +7,9 @@ interface ApiErrorBody {
 
 /**
  * Fetches `path` as JSON, with error handling and a stale-response guard.
+ * `path === null` means "nothing to fetch yet" (e.g. a panel that only
+ * needs data once a target is selected) — no request is made and both
+ * `data`/`error` stay `null` until a real path is passed.
  *
  * The server can return a non-2xx JSON body (e.g. `{"error": "..."}"`) for a
  * workspace with no `logicspec.config.yaml`, or a 404 for an unknown feature
@@ -19,7 +22,7 @@ interface ApiErrorBody {
  * out of order — a ref holding the current `path` discards any response
  * that resolves after `path` has already moved on.
  */
-export function useApi<T>(path: string): { data: T | null; error: string | null } {
+export function useApi<T>(path: string | null): { data: T | null; error: string | null } {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const pathRef = useRef(path);
@@ -27,6 +30,7 @@ export function useApi<T>(path: string): { data: T | null; error: string | null 
 
   const load = () => {
     const requestedPath = path;
+    if (requestedPath === null) return;
     fetch(requestedPath)
       .then(async (res) => {
         if (pathRef.current !== requestedPath) return;

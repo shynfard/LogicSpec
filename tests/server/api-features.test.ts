@@ -26,6 +26,7 @@ afterEach(async () => {
 interface FeatureSummary {
   id: string;
   name: string;
+  description?: string;
   path: string;
   valid: boolean;
   errorCount: number;
@@ -55,6 +56,7 @@ describe("GET /api/features", () => {
       path: "booking.feature.yaml",
       errorCount: 0,
       warningCount: 0,
+      description: "Customer books and pays for a service.",
     });
   });
 

@@ -112,6 +112,7 @@ function serializeFeatureSummary(record: FeatureRecord) {
   return {
     id: record.id,
     name: record.name,
+    description: record.result.normalized?.description,
     path: record.target.display,
     valid: record.result.valid,
     errorCount: counts.error,
@@ -143,6 +144,7 @@ function serializeFeatureDetail(
   const base = {
     id: record.id,
     name: record.name,
+    description: normalized?.description,
     path: record.target.display,
     source: record.source,
     valid: record.result.valid,
@@ -173,6 +175,9 @@ function serializeFeatureDetail(
           type: s.type,
           label: s.label,
           actor: s.actor,
+          description: s.description,
+          notes: s.notes,
+          tags: s.tags,
           requires: def.requires ?? [],
           produces: def.produces ?? [],
         };

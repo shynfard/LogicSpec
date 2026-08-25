@@ -52,9 +52,59 @@ describe("GET /api/features/:id", () => {
     );
   });
 
+  it("includes the feature-level description", async () => {
+    const res = await fetch(`${base}/api/features/booking`);
+    const body = (await res.json()) as { description?: string };
+    expect(body.description).toBe("Customer books and pays for a service.");
+  });
+
   it("404s for an unknown feature id", async () => {
     const res = await fetch(`${base}/api/features/does-not-exist`);
     expect(res.status).toBe(404);
+  });
+});
+
+describe("GET /api/features/:id step description/notes/tags", () => {
+  let dir: string;
+  let taggedServer: ReturnType<typeof createDashboardServer>;
+  let taggedBase: string;
+
+  beforeEach(async () => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "logicspec-tagged-step-"));
+    fs.mkdirSync(path.join(dir, "features"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "logicspec.config.yaml"), 'version: "1"\n');
+    fs.writeFileSync(
+      path.join(dir, "features", "demo.feature.yaml"),
+      MINIMAL_FEATURE.replace(
+        "label: Home\n    actor: web",
+        "label: Home\n    actor: web\n    description: A demo step.\n    notes: A demo note.\n    tags: [demo, test]",
+      ),
+    );
+
+    taggedServer = createDashboardServer(dir);
+    await new Promise<void>((resolve) => taggedServer.listen(0, "127.0.0.1", resolve));
+    const address = taggedServer.address() as AddressInfo;
+    taggedBase = `http://127.0.0.1:${address.port}`;
+  });
+
+  afterEach(async () => {
+    await new Promise<void>((resolve) => taggedServer.close(() => resolve()));
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("surfaces a step's description, notes and tags", async () => {
+    const res = await fetch(`${taggedBase}/api/features/demo`);
+    const body = (await res.json()) as {
+      diagram?: {
+        steps: Array<{ id: string; description?: string; notes?: string; tags?: string[] }>;
+      };
+    };
+    const home = body.diagram?.steps.find((s) => s.id === "home");
+    expect(home).toMatchObject({
+      description: "A demo step.",
+      notes: "A demo note.",
+      tags: ["demo", "test"],
+    });
   });
 });
 

@@ -16,7 +16,6 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { type ReactElement, useCallback, useEffect, useMemo, useState } from "react";
-import { navigate } from "@/lib/router";
 
 interface CanvasStep {
   id: string;
@@ -37,11 +36,6 @@ interface CanvasEdge {
 interface CanvasActor {
   id: string;
   label: string;
-}
-
-interface ClickTarget {
-  stepId: string;
-  flow?: string;
 }
 
 const NODE_WIDTH = 200;
@@ -126,10 +120,10 @@ export interface CanvasProps {
   steps: CanvasStep[];
   edges: CanvasEdge[];
   actors: CanvasActor[];
-  clickMap: Record<string, ClickTarget>;
+  onStepClick: (stepId: string) => void;
 }
 
-export function Canvas({ steps, edges, actors, clickMap }: CanvasProps): ReactElement {
+export function Canvas({ steps, edges, actors, onStepClick }: CanvasProps): ReactElement {
   const [nodes, setNodes] = useState<Node[]>(() => layout(steps, edges));
   const [hovered, setHovered] = useState<string | null>(null);
   const [hoveredActor, setHoveredActor] = useState<string | null>(null);
@@ -202,31 +196,9 @@ export function Canvas({ steps, edges, actors, clickMap }: CanvasProps): ReactEl
 
   const onNodeClick = useCallback(
     (_event: unknown, node: Node) => {
-      const target = clickMap[node.id];
-      if (target === undefined) return;
-      if (target.flow !== undefined) {
-        navigate(`/features/${encodeURIComponent(target.flow)}`);
-        return;
-      }
-      // Radix's TabsTrigger activates a tab on `mousedown` (see
-      // @radix-ui/react-tabs), never on `click` — HTMLElement.click() only
-      // ever dispatches a `click` event, so `tabTrigger.click()` is a no-op
-      // here (verified against a real browser). Dispatch the event Radix
-      // actually listens for instead.
-      const tabTrigger = document.querySelector<HTMLElement>('[data-tab-trigger="steps"]');
-      tabTrigger?.dispatchEvent(
-        new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 }),
-      );
-      // The Steps tab's content isn't mounted while inactive (no
-      // `forceMount`), so `step-${id}` doesn't exist in the DOM until React
-      // flushes the tab-switch state update triggered above — defer to the
-      // next tick so the row exists by the time we look for it.
-      setTimeout(() => {
-        const row = document.getElementById(`step-${target.stepId}`);
-        row?.scrollIntoView({ block: "center" });
-      }, 0);
+      onStepClick(node.id);
     },
-    [clickMap],
+    [onStepClick],
   );
 
   return (
@@ -235,7 +207,10 @@ export function Canvas({ steps, edges, actors, clickMap }: CanvasProps): ReactEl
     // passed via `style` is silently clobbered and the canvas collapses to
     // 0px in an unsized parent (confirmed against the installed
     // @xyflow/react 12.11.2). Give the wrapper the explicit height instead.
-    <div style={{ height: 600 }}>
+    // `height: 100%` fills whatever definite height DiagramTab's wrapper
+    // establishes (React Flow needs an ancestor with a resolved height, not
+    // just a 100% chain with nothing concrete at its root).
+    <div style={{ height: "100%" }}>
       <ReactFlow
         nodes={displayNodes}
         edges={displayEdges}

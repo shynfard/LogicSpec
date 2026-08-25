@@ -24,5 +24,5 @@ export function MermaidView({ source }: { source: string }) {
     };
   }, [source]);
 
-  return <div ref={ref} className="overflow-auto" />;
+  return <div ref={ref} className="h-full overflow-auto" />;
 }
