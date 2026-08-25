@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "@/lib/router";
 import { DiagnosticsTab } from "./feature-detail/DiagnosticsTab";
+import { DiagramTab } from "./feature-detail/DiagramTab";
 import { InspectTab } from "./feature-detail/InspectTab";
 import { RelatedTab } from "./feature-detail/RelatedTab";
 import { SourceTab } from "./feature-detail/SourceTab";
@@ -92,7 +93,7 @@ export function FeatureDetail({ id }: { id: string }) {
           {data.diagram === undefined ? (
             <p className="p-4 text-muted-foreground">Spec is invalid — see the Diagnostics tab.</p>
           ) : (
-            <p className="p-4 text-muted-foreground">Diagram view — coming in Tasks 8–9.</p>
+            <DiagramTab diagram={data.diagram} />
           )}
         </TabsContent>
         <TabsContent value="steps">
