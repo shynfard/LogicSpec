@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useLiveReload } from "@/lib/liveReload";
+import { useApi } from "@/lib/useApi";
 
 interface McpTool {
   name: string;
@@ -14,19 +14,14 @@ interface McpInfoData {
 }
 
 export function McpInfo() {
-  const [data, setData] = useState<McpInfoData | null>(null);
+  const { data, error } = useApi<McpInfoData>("/api/mcp");
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
 
-  const load = () => {
-    fetch("/api/mcp")
-      .then((res) => res.json())
-      .then((body: McpInfoData) => setData(body));
-  };
-
-  useEffect(load, []);
-  useLiveReload(load);
-
+  if (error !== null) return <p className="p-6 text-destructive">{error}</p>;
   if (data === null) return <p className="p-6 text-muted-foreground">Loading…</p>;
+
+  const canCopy = typeof navigator.clipboard !== "undefined";
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-6">
@@ -36,16 +31,30 @@ export function McpInfo() {
       </p>
       <div className="flex items-center gap-2">
         <pre className="flex-1 overflow-auto rounded bg-muted p-3 text-xs">{data.command}</pre>
-        <Button
-          size="sm"
-          onClick={() => {
-            navigator.clipboard.writeText(data.command);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-          }}
-        >
-          {copied ? "Copied" : "Copy"}
-        </Button>
+        {canCopy ? (
+          <Button
+            size="sm"
+            onClick={() => {
+              navigator.clipboard
+                .writeText(data.command)
+                .then(() => {
+                  setCopied(true);
+                  setCopyError(false);
+                  setTimeout(() => setCopied(false), 1500);
+                })
+                .catch(() => {
+                  setCopyError(true);
+                  setTimeout(() => setCopyError(false), 1500);
+                });
+            }}
+          >
+            {copyError ? "Copy failed" : copied ? "Copied" : "Copy"}
+          </Button>
+        ) : (
+          <span className="text-xs text-muted-foreground">
+            Copy unavailable (not a secure context)
+          </span>
+        )}
       </div>
       <table className="w-full text-sm">
         <thead>

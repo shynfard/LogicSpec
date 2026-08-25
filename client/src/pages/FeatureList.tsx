@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { useLiveReload } from "@/lib/liveReload";
 import { Link } from "@/lib/router";
+import { useApi } from "@/lib/useApi";
 
 interface FeatureSummary {
   id: string;
@@ -33,17 +32,9 @@ function ValidityBadge({ feature }: { feature: FeatureSummary }) {
 }
 
 export function FeatureList() {
-  const [features, setFeatures] = useState<FeatureSummary[] | null>(null);
+  const { data: features, error } = useApi<FeatureSummary[]>("/api/features");
 
-  const load = () => {
-    fetch("/api/features")
-      .then((res) => res.json())
-      .then((data: FeatureSummary[]) => setFeatures(data));
-  };
-
-  useEffect(load, []);
-  useLiveReload(load);
-
+  if (error !== null) return <p className="p-6 text-destructive">{error}</p>;
   if (features === null) return <p className="p-6 text-muted-foreground">Loading…</p>;
   if (features.length === 0)
     return <p className="p-6 text-muted-foreground">No features found in this workspace.</p>;

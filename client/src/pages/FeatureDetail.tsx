@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useLiveReload } from "@/lib/liveReload";
 import { Link } from "@/lib/router";
+import { useApi } from "@/lib/useApi";
 import { DiagnosticsTab } from "./feature-detail/DiagnosticsTab";
 import { DiagramTab } from "./feature-detail/DiagramTab";
 import { InspectTab } from "./feature-detail/InspectTab";
@@ -50,30 +49,9 @@ export interface FeatureDetailData {
 }
 
 export function FeatureDetail({ id }: { id: string }) {
-  const [data, setData] = useState<FeatureDetailData | null>(null);
-  const idRef = useRef(id);
-  idRef.current = id;
+  const { data, error } = useApi<FeatureDetailData>(`/api/features/${encodeURIComponent(id)}`);
 
-  const load = () => {
-    const requestedId = id;
-    fetch(`/api/features/${encodeURIComponent(requestedId)}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("not found"))))
-      .then((body: FeatureDetailData) => {
-        // Guard against a stale response overwriting fresher data: `load` is shared
-        // between the mount/id-change effect and useLiveReload, so two fetches for
-        // different ids can be in flight at once and resolve out of order. Only
-        // apply this response if the id it was requested for is still current.
-        if (idRef.current === requestedId) setData(body);
-      });
-  };
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: load is rebuilt every render; only re-run when id changes (useLiveReload below always calls the current load)
-  useEffect(() => {
-    setData(null);
-    load();
-  }, [id]);
-  useLiveReload(load);
-
+  if (error !== null) return <p className="p-6 text-destructive">{error}</p>;
   if (data === null) return <p className="p-6 text-muted-foreground">Loading…</p>;
 
   return (
