@@ -5,3 +5,4 @@ media/mermaid.min.js
 *.tsbuildinfo
 media/canvas.js
 media/canvas.css
+media/dashboard/
