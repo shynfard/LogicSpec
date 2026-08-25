@@ -3,6 +3,28 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.12.0
+
+**Dashboard rewrite: a real React app.** `logicspec serve`'s dashboard is now
+a single-page app (Vite, shadcn/ui) instead of server-rendered HTML — same
+URLs, same CLI/VS Code entry points, no DSL or API changes.
+
+- **Interactive diagram canvas** as the default Diagram view — drag, zoom,
+  pan, hover-spotlight and an actor legend, the same experience already
+  shipped in the VS Code preview's interactive view, now available from
+  `logicspec serve` too. The four Mermaid views (`flow` | `swimlane` |
+  `sequence` | `event-model`) are still available via a switcher.
+- **New MCP page** — the `claude mcp add` registration command and the full
+  tool table, for the workspace currently being served.
+- **Live reload without a full-page refresh** — the SPA refetches the
+  current page's data on save instead of reloading the whole page.
+- The dashboard's JSON API (`/api/features`, `/api/features/:id`,
+  `/api/mcp`) is internal — not part of the public `logicspec` API surface.
+- `mermaid` moves back out of `dependencies` (bundled by Vite at build time
+  instead of resolved from `node_modules` at request time) — the published
+  package's real runtime dependencies are unchanged: `chokidar`,
+  `commander`, `yaml`, `zod`.
+
 ## 0.11.0
 
 **New: `logicspec serve` — a local, read-only dashboard.** No DSL or schema

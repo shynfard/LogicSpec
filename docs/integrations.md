@@ -32,7 +32,7 @@ Tool-level failures (unknown feature, unknown step) come back as `isError` tool 
 
 ## Dashboard server
 
-`logicspec serve [dir]` runs a local, read-only HTTP dashboard over a workspace at `http://127.0.0.1:27000` by default (`--port`, `--host`, `--open`). Every feature is listed and clickable; each detail page has a diagram (view switcher, clickable subflow nodes — reusing the same node-id-map click pattern as the VS Code preview, not Mermaid's `click` directive), raw source, the `inspect` model, diagnostics, and cross-feature links (subflow calls, dependents, shared events). Live-reloads on every save via Server-Sent Events. No editing — for that, use the visual editor below.
+`logicspec serve [dir]` runs a local dashboard at `http://127.0.0.1:27000` by default (`--port`, `--host`, `--open`) — a React single-page app (Vite, shadcn/ui) served by a small JSON API. Every feature is listed and clickable; each detail page has a diagram tab (an interactive drag/zoom/pan canvas by default — the same experience as the VS Code preview's interactive view — plus the four Mermaid views), raw source, the `inspect` model, diagnostics, and cross-feature links (subflow calls, dependents, shared events). An MCP page shows the registration command and tool table for AI agents. Live-reloads on every save via Server-Sent Events, without a full page refresh. No editing — for that, use the visual editor below.
 
 ## VS Code extension (`integrations/vscode/`)
 

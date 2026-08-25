@@ -253,7 +253,7 @@ Watches the workspace. On every save: parse → validate → print diagnostics �
 
 ### `logicspec serve [dir]`
 
-Runs a local, read-only dashboard over the workspace: every feature listed and clickable, each with a full-detail page — diagram (with a view switcher and clickable subflow nodes), raw YAML source, the same stable model `inspect --json` returns, validation diagnostics, and cross-references (subflow calls, dependents, shared events). Defaults to `http://127.0.0.1:27000`; `--port`, `--host` and `--open` (launch your default browser) override the defaults. Live-reloads on every save.
+Runs a local dashboard — a React single-page app served by a small JSON API: every feature listed and clickable, each with a full-detail page (an interactive drag/zoom/pan diagram canvas plus the four Mermaid views, raw YAML source, the same stable model `inspect --json` returns, validation diagnostics, cross-references, and an MCP registration page). Defaults to `http://127.0.0.1:27000`; `--port`, `--host` and `--open` override the defaults. Live-reloads on every save.
 
 ### `logicspec export [dir]`
 
