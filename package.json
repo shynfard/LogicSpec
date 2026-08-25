@@ -45,7 +45,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && vite build --config client/vite.config.ts",
-    "prepublishOnly": "npm run typecheck && npm run lint && npm test",
+    "prepublishOnly": "npm run typecheck && npm run lint && npm run build && npm test",
     "typecheck": "tsc --noEmit && tsc --noEmit -p client/tsconfig.json",
     "lint": "biome check src tests scripts client",
     "lint:fix": "biome check --write src tests scripts client",

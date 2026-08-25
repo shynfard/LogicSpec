@@ -481,8 +481,8 @@ All are self-contained; the core library never depends on any integration.
 npm install
 npm run typecheck
 npm run lint
-npm test
 npm run build
+npm test
 npm run schemas   # regenerate schemas/ from the Zod schemas
 ```
 

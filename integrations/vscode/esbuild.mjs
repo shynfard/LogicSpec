@@ -45,6 +45,7 @@ if (!fs.existsSync(dashboardSource)) {
   process.exit(1);
 }
 const dashboardDest = path.join(root, "media", "dashboard");
+fs.rmSync(dashboardDest, { recursive: true, force: true });
 fs.cpSync(dashboardSource, dashboardDest, { recursive: true });
 
 /** @type {import("esbuild").BuildOptions} */

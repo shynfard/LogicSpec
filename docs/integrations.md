@@ -53,11 +53,14 @@ Positions on the interactive canvas are view-only — never persisted.
 Development loop:
 
 ```bash
+npm install && npm run build   # from the repo root, once
 cd integrations/vscode
 npm install
-npm run build     # esbuild bundle + bundled mermaid asset
+npm run build     # esbuild bundle + bundled mermaid asset + dashboard client copy
 # open the folder in VS Code and press F5 (launch config included)
 ```
+
+The extension's build copies the dashboard's built static assets (`dist/server/public`) into `media/dashboard/` for the "Start Dashboard" command — that's why the root build has to run first.
 
 Package a `.vsix` with `npx @vscode/vsce package --no-dependencies`. Validation runs in the extension host (no language server yet — a future refinement).
 

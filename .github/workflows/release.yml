@@ -54,8 +54,8 @@ jobs:
         run: |
           npm run typecheck
           npm run lint
-          npm test
           npm run build
+          npm test
 
       - name: Publish to npm
         run: npm publish --access public --provenance
@@ -75,6 +75,9 @@ jobs:
 
       - name: Core install (source-aliased deps)
         run: npm ci
+
+      - name: Core build
+        run: npm run build
 
       - name: Build .vsix
         working-directory: integrations/vscode
@@ -115,6 +118,9 @@ jobs:
       - name: Core install (source-aliased deps)
         run: npm ci
 
+      - name: Core build
+        run: npm run build
+
       - name: Build, package and publish
         working-directory: integrations/vscode
         env:
@@ -152,6 +158,9 @@ jobs:
 
       - name: Core install (source-aliased deps)
         run: npm ci
+
+      - name: Core build
+        run: npm run build
 
       - name: Build .vsix
         working-directory: integrations/vscode

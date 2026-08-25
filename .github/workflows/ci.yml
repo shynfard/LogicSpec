@@ -28,11 +28,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Test
-        run: npm test
-
       - name: Build
         run: npm run build
+
+      - name: Test
+        run: npm test
 
       - name: CLI smoke — validate example workspace
         run: node dist/cli/main.js validate examples/booking
@@ -65,11 +65,11 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Test
-        run: npm test
-
       - name: Build
         run: npm run build
+
+      - name: Test
+        run: npm test
 
       - name: CLI smoke — validate example workspace
         run: node dist/cli/main.js validate examples/booking
@@ -88,6 +88,9 @@ jobs:
       # of yaml/zod resolve against the root node_modules — install it first.
       - name: Core install
         run: npm ci
+
+      - name: Core build
+        run: npm run build
 
       - name: VS Code extension — install
         working-directory: integrations/vscode

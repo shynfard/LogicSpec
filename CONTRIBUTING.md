@@ -13,15 +13,15 @@ npm install
 Everyday commands:
 
 ```bash
-npm run typecheck   # tsc --noEmit over src, tests and scripts
+npm run typecheck   # tsc --noEmit over src, tests and scripts (plus a client-scoped pass)
 npm run lint        # Biome
-npm test            # Vitest
 npm run build       # compile to dist/
+npm test            # Vitest — the server/client test suite asserts against dist/, so build first
 npm run schemas     # regenerate schemas/*.schema.json from the Zod schemas
 npm link            # make the `logicspec` CLI available globally
 ```
 
-Before opening a PR, make sure all four of typecheck, lint, test, and build pass, and run the CLI against `examples/booking/`.
+Before opening a PR, make sure all four of typecheck, lint, build, and test pass — in that order, since some tests assert against build output — and run the CLI against `examples/booking/`.
 
 ## Project layout
 
@@ -34,13 +34,17 @@ src/
   renderers/    Mermaid flowchart, experimental swimlane, Markdown wrapper
   workspace/    config discovery, catalog + feature loading
   cli/          Commander commands; thin layer over the library
+  server/       dashboard HTTP server (JSON API + static file serving for client/)
   diagnostics/  diagnostic codes, types, nearest-name suggestions
   index.ts      the public API — only what's exported here is stable
-tests/          Vitest suites mirroring src/
+client/         the dashboard's React SPA (Vite/Tailwind/shadcn/ui), served by src/server/
+tests/          Vitest suites mirroring src/; tests/client/ mirrors client/ (pure-logic only)
 schemas/        generated JSON Schemas (never edit by hand; run npm run schemas)
 examples/       runnable example workspaces (booking is canonical)
 docs/           specification, step types, validation, roadmap
 ```
+
+`npm run typecheck` runs two passes: `tsc --noEmit` over `src`, `tests` and `scripts`, plus a second `tsc --noEmit -p client/tsconfig.json` pass over `client/`. `npm test` likewise runs two Vitest configs (root + `vitest.client.config.ts`) and, for the server suite, asserts against `dist/` — build before you test.
 
 Architecture rules that keep the codebase healthy:
 
