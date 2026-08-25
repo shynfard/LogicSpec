@@ -15,10 +15,8 @@ import { describe, expect, it } from "vitest";
  * when dist/ has not been built yet.
  */
 
-const bundlePath = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../dist/extension.cjs",
-);
+const extensionRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const bundlePath = path.join(extensionRoot, "dist", "extension.cjs");
 
 const disposable = { dispose() {} };
 const passthrough: unknown = new Proxy(function () {}, {
@@ -136,5 +134,20 @@ describe.skipIf(!fs.existsSync(bundlePath))("built extension bundle", () => {
     } finally {
       moduleAny._load = originalLoad;
     }
+  });
+});
+
+/**
+ * Guards the esbuild copy step (esbuild.mjs) that stages the built dashboard
+ * SPA into media/dashboard/ for dashboard.ts's publicDir. bundle-load.test.ts
+ * above stubs Uri.joinPath() and only checks that activate() registers
+ * commands — it can't catch a broken copy step or a regressed dashboard.ts
+ * wiring, which is exactly the bug class already fixed twice in this branch.
+ */
+describe.skipIf(!fs.existsSync(bundlePath))("dashboard client bundle", () => {
+  it("stages the built dashboard SPA into media/dashboard/", () => {
+    expect(fs.existsSync(path.join(extensionRoot, "media", "dashboard", "index.html"))).toBe(
+      true,
+    );
   });
 });
