@@ -11,9 +11,14 @@ export function MermaidView({ source }: { source: string }) {
     if (el === null || source === "") return;
     let cancelled = false;
     const id = `mermaid-${Math.random().toString(36).slice(2)}`;
-    mermaid.render(id, source).then(({ svg }) => {
-      if (!cancelled) el.innerHTML = svg;
-    });
+    mermaid
+      .render(id, source)
+      .then(({ svg }) => {
+        if (!cancelled) el.innerHTML = svg;
+      })
+      .catch(() => {
+        if (!cancelled) el.innerHTML = "";
+      });
     return () => {
       cancelled = true;
     };

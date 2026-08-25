@@ -32,6 +32,8 @@ CLI commands: `init` · `validate [paths...] [--strict] [--json]` (no paths = wh
 | Workspace | `src/workspace/` | config discovery, catalog (services/events/definitions) + API-doc loading, flow index, `featureDependents` |
 | CLI | `src/cli/` | Commander commands; thin layer over the library |
 | Diagnostics | `src/diagnostics/` | LS codes, Diagnostic type, nearest-name suggestions |
+| Server | `src/server/` | `serve`/`export` dashboard HTTP server — JSON API + static file serving; re-reads the workspace per request, no cache |
+| Client | `client/` | the dashboard's React SPA — Vite/Tailwind/shadcn/ui, served as static assets by `src/server/`; never imports `logicspec`/`logicspec/core` |
 | Integrations | `integrations/vscode/`, `integrations/editor/` | self-contained packages (own package.json — install/build/test INSIDE the dir); bundle core from `../../src` via alias, never from dist |
 
 Public API = exports of `src/index.ts`; browser-safe subset = `src/core.ts` (`logicspec/core`). Everything else is internal.
@@ -41,7 +43,7 @@ Public API = exports of `src/index.ts`; browser-safe subset = `src/core.ts` (`lo
 1. **Nine step types, closed set**: `page`, `decision`, `operation`, `event`, `wait`, `subflow`, `parallel`, `error`, `final`. Never invent step types or properties; org-specific data goes under namespaced `extensions:` (keys contain `/`).
 2. **Diagnostic codes (LS001–LS404) are stable**: never renumber or reuse; new checks get the next free number in the right band (0xx files, 1xx references, 2xx graph, 3xx structure, 4xx advisory). Document new codes in `docs/validation.md`.
 3. **Deterministic output**: nodes/edges in source order; same YAML → byte-identical render. No randomness, no timestamps in generated content.
-4. **Renderers are pure**: objects in, strings out; no `fs` outside `src/cli/`, `src/workspace/`, `src/mcp/`.
+4. **Renderers are pure**: objects in, strings out; no `fs` outside `src/cli/`, `src/workspace/`, `src/mcp/`, `src/server/`.
 5. **Validation returns `Diagnostic[]`**: no console output outside `src/cli/` (MCP logs go to stderr only — stdout is protocol).
 6. **Never execute YAML content**: `expression`, `when`, labels, notes are opaque data. No `eval`/`new Function`/shell with user input. Escape every user string in Mermaid output (`escapeMermaid`).
 7. **All transition discovery lives in `src/graph/normalize.ts`**: validators and renderers consume `transitions`/`FeatureGraph`, never re-interpret raw step shapes.

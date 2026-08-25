@@ -72,12 +72,24 @@ const CONTENT_TYPES: Record<string, string> = {
 };
 
 function serveStatic(res: http.ServerResponse, filePath: string, clientDir: string): void {
-  fs.readFile(filePath, (error, data) => {
+  // The caller derives filePath from a URL pathname (see the /assets/* route
+  // below); WHATWG URL parsing already normalizes `..` dot-segments, so this
+  // never actually escapes clientDir today. Make that guarantee explicit and
+  // intentional instead of an incidental side effect of caller behavior.
+  const resolvedClientDir = path.resolve(clientDir);
+  const resolvedFilePath = path.resolve(filePath);
+  if (!resolvedFilePath.startsWith(resolvedClientDir + path.sep)) {
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("Not found");
+    return;
+  }
+
+  fs.readFile(resolvedFilePath, (error, data) => {
     if (error) {
       serveIndexHtml(res, clientDir);
       return;
     }
-    const contentType = CONTENT_TYPES[path.extname(filePath)] ?? "application/octet-stream";
+    const contentType = CONTENT_TYPES[path.extname(resolvedFilePath)] ?? "application/octet-stream";
     res.writeHead(200, { "Content-Type": contentType });
     res.end(data);
   });

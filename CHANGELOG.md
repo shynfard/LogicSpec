@@ -20,6 +20,10 @@ URLs, same CLI/VS Code entry points, no DSL or API changes.
   current page's data on save instead of reloading the whole page.
 - The dashboard's JSON API (`/api/features`, `/api/features/:id`,
   `/api/mcp`) is internal — not part of the public `logicspec` API surface.
+- `DashboardServerOptions` (exported from `src/index.ts`, used by
+  `createDashboardServer`) changed shape: `mermaidAssetPath` was dropped and
+  `publicDir` was added, for anyone embedding `createDashboardServer`
+  programmatically.
 - `mermaid` moves back out of `dependencies` (bundled by Vite at build time
   instead of resolved from `node_modules` at request time) — the published
   package's real runtime dependencies are unchanged: `chokidar`,
