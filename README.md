@@ -3,70 +3,51 @@
 </p>
 
 [![CI](https://github.com/shynfard/LogicSpec/actions/workflows/ci.yml/badge.svg)](https://github.com/shynfard/LogicSpec/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/logicspec.svg)](https://www.npmjs.com/package/logicspec)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 ![Node](https://img.shields.io/badge/node-%E2%89%A520-brightgreen)
 
 **Define the logic. Validate it. Visualize it. Then build it.**
 
+## What is LogicSpec?
+
 LogicSpec is a small, open-source YAML DSL for describing **application feature logic** — booking, checkout, authentication, onboarding, approval workflows — *before* you implement them.
 
-A feature specification describes:
+One feature file describes the whole behavior of a feature:
 
 ```text
-Pages
-   ↓
-Actions
-   ↓
-Decisions
-   ↓
-Backend Operations
-   ↓
-Events
-   ↓
-Outcomes
+Pages → Actions → Decisions → Backend Operations → Events → Outcomes
 ```
 
-and the toolchain turns it into validated, always-up-to-date diagrams:
+and the toolchain turns it into a validated, queryable model with always-up-to-date diagrams:
 
 ```text
-YAML
- ↓
-Validate
- ↓
-Visualize
- ↓
-Implement
+YAML → Validate → Visualize → Implement
 ```
 
 LogicSpec is a **design and specification tool**, not a workflow engine. Nothing is executed. Expressions are descriptive text. The YAML is the source of truth; generated Mermaid is documentation.
 
-## The problem
+## Why LogicSpec?
 
-Software teams (and AI coding agents) usually have:
-
-```text
-requirements    design    code
-```
-
-but no small, machine-readable source of truth describing how a feature actually behaves — which screens exist, what the user can do, which backend operations run, what happens on conflict, timeout, or failure.
+Software teams (and AI coding agents) usually have requirements, designs and code — but no small, machine-readable source of truth describing how a feature actually *behaves*: which screens exist, what the user can do, which backend operations run, what happens on conflict, timeout, or failure.
 
 * Generic flowcharts are visual but semantically weak — a box is just a box.
 * Workflow engines are far too heavy for design work.
 * Mermaid is great for *seeing* a flow, but a diagram is not a data model you can validate or query.
 
-## The solution
+LogicSpec closes that gap. Describe the feature once, in YAML, with a small closed vocabulary of nine step types. Then:
 
-Describe the feature once, in YAML, with a small closed vocabulary of nine step types. Then:
-
-* **Validate** it — structural schema checks plus graph-aware semantic analysis: unknown transitions, unreachable steps, dead ends, loops that can never finish, and data-flow analysis proving every required context variable is produced on every path. Stable diagnostic codes, "did you mean" suggestions, per-workspace severity overrides.
-* **Visualize** it — deterministic Mermaid flowcharts, plus experimental swimlane, sequence and event-model views, and a workspace dependency graph — all wrapped in Markdown that renders on GitHub and in VS Code.
+* **Validate** it — structural schema checks plus graph-aware semantic analysis: unknown transitions, unreachable steps, dead ends, loops that can never finish, and data-flow analysis proving every required context variable is produced on every path. Stable diagnostic codes (`LS001`–`LS404`), "did you mean" suggestions, per-workspace severity overrides.
+* **Visualize** it — deterministic Mermaid flowcharts, plus swimlane, sequence and event-model views, a workspace dependency graph, an interactive drag/zoom canvas in the dashboard and VS Code — all from the same YAML.
 * **Query** it — `logicspec inspect --json`, `logicspec validate --json` and the built-in MCP server give tools and AI agents a stable, machine-readable model of every feature.
 * **Compare** it — `logicspec diff` reports semantic changes between two versions of a flow, not textual ones.
+
+And because output is deterministic (same YAML → byte-identical diagrams), specs diff cleanly in code review, exactly like code.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/shynfard/LogicSpec/main/assets/canvas-example.png" alt="A real appointment-booking feature on the LogicSpec interactive canvas in VS Code" width="900">
 </p>
-<p align="center"><em>A real booking flow on the VS Code interactive canvas — per-actor colors with legend, ↓requires/↑produces data-flow chips, hover relation-tracing, minimap. All from plain YAML.</em></p>
+<p align="center"><em>A real booking flow on the interactive canvas — per-actor colors with legend, ↓requires/↑produces data-flow chips, hover relation-tracing, minimap. All from plain YAML.</em></p>
 
 ## Quick start (30 seconds)
 
@@ -81,10 +62,10 @@ logicspec init                                  # scaffold config, catalogs, exa
 logicspec validate features/signup.feature.yaml # validate one file (or a directory)
 logicspec render features/signup.feature.yaml   # generate .logicspec/signup.md with a Mermaid diagram
 logicspec watch                                 # re-validate and re-render on every save
-logicspec serve                                 # browse the workspace at http://localhost:27000
+logicspec serve                                 # browse the workspace at http://127.0.0.1:27000
 ```
 
-Prefer the editor? Install the **[LogicSpec VS Code extension](https://marketplace.visualstudio.com/items?itemName=Shynfard.logicspec-vscode)** — diagnostics as you type plus an interactive draggable canvas, no CLI required.
+Prefer the editor? Install the **[LogicSpec VS Code extension](https://marketplace.visualstudio.com/items?itemName=Shynfard.logicspec-vscode)** — diagnostics as you type plus an interactive draggable canvas, no CLI required. Working with AI? The **[Claude Code plugin](#using-with-ai-coding-agents)** teaches your agent the whole language.
 
 ### Working from source
 
@@ -96,7 +77,9 @@ npm run build
 npm link      # exposes the logicspec CLI from your checkout
 ```
 
-## A small example
+## How an example works
+
+Here is a complete login feature — every concept of the language in ~50 lines:
 
 ```yaml
 version: "1"
@@ -153,7 +136,16 @@ steps:
     outcome: success
 ```
 
-`logicspec render` produces a Markdown file containing:
+Reading it top to bottom:
+
+1. **`start`** names the entry step — every flow has exactly one.
+2. **`actors`** declare *who* participates (user, frontend, services…). Steps reference them, swimlane and sequence views group by them.
+3. **`context`** declares the data that flows through the feature. Steps `produce` and `require` these keys — and the validator *proves* every `requires` is produced on **every** path that can reach it (diagnostic `LS203`). Delete `produces: [credentials]` above and validation fails, because `authenticate` can then run without credentials.
+4. **`login-page`** is a `page`: a screen the user sees. Its `submit` action captures credentials and transitions to `authenticate`.
+5. **`authenticate`** is an `operation`: backend work, resolved against the service catalog (`call: auth.create-session` must exist there — `LS104`). Its `on:` map names the possible outcomes and where each one leads. Typo the target — `next: autenticate` — and you get `LS101: unknown step. Did you mean "authenticate"?` with the exact line and column.
+6. **`login-failed`** is an `error` with a recovery action back to the page; **`done`** is a terminal `final` with outcome `success`. Finals have no outgoing transitions — the validator enforces it.
+
+`logicspec render` then produces a Markdown file containing:
 
 ```mermaid
 flowchart TD
@@ -174,9 +166,11 @@ flowchart TD
 
 Shapes and the type marker in each label carry the meaning, so diagrams stay readable in light themes, dark themes, print, and monochrome.
 
-A complete workspace lives in [`examples/booking/`](examples/booking/): two features (a booking flow and an event-driven notification flow), service and event catalogs linked to OpenAPI/AsyncAPI documents, severity overrides in the config, and generated output including the [workspace dependency graph](examples/booking/.logicspec/dependencies.md).
+A complete real workspace lives in [`examples/booking/`](examples/booking/): two features (a booking flow and an event-driven notification flow), service and event catalogs linked to OpenAPI/AsyncAPI documents, severity overrides in the config, and generated output including the [workspace dependency graph](examples/booking/.logicspec/dependencies.md). The [examples README](examples/README.md) maps all six example workspaces to the concepts they demonstrate.
 
-## The nine step types
+## The language
+
+Nine step types — a deliberately closed vocabulary, one preferred way to express each concept:
 
 | Type | Meaning |
 |------|---------|
@@ -190,7 +184,166 @@ A complete workspace lives in [`examples/booking/`](examples/booking/): two feat
 | `error` | A failure, terminal or with recovery actions |
 | `final` | A terminal outcome: `success`, `failure`, or `cancelled` |
 
-The vocabulary is deliberately closed — no custom step types. Organization-specific data belongs under namespaced `extensions:`. See [docs/step-types.md](docs/step-types.md) and the full [specification](docs/specification.md).
+No custom step types — organization-specific data belongs under namespaced `extensions:`. See [docs/step-types.md](docs/step-types.md) and the full [specification](docs/specification.md).
+
+### Beyond the basics
+
+Later releases grew the vocabulary. Every addition is optional, backward-compatible, and — like the rest of the DSL — descriptive: nothing is ever evaluated or scheduled.
+
+**Typed events** — an optional `eventKind` classifies an `event` step as `timer`, `message`, `signal`, `error` or `conditional`. Timers take exactly one of `after` / `at` / `every`; error takes an optional `name`; conditional takes a descriptive `when`:
+
+```yaml
+await-renewal-window:
+  type: event
+  direction: wait
+  eventKind: timer
+  after: 30d
+  on: { received: { next: charge-card } }
+```
+
+**Decision tables** — a `decision` step may carry a DMN-style `decisionTable` (with a declarative hit policy) instead of free-form `cases`. The reserved `next` output column names each rule's target step:
+
+```yaml
+assess:
+  type: decision
+  decisionTable:
+    hitPolicy: first
+    inputs: [age, country]
+    outputs: [tier, next]
+    rules:
+      - { when: ["< 18", "-"], then: [ineligible, reject] }
+      - { when: [">= 18", "-"], then: [standard, review] }
+```
+
+**Boundary handlers** — a `page`, `subflow` or `parallel` step may carry a `boundary` array: documented alternative paths taken when the step times out, errors, or receives a message/condition while still in progress (`interrupting: false` spawns a parallel path instead of diverting):
+
+```yaml
+fulfil:
+  type: subflow
+  flow: warehouse-fulfilment
+  boundary:
+    - { eventKind: timer, after: 2d, next: fulfilment-delayed }
+    - { eventKind: error, name: OutOfStock, next: backorder }
+  on: { shipped: { next: notify } }
+```
+
+**Agent zones** — a top-level `zones` array marks regions of a flow as autonomous-agent territory (agent-driven, order-not-fixed), rendered as a labelled cluster; the `agent` actor kind gives the agent its own swimlane. A zone is pure annotation — it never changes control flow:
+
+```yaml
+actors:
+  triage-agent: { kind: agent, label: Triage Agent }
+zones:
+  - label: AI Triage
+    steps: [classify, enrich, assess-severity]
+```
+
+**Terminating finals** — `terminate: true` on a `final` step ends the whole flow instance, not just that path:
+
+```yaml
+lapsed:
+  type: final
+  outcome: failure
+  terminate: true
+```
+
+**Shared definitions (`$ref`)** — a `definitions.yaml` catalog (`catalogs.definitions` in the config) holds named actors and step templates any feature can pull in with `$ref`; local keys shallow-merge over the resolved definition (local wins):
+
+```yaml
+notify:
+  $ref: "definitions#/steps/send-notification"
+  label: Send Reminder
+  next: sent
+```
+
+Worked examples: [`examples/reminders/`](examples/reminders/) (typed events, guards, `wait`, terminate), [`examples/pricing/`](examples/pricing/) (decision table), [`examples/fulfillment/`](examples/fulfillment/) (subflows, parallel, boundaries), [`examples/triage/`](examples/triage/) (agent zones), [`examples/shared/`](examples/shared/) (`$ref`).
+
+## Using with AI coding agents
+
+Feature YAML is a behavioral source of truth an agent can *query and verify against* — far stronger than prose requirements.
+
+### Claude Code: install the LogicSpec plugin
+
+The fastest way to make Claude fluent in LogicSpec — inside Claude Code run:
+
+```
+/plugin marketplace add shynfard/LogicSpec
+/plugin install logicspec@logicspec
+```
+
+You get three things:
+
+* **The `logicspec-authoring` skill** — Claude learns the full language (nine step types, typed events, decision tables, boundaries, zones, `$ref`), the transition rules, data-flow expectations and the validate → fix → render loop, with the complete grammar and a fix table for every LS code loaded on demand. It activates whenever you work on `*.feature.yaml`, catalogs, or ask to design a flow.
+* **Slash commands** — `/logicspec:feature <description>` designs a new spec end to end (sketch → YAML → catalogs → validate until clean → render); `/logicspec:check [path]` validates a workspace and repairs findings by LS code.
+* **MCP server** — `logicspec mcp` is registered automatically (see below).
+
+Requires the CLI: `npm install -g logicspec`. Skill-only alternative (no plugin system): copy `integrations/claude-plugin/skills/logicspec-authoring/` into `~/.claude/skills/`.
+
+### MCP server (any agent)
+
+Agents that speak the Model Context Protocol query the workspace live — no YAML parsing, no shelling out:
+
+```bash
+claude mcp add logicspec -- logicspec mcp /path/to/your/workspace
+```
+
+Ten tools: `list_features`, `get_feature`, `get_step`, `get_transitions`, `get_service_dependencies`, `get_events`, `validate_feature` (the **same verdict as `logicspec validate`** — severity overrides applied, workspace catalog findings included), `render_feature` (Mermaid for any view), `diff_feature` (semantic diff of the file on disk vs a proposed YAML replacement — preview an edit's behavioral impact *before* writing it), and `get_data_flow` (who produces/requires each context key). Plain stdio JSON-RPC with zero extra dependencies — any MCP client works. Details in [docs/integrations.md](docs/integrations.md#mcp-server).
+
+### Any agent: specs as the source of truth
+
+A `CLAUDE.md` / `AGENTS.md` in your product repository might say:
+
+```markdown
+# Feature Logic
+
+Feature behavior is defined in features/*.feature.yaml — the behavioral
+source of truth.
+
+Before implementing or modifying a feature:
+
+1. Read the relevant feature YAML.
+2. Run `logicspec validate`.
+3. Identify affected pages, backend operations, events, and error paths.
+4. Do not invent behavior that contradicts the specification.
+5. Implement, run tests, and run `logicspec validate` again.
+
+Generated Mermaid files are documentation only. Never infer behavior from
+generated Mermaid when the YAML disagrees with it. The YAML is authoritative.
+```
+
+`logicspec inspect --json` gives agents the normalized model directly, without parsing YAML themselves.
+
+## VS Code extension
+
+Install **[LogicSpec from the Marketplace](https://marketplace.visualstudio.com/items?itemName=Shynfard.logicspec-vscode)** (`ext install Shynfard.logicspec-vscode`, source in [`integrations/vscode/`](integrations/vscode/)). Fully self-contained — no CLI needed. You get:
+
+* **Diagnostics as you type** with exact squiggle ranges and the same stable LS codes as the CLI.
+* **An interactive React Flow canvas** — drag nodes, hover to spotlight a step's relations, stable per-actor colors with a legend, ↓requires/↑produces data-flow chips, minimap, full-screen feature shell.
+* **Four Mermaid views** with an in-panel switcher, plus a live workspace dependency graph.
+* **A step inspector** with cross-file links into catalogs and subflow targets.
+* Commands: *LogicSpec: Preview Feature*, *Validate Workspace*, *Show Workspace Graph*, *Start Dashboard*.
+
+For plain-YAML autocomplete anywhere else, the generated JSON Schemas ship in [`schemas/`](schemas/) — one comment wires the YAML language server:
+
+```yaml
+# yaml-language-server: $schema=./node_modules/logicspec/schemas/feature.schema.json
+```
+
+## The dashboard (local website)
+
+```bash
+logicspec serve            # → http://127.0.0.1:27000
+logicspec serve --open     # …and open it in your browser
+logicspec serve --port 4000 --host 127.0.0.1
+```
+
+`logicspec serve [dir]` runs a local, **read-only** dashboard over the workspace — a React single-page app served by a small JSON API on port **27000** by default:
+
+* Every feature listed with validity, error/warning counts and step counts — click through to a full detail page.
+* Per feature: an **interactive drag/zoom/pan canvas** (the same experience as the VS Code preview), the four Mermaid views, raw YAML source, the stable `inspect --json` model, the diagnostics list, and cross-feature links (subflow calls, dependents, shared events).
+* An **MCP page** showing the exact registration command for AI agents and the live tool table.
+* **Live reload** on every save via Server-Sent Events — edit YAML in your editor, watch the browser update.
+
+Security notes, because the dashboard serves your workspace's raw YAML: it binds loopback (`127.0.0.1`) by default, validates the `Host` header against a loopback allowlist (DNS-rebinding defense), and warns loudly if you bind a non-loopback `--host` (that exposes the workspace source, unauthenticated, to the network). `GET /health` answers for health checks.
 
 ## CLI
 
@@ -232,11 +385,9 @@ Booking (examples/booking/booking.feature.yaml)
 
 Validates first, then writes Markdown with an embedded Mermaid diagram. An invalid specification is never rendered, so a stale-but-correct diagram is never replaced by a misleading one.
 
-Options:
-
 | Flag | Values | Default |
 |------|--------|---------|
-| `--view` | `flow`; experimental: `swimlane`, `sequence`, `event-model` | config `render.view`, else `flow` |
+| `--view` | `flow`, `swimlane`, `sequence`, `event-model` | config `render.view`, else `flow` |
 | `--format` | `md`, `mermaid` (bare `.mmd`) | `md` |
 | `--direction` | `TD`, `TB`, `LR`, `RL`, `BT` | config `render.direction`, else `TD` |
 | `--output` | file or directory | config `output.directory`, else `./.logicspec` |
@@ -245,15 +396,15 @@ The four views answer different questions — flow: *what happens*, swimlane: *w
 
 ### `logicspec inspect <paths...>`
 
-Human-readable summary of a feature: actors, steps by type, operations called, events referenced, final outcomes. With `--json`, prints a stable machine-readable report — designed for AI agents, CI policies and external tools.
+Human-readable summary of a feature: actors, steps by type, operations called, events referenced, final outcomes. With `--json`, prints a stable machine-readable report — designed for AI agents, CI policies and external tools (diagnostics go to stderr; stdout is pure JSON).
 
 ### `logicspec watch [dir]`
 
-Watches the workspace. On every save: parse → validate → print diagnostics → regenerate diagrams *only if valid*. Changing a feature also re-renders every feature that invokes it as a subflow; catalog or config changes re-render everything.
+Watches the workspace. On every save: parse → validate → print diagnostics → regenerate diagrams *only if valid*. Changing a feature also re-renders every feature that invokes it as a subflow; catalog or config changes re-render everything. Bursts of changes (branch switches) are coalesced into a single pass.
 
 ### `logicspec serve [dir]`
 
-Runs a local dashboard — a React single-page app served by a small JSON API: every feature listed and clickable, each with a full-detail page (an interactive drag/zoom/pan diagram canvas plus the four Mermaid views, raw YAML source, the same stable model `inspect --json` returns, validation diagnostics, cross-references, and an MCP registration page). Defaults to `http://127.0.0.1:27000`; `--port`, `--host` and `--open` override the defaults. Live-reloads on every save.
+The local dashboard described [above](#the-dashboard-local-website). Defaults to `http://127.0.0.1:27000`; `--port`, `--host` and `--open` override.
 
 ### `logicspec export [dir]`
 
@@ -300,6 +451,8 @@ Runs the [MCP server](docs/integrations.md#mcp-server) over stdio, exposing the 
 | `1` | validation errors |
 | `2` | parsing, configuration or usage errors |
 
+Every command also accepts a global `--debug` flag, which prints internal stack traces on unexpected errors.
+
 ## Workspace configuration
 
 `logicspec.config.yaml` (found by walking up from the feature file):
@@ -313,6 +466,7 @@ features:
 catalogs:
   services: ./services.yaml
   events: ./events.yaml
+  definitions: ./definitions.yaml   # optional, for $ref shared definitions
 
 output:
   directory: ./.logicspec
@@ -327,7 +481,7 @@ diagnostics:
   LS402: "off"        # unused-actor infos are silenced
 ```
 
-CLI flags override configuration. Without a config file, catalog and subflow checks are simply skipped. Severity overrides apply to feature and workspace-level diagnostics alike, and exit codes follow the *effective* severities.
+CLI flags override configuration. Without a config file, catalog and subflow checks are simply skipped. Severity overrides apply to feature and workspace-level diagnostics alike, and exit codes follow the *effective* severities. Every config-referenced path — catalogs, API documents, the features directory, **and** the output directory — is containment-checked against the workspace root (`LS005`), so a checked-in config can never read or write outside the repo.
 
 ## Linking catalogs to OpenAPI and AsyncAPI
 
@@ -357,16 +511,6 @@ events:
 
 Documents are read as plain YAML/JSON; `$ref` indirection is not resolved.
 
-## Editor integration
-
-JSON Schemas generated from the canonical Zod schemas ship in [`schemas/`](schemas/). With the YAML language server (e.g. the VS Code YAML extension), add one comment for autocomplete and inline validation:
-
-```yaml
-# yaml-language-server: $schema=./node_modules/logicspec/schemas/feature.schema.json
-```
-
-Editor integration is optional — the CLI is the reference validator.
-
 ## Library API
 
 The CLI is a thin layer over a clean TypeScript API:
@@ -393,77 +537,13 @@ Renderers take objects and return strings — no file system access. Validation 
 
 Browser and web tooling should import from **`logicspec/core`** — the same API minus everything that touches the file system (workspace loading, CLI, MCP). The visual editor is built entirely on it, including the document-preserving edit API (`loadEditableFeature`, `addStep`, `renameStep`, `addTransition`, …).
 
-## Using with AI coding agents
+## Other integrations
 
-### Claude Code: install the LogicSpec plugin
+* **Visual editor** (experimental) — [`integrations/editor/`](integrations/editor/): a React Flow canvas with two-way YAML ↔ graph editing — node palette for the nine step types, inspector for labels/actors/transitions, edits written back through a comment-preserving document API. `npm install && npm run dev` inside that directory.
+* **Obsidian plugin** (experimental) — [`integrations/obsidian/`](integrations/obsidian/): renders ` ```logicspec ` blocks (inline feature YAML) and ` ```logicspec-file ` blocks (vault-relative references with `view:`/`direction:` overrides) as validated Mermaid diagrams inside notes, with the full diagnostics list under each diagram and auto re-render when referenced files change. Build inside that directory; copy `dist/` into `<vault>/.obsidian/plugins/logicspec/`.
+* **Claude Code plugin** — [`integrations/claude-plugin/`](integrations/claude-plugin/): described [above](#using-with-ai-coding-agents).
 
-The fastest way to make Claude fluent in LogicSpec — inside Claude Code run:
-
-```
-/plugin marketplace add shynfard/LogicSpec
-/plugin install logicspec@logicspec
-```
-
-You get three things:
-
-* **The `logicspec-authoring` skill** — Claude learns the nine-step-type vocabulary, the transition rules, data-flow expectations and the validate → fix → render loop, with the full grammar and an LS-code fix table loaded on demand. It activates whenever you work on `*.feature.yaml`, catalogs, or ask to design a flow.
-* **Slash commands** — `/logicspec:feature <description>` designs a new spec end to end (sketch → YAML → catalogs → validate until clean → render); `/logicspec:check [path]` validates a workspace and repairs findings by LS code.
-* **MCP server** — `logicspec mcp` is registered automatically, so Claude can query `list_features`, `get_feature`, `get_step`, `get_transitions`, `get_service_dependencies`, `get_events` and `validate_feature` structurally instead of re-parsing YAML.
-
-Requires the CLI: `npm install -g logicspec`. Skill-only alternative (no plugin system): copy `integrations/claude-plugin/skills/logicspec-authoring/` into `~/.claude/skills/`.
-
-### Any agent: specs as the source of truth
-
-Feature YAML files make an excellent behavioral source of truth for AI agents. A `CLAUDE.md` (or equivalent) in your product repository might say:
-
-```markdown
-# Feature Logic
-
-Feature behavior is defined in:
-
-features/*.feature.yaml
-
-These YAML files are the behavioral source of truth.
-
-Before implementing or modifying a feature:
-
-1. Read the relevant feature YAML.
-2. Run `logicspec validate`.
-3. Identify affected pages.
-4. Identify backend operations.
-5. Identify events.
-6. Identify error paths.
-7. Do not invent behavior that contradicts the specification.
-8. Implement the requested change.
-9. Run tests.
-10. Run `logicspec validate` again.
-
-Generated Mermaid files are documentation only.
-
-Never infer behavior from generated Mermaid when the YAML disagrees with it.
-The YAML is authoritative.
-```
-
-`logicspec inspect --json` gives agents the normalized model directly, without parsing YAML themselves.
-
-### MCP server
-
-Agents that speak the Model Context Protocol can query the workspace live — no YAML parsing, no shelling out:
-
-```bash
-claude mcp add logicspec -- logicspec mcp /path/to/your/workspace
-```
-
-Seven tools: `list_features`, `get_feature`, `get_step`, `get_transitions`, `get_service_dependencies`, `get_events`, `validate_feature`. Plain stdio JSON-RPC with zero extra dependencies — any MCP client works. Details in [docs/integrations.md](docs/integrations.md#mcp-server).
-
-## Integrations (experimental)
-
-* **VS Code extension** — [install from the Marketplace](https://marketplace.visualstudio.com/items?itemName=Shynfard.logicspec-vscode) (source: [`integrations/vscode/`](integrations/vscode/)): diagnostics as you type with exact ranges, an **interactive React Flow canvas** (drag nodes, hover to spotlight relations, stable per-actor colors, minimap), four Mermaid views, a step inspector with cross-file links into catalogs and subflows, and a live workspace graph. Fully self-contained — no CLI needed.
-* **Visual editor** — [`integrations/editor/`](integrations/editor/): a React Flow canvas with two-way YAML ↔ graph editing — node palette for the nine step types, inspector for labels/actors/transitions, edits written back through a comment-preserving document API. `npm install && npm run dev` inside that directory.
-* **Obsidian plugin** — [`integrations/obsidian/`](integrations/obsidian/): renders ` ```logicspec ` blocks (inline feature YAML) and ` ```logicspec-file ` blocks (vault-relative references with `view:`/`direction:` overrides) as validated Mermaid diagrams inside notes, with the full diagnostics list under each diagram and auto re-render when referenced files change. Build inside that directory; copy `dist/` into `<vault>/.obsidian/plugins/logicspec/`.
-* **Claude Code plugin** — [`integrations/claude-plugin/`](integrations/claude-plugin/): an authoring skill (DSL rules, diagnostics reference, the validate-fix-render loop), `/logicspec:feature` and `/logicspec:check` commands, and MCP server wiring. Install with `/plugin marketplace add shynfard/LogicSpec` → `/plugin install logicspec@logicspec`.
-
-All are self-contained; the core library never depends on any integration.
+All integrations are self-contained and version-locked with the core; the core library never depends on any of them.
 
 ## Documentation
 
@@ -471,8 +551,9 @@ All are self-contained; the core library never depends on any integration.
 * [Step types](docs/step-types.md) — reference with examples
 * [Validation](docs/validation.md) — pipeline, diagnostics catalog, data-flow analysis, exit codes
 * [Views](docs/views.md) — the four feature views and the workspace graph
-* [Integrations](docs/integrations.md) — MCP server, VS Code extension, visual editor, edit API
-* [Roadmap](docs/roadmap.md) — what shipped in 0.5.0, what's next
+* [Integrations](docs/integrations.md) — MCP server, dashboard, VS Code extension, visual editor, edit API
+* [Examples](examples/README.md) — six workspaces, one per concept cluster
+* [Roadmap](docs/roadmap.md) — what has shipped release by release, what's next
 * [Changelog](CHANGELOG.md)
 
 ## Development
@@ -482,8 +563,10 @@ npm install
 npm run typecheck
 npm run lint
 npm run build
-npm test
-npm run schemas   # regenerate schemas/ from the Zod schemas
+npm test               # or test:coverage — CI enforces coverage floors
+npm run schemas        # regenerate schemas/ from the Zod schemas
+npm run check:versions # all packages must share one version (lockstep)
+npm run check:docs     # every LS code documented everywhere it must be
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add step types, validation rules, and renderers.

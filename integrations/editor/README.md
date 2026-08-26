@@ -48,7 +48,7 @@ survive every edit. If that module is unavailable or an operation is invalid
 (for example connecting *from* a `final` step), the editor shows the error as
 a toast and leaves the YAML unchanged.
 
-## Known limits (v0.4)
+## Known limits
 
 - One feature file at a time; catalogs (services/events) are not loaded, so
   catalog-dependent checks (LS104/LS105/…) don't run here — use

@@ -1,0 +1,77 @@
+# yaml-language-server: $schema=../../schemas/feature.schema.json
+version: "1"
+
+# The sub-process invoked by order-fulfillment's `fulfil` subflow step. Picks
+# and packs the order, then dispatches it via the carrier. It ends in the
+# outcomes the caller's `on:` map handles — `success` (shipped) and `cancelled`
+# (delivery refused, order restocked) — or in a terminal error when the parcel
+# is lost in transit.
+
+feature:
+  id: warehouse-fulfilment
+  name: Warehouse Fulfilment
+  description: Pick, pack and dispatch an order through the carrier.
+
+start: pick
+
+actors:
+
+  warehouse:
+    kind: service
+    label: Warehouse
+
+  carrier:
+    kind: external
+    label: Carrier
+
+steps:
+
+  pick:
+    type: operation
+    label: Pick Items
+    actor: warehouse
+    call: warehouse.pick
+    next: pack
+
+  pack:
+    type: operation
+    label: Pack Order
+    actor: warehouse
+    call: warehouse.pack
+    next: dispatch
+
+  dispatch:
+    type: operation
+    label: Dispatch via Carrier
+    actor: carrier
+    call: carrier.dispatch
+    on:
+      delivered:
+        next: shipped
+      refused:
+        when: the customer refuses the delivery
+        next: restock
+      lost:
+        next: shipment-lost
+
+  restock:
+    type: operation
+    label: Return to Stock
+    actor: warehouse
+    call: warehouse.restock
+    next: returned
+
+  shipment-lost:
+    type: error
+    label: Shipment Lost
+    message: The parcel was lost in transit.
+
+  shipped:
+    type: final
+    label: Shipped
+    outcome: success
+
+  returned:
+    type: final
+    label: Returned
+    outcome: cancelled

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-LogicSpec — a YAML DSL for describing application feature logic, plus the toolchain (v0.5.0): parse → validate → normalize → graph → render (Mermaid) → inspect/diff/edit, with an MCP server and experimental VS Code + visual-editor integrations. TypeScript, ESM, Node ≥ 20, Zod 4, Vitest, Biome. This is a design/specification tool, **not** a workflow engine: nothing in a YAML document is ever executed.
+LogicSpec — a YAML DSL for describing application feature logic, plus the toolchain: parse → validate → normalize → graph → render (Mermaid) → inspect/diff/edit, with an MCP server, a local dashboard (`serve`/`export`), and four integrations (VS Code extension, visual editor, Obsidian plugin, Claude Code plugin). TypeScript, ESM, Node ≥ 20, Zod 4, Vitest, Biome. This is a design/specification tool, **not** a workflow engine: nothing in a YAML document is ever executed.
 
 Keep this file in sync with `CLAUDE.md` (same substance).
 
@@ -15,7 +15,7 @@ npm run schemas     # regenerate schemas/*.schema.json (run after changing src/s
 node dist/cli/main.js <cmd>   # run the CLI without npm link
 ```
 
-CLI commands: `init` · `validate [paths...] [--strict] [--json]` (no paths = whole workspace) · `render <paths...> [--view flow|swimlane|sequence|event-model] [--format md|mermaid] [--direction TD|TB|LR|RL|BT] [--output]` · `export [dir]` (full artifact build into .logicspec/) · `inspect <paths...> [--json]` · `watch [dir]` (re-renders subflow dependents) · `serve [dir] [--port] [--host] [--open]` (local read-only dashboard, default http://127.0.0.1:27000) · `graph [dir] [--services]` · `diff <before> <after> [--json]` · `mcp [dir]`. Exit codes: 0 ok, 1 validation errors, 2 parse/config/usage errors (diff: 0 even when different).
+CLI commands: `init` · `validate [paths...] [--strict] [--json]` (no paths = whole workspace) · `render <paths...> [--view flow|swimlane|sequence|event-model] [--format md|mermaid] [--direction TD|TB|LR|RL|BT] [--output]` · `export [dir]` (full artifact build into .logicspec/) · `inspect <paths...> [--json]` · `watch [dir]` (re-renders subflow dependents) · `serve [dir] [--port] [--host] [--open]` (local read-only dashboard, default http://127.0.0.1:27000) · `graph [dir] [--services]` · `diff <before> <after> [--json]` · `mcp [dir]`. Global `--debug` prints stack traces on unexpected errors. Exit codes: 0 ok, 1 validation errors, 2 parse/config/usage errors (diff: 0 even when different).
 
 ## Architecture (pipeline order)
 
@@ -28,13 +28,13 @@ CLI commands: `init` · `validate [paths...] [--strict] [--json]` (no paths = wh
 | Renderers | `src/renderers/` | flowchart (stable); swimlane, sequence, event-model (experimental); workspace graph; Markdown wrapper |
 | Diff | `src/diff/` | semantic feature diff (`diffFeatures`, `formatFeatureDiff`) |
 | Edit | `src/edit/` | comment/format-preserving `yaml`-Document mutations (two-way editing) |
-| MCP | `src/mcp/` | dependency-free stdio JSON-RPC server, 7 tools |
+| MCP | `src/mcp/` | dependency-free stdio JSON-RPC server, 10 tools |
 | Workspace | `src/workspace/` | config discovery, catalog (services/events/definitions) + API-doc loading, flow index, `featureDependents` |
 | CLI | `src/cli/` | Commander commands; thin layer over the library |
 | Diagnostics | `src/diagnostics/` | LS codes, Diagnostic type, nearest-name suggestions |
-| Server | `src/server/` | `serve`/`export` dashboard HTTP server — JSON API + static file serving; re-reads the workspace per request, no cache |
+| Server | `src/server/` | `serve`/`export` dashboard HTTP server — JSON API + static file serving; in-memory workspace cache invalidated by the live-reload watcher (per-request reload when no watcher) |
 | Client | `client/` | the dashboard's React SPA — Vite/Tailwind/shadcn/ui, served as static assets by `src/server/`; never imports `logicspec`/`logicspec/core` |
-| Integrations | `integrations/vscode/`, `integrations/editor/` | self-contained packages (own package.json — install/build/test INSIDE the dir); bundle core from `../../src` via alias, never from dist |
+| Integrations | `integrations/vscode/`, `integrations/editor/`, `integrations/obsidian/`, `integrations/claude-plugin/` | self-contained; vscode/editor/obsidian are packages (own package.json — install/build/test INSIDE the dir) bundling core from `../../src` via alias, never from dist; claude-plugin is a skill/commands/MCP manifest, no build |
 
 Public API = exports of `src/index.ts`; browser-safe subset = `src/core.ts` (`logicspec/core`). Everything else is internal.
 

@@ -1,11 +1,18 @@
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
+import { diffFeatures, formatFeatureDiff } from "../diff/diff.js";
 import type { FeatureGraph } from "../graph/edges.js";
 import type { NormalizedFeature } from "../graph/normalize.js";
 import { inspectFeature } from "../inspect.js";
+import { renderMermaid } from "../renderers/markdown.js";
 import type { EventsFile } from "../schema/events.js";
-import { type ValidationResult, validateFeature } from "../validator/validate.js";
+import { validateCatalogs } from "../validator/catalogs.js";
+import {
+  applySeverityOverrides,
+  type ValidationResult,
+  validateFeature,
+} from "../validator/validate.js";
 import {
   FEATURE_FILE_SUFFIX,
   featureStem,
@@ -45,6 +52,8 @@ interface ToolContext {
 interface ToolDefinition {
   name: string;
   description: string;
+  /** Human-readable argument list for docs surfaces (the dashboard MCP page). */
+  argsSummary: string;
   schema: z.ZodType;
   run: (args: unknown, context: ToolContext) => unknown;
 }
@@ -82,12 +91,17 @@ function loadFeatureEntry(ref: WorkspaceFeatureRef, context: ToolContext): Featu
   } catch (error) {
     throw new ToolError(`Cannot read ${file}: ${(error as Error).message}`);
   }
+  // Exactly the options the CLI's validateTarget passes — an agent asking
+  // over MCP must get the same verdict as `logicspec validate` in CI,
+  // including flow-outcome contracts and the workspace's severity overrides.
   const result = validateFeature(source, {
     file,
     services: workspace.services,
     events: workspace.events,
     definitions: workspace.definitions,
     knownFlows: workspace.knownFlows,
+    flowOutcomes: workspace.flowOutcomes,
+    severityOverrides: workspace.config.diagnostics,
   });
   const id = fallbackId(ref);
   return { id, file, name: result.feature?.feature.name ?? id, result };
@@ -183,6 +197,7 @@ const featureArg = z
 const TOOLS: ToolDefinition[] = [
   {
     name: "list_features",
+    argsSummary: "—",
     description:
       "List every feature specification in the LogicSpec workspace: id, file, display name and " +
       "whether it currently validates.",
@@ -207,6 +222,7 @@ const TOOLS: ToolDefinition[] = [
   },
   {
     name: "get_feature",
+    argsSummary: "feature",
     description:
       "Full structured model of one feature: steps, edges, terminals, context, services, " +
       "events, agent zones and stats. This is the machine-readable source of truth for the " +
@@ -221,6 +237,7 @@ const TOOLS: ToolDefinition[] = [
   },
   {
     name: "get_step",
+    argsSummary: "feature, step",
     description:
       "One step of a feature: its definition exactly as authored, every outgoing transition, and " +
       "the agent zone it belongs to (when any).",
@@ -244,6 +261,7 @@ const TOOLS: ToolDefinition[] = [
   },
   {
     name: "get_transitions",
+    argsSummary: "feature, from?",
     description: "Edges of a feature's graph, optionally filtered to those leaving one step.",
     schema: z.strictObject({
       feature: featureArg,
@@ -261,6 +279,7 @@ const TOOLS: ToolDefinition[] = [
   },
   {
     name: "get_service_dependencies",
+    argsSummary: "feature?",
     description:
       "Services and operations a feature calls; without a feature argument, one entry per " +
       "feature in the workspace.",
@@ -279,6 +298,7 @@ const TOOLS: ToolDefinition[] = [
   },
   {
     name: "get_events",
+    argsSummary: "feature?",
     description:
       "Events a feature publishes or waits for, enriched from the event catalog " +
       "(topic, producer, consumers); without a feature argument, one entry per feature.",
@@ -306,22 +326,171 @@ const TOOLS: ToolDefinition[] = [
   },
   {
     name: "validate_feature",
+    argsSummary: "feature",
     description:
-      "Validate one feature against the workspace (catalogs, subflows, graph analysis) and " +
-      "return the full diagnostics with stable LS codes.",
+      "Validate one feature against the workspace (catalogs, subflows, graph analysis, severity " +
+      "overrides) and return the full diagnostics with stable LS codes — the same verdict " +
+      "`logicspec validate` gives in CI, plus the workspace-level catalog findings.",
     schema: z.strictObject({ feature: featureArg }),
     run: (args, context) => {
       const { feature } = args as { feature: string };
+      const workspace = requireWorkspace(context);
       const entry = resolveFeature(feature, context);
+      // Catalog / API-document findings (LS108/LS109/LS403…) are workspace-
+      // level, so the CLI prints them alongside every validate run; report
+      // them here too or an agent never sees them.
+      const workspaceFindings = applySeverityOverrides(
+        [...workspace.diagnostics, ...validateCatalogs(workspace)],
+        workspace.config.diagnostics,
+      );
       return {
         feature: entry.id,
         file: entry.file,
-        valid: entry.result.valid,
+        valid: entry.result.valid && !workspaceFindings.some((d) => d.severity === "error"),
         diagnostics: entry.result.diagnostics,
+        workspaceDiagnostics: workspaceFindings,
       };
     },
   },
+  {
+    name: "render_feature",
+    argsSummary: "feature, view?, direction?",
+    description:
+      "Mermaid source for one feature in a chosen view (flow, swimlane, sequence, event-model) " +
+      "— the exact output `logicspec render --format mermaid` writes.",
+    schema: z.strictObject({
+      feature: featureArg,
+      view: z
+        .enum(["flow", "swimlane", "sequence", "event-model"])
+        .optional()
+        .describe("Diagram view (default: flow)."),
+      direction: z
+        .enum(["TD", "TB", "LR", "RL", "BT"])
+        .optional()
+        .describe("Flow direction (flow/swimlane views)."),
+    }),
+    run: (args, context) => {
+      const { feature, view, direction } = args as {
+        feature: string;
+        view?: "flow" | "swimlane" | "sequence" | "event-model";
+        direction?: "TD" | "TB" | "LR" | "RL" | "BT";
+      };
+      const entry = resolveFeature(feature, context);
+      const { normalized, graph } = requireModel(entry);
+      return {
+        feature: entry.id,
+        view: view ?? "flow",
+        mermaid: renderMermaid(normalized, graph, { view: view ?? "flow", direction }),
+      };
+    },
+  },
+  {
+    name: "diff_feature",
+    argsSummary: "feature, proposed_source",
+    description:
+      "Semantic diff between a feature as it exists on disk and a proposed replacement YAML " +
+      "source: steps and transitions added/removed/changed, context and outcome changes. Use it " +
+      "to preview the behavioral impact of an edit before writing the file.",
+    schema: z.strictObject({
+      feature: featureArg,
+      proposed_source: z.string().describe("Complete proposed feature YAML document."),
+    }),
+    run: (args, context) => {
+      const { feature, proposed_source } = args as { feature: string; proposed_source: string };
+      const workspace = requireWorkspace(context);
+      const entry = resolveFeature(feature, context);
+      const { normalized: before } = requireModel(entry);
+      const proposed = validateFeature(proposed_source, {
+        file: `${entry.file} (proposed)`,
+        services: workspace.services,
+        events: workspace.events,
+        definitions: workspace.definitions,
+        knownFlows: workspace.knownFlows,
+        flowOutcomes: workspace.flowOutcomes,
+        severityOverrides: workspace.config.diagnostics,
+      });
+      if (proposed.normalized === undefined) {
+        const firstError = proposed.diagnostics.find((d) => d.severity === "error");
+        throw new ToolError(
+          `Proposed source does not parse: ${firstError?.message ?? "unknown error"}`,
+        );
+      }
+      const diff = diffFeatures(before, proposed.normalized);
+      return {
+        feature: entry.id,
+        identical: diff.identical,
+        diff,
+        summary: formatFeatureDiff(diff, entry.file, "proposed"),
+        proposedValid: proposed.valid,
+        proposedDiagnostics: proposed.diagnostics,
+      };
+    },
+  },
+  {
+    name: "get_data_flow",
+    argsSummary: "feature, key?",
+    description:
+      "Context data flow of a feature: which steps (or page actions) produce each context key " +
+      "and which require it. Optionally filtered to one key.",
+    schema: z.strictObject({
+      feature: featureArg,
+      key: z.string().optional().describe("Only this context key."),
+    }),
+    run: (args, context) => {
+      const { feature, key } = args as { feature: string; key?: string };
+      const entry = resolveFeature(feature, context);
+      const { normalized } = requireModel(entry);
+      const flows = new Map<string, { key: string; producedBy: string[]; requiredBy: string[] }>();
+      const entryFor = (name: string) => {
+        const existing = flows.get(name);
+        if (existing) return existing;
+        const created = { key: name, producedBy: [], requiredBy: [] };
+        flows.set(name, created);
+        return created;
+      };
+      for (const variable of normalized.context) entryFor(variable.name);
+      for (const step of normalized.steps) {
+        const def = step.def as {
+          requires?: string[];
+          produces?: string[];
+          actions?: Record<string, { requires?: string[]; produces?: string[] }>;
+        };
+        for (const name of def.requires ?? []) entryFor(name).requiredBy.push(step.id);
+        for (const name of def.produces ?? []) entryFor(name).producedBy.push(step.id);
+        for (const [actionId, action] of Object.entries(def.actions ?? {})) {
+          const site = `${step.id}.${actionId}`;
+          for (const name of action.requires ?? []) entryFor(name).requiredBy.push(site);
+          for (const name of action.produces ?? []) entryFor(name).producedBy.push(site);
+        }
+      }
+      const all = [...flows.values()];
+      if (key !== undefined) {
+        const found = all.find((flow) => flow.key === key);
+        if (!found) {
+          throw new ToolError(
+            `Unknown context key "${key}" in feature "${entry.id}". ` +
+              `Keys: ${all.map((flow) => flow.key).join(", ") || "(none)"}.`,
+          );
+        }
+        return found;
+      }
+      return all;
+    },
+  },
 ];
+
+/**
+ * Name, argument summary and description of every MCP tool — the single
+ * source the dashboard's MCP page renders, so the table can never drift
+ * from the server again.
+ */
+export function toolSummaries(): Array<{ name: string; args: string; description: string }> {
+  return TOOLS.map((tool) => ({
+    name: tool.name,
+    args: tool.argsSummary,
+    description: tool.description,
+  }));
+}
 
 function toolDescriptors(): McpToolDescriptor[] {
   return TOOLS.map((tool) => ({

@@ -16,6 +16,7 @@ function fixture(): FeatureGraph {
       { from: "a", to: "b", kind: "action", label: "go" },
       { from: "b", to: "c", kind: "next" },
     ],
+    zones: [],
   };
 }
 

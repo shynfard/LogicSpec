@@ -24,7 +24,10 @@ Any other stdio MCP client works the same way — point it at the `logicspec mcp
 | `get_transitions` | `feature`, `from?` | Edge list, optionally filtered by source step |
 | `get_service_dependencies` | `feature?` | Services and operations called (one feature, or the whole workspace) |
 | `get_events` | `feature?` | Events published/waited on, enriched from the event catalog |
-| `validate_feature` | `feature` | `valid` plus the full diagnostics list |
+| `validate_feature` | `feature` | The same verdict as `logicspec validate`: diagnostics with severity overrides applied, plus workspace-level catalog findings |
+| `render_feature` | `feature`, `view?`, `direction?` | Mermaid source for one view (flow, swimlane, sequence, event-model) |
+| `diff_feature` | `feature`, `proposed_source` | Semantic diff between the file on disk and a proposed YAML replacement |
+| `get_data_flow` | `feature`, `key?` | Which steps and page actions produce/require each context key |
 
 `feature` accepts a feature id or a file stem. The workspace is reloaded on every call — agents always see the current file state; correctness over latency.
 

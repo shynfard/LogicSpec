@@ -24,6 +24,32 @@ export interface DashboardServerOptions {
    * recover the right directory once bundled.
    */
   publicDir?: string;
+  /**
+   * Extra hostnames accepted in the `Host` request header, on top of the
+   * loopback names that are always allowed. Requests carrying any other
+   * `Host` are rejected with 403 — the defense against DNS rebinding, where
+   * a hostile page resolves its own domain to 127.0.0.1 and reads the
+   * workspace source through the victim's browser. Passing the wildcard
+   * binds `"0.0.0.0"` or `"::"` disables the check entirely: the caller has
+   * explicitly chosen network-wide exposure.
+   */
+  allowedHosts?: readonly string[];
+}
+
+const LOOPBACK_HOSTS: ReadonlySet<string> = new Set(["localhost", "127.0.0.1", "::1"]);
+
+function hostHeaderAllowed(header: string | undefined, extra: ReadonlySet<string>): boolean {
+  if (header === undefined) return false;
+  let hostname: string;
+  try {
+    hostname = new URL(`http://${header}`).hostname;
+  } catch {
+    return false;
+  }
+  // WHATWG URL keeps IPv6 hostnames bracketed ("[::1]"); compare bare.
+  const bare =
+    hostname.startsWith("[") && hostname.endsWith("]") ? hostname.slice(1, -1) : hostname;
+  return LOOPBACK_HOSTS.has(bare) || extra.has(bare);
 }
 
 /**
@@ -74,22 +100,36 @@ const CONTENT_TYPES: Record<string, string> = {
 function serveStatic(res: http.ServerResponse, filePath: string, clientDir: string): void {
   // The caller derives filePath from a URL pathname (see the /assets/* route
   // below); WHATWG URL parsing already normalizes `..` dot-segments, so this
-  // never actually escapes clientDir today. Make that guarantee explicit and
-  // intentional instead of an incidental side effect of caller behavior.
-  const resolvedClientDir = path.resolve(clientDir);
-  const resolvedFilePath = path.resolve(filePath);
-  if (!resolvedFilePath.startsWith(resolvedClientDir + path.sep)) {
+  // never actually escapes clientDir today. The realpath containment below
+  // makes that guarantee explicit — and, unlike a prefix check on the
+  // unresolved path, it also refuses symlinks inside clientDir that point
+  // outside it.
+  let realClientDir: string;
+  let realFilePath: string;
+  try {
+    realClientDir = fs.realpathSync(path.resolve(clientDir));
+    realFilePath = fs.realpathSync(path.resolve(filePath));
+  } catch {
+    // Missing asset: a 404, never the SPA shell — a broken script tag must
+    // not come back as 200 text/html.
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("Not found");
+    return;
+  }
+  const rel = path.relative(realClientDir, realFilePath);
+  if (rel === "" || rel.startsWith("..") || path.isAbsolute(rel)) {
     res.writeHead(404, { "Content-Type": "text/plain" });
     res.end("Not found");
     return;
   }
 
-  fs.readFile(resolvedFilePath, (error, data) => {
+  fs.readFile(realFilePath, (error, data) => {
     if (error) {
-      serveIndexHtml(res, clientDir);
+      res.writeHead(404, { "Content-Type": "text/plain" });
+      res.end("Not found");
       return;
     }
-    const contentType = CONTENT_TYPES[path.extname(resolvedFilePath)] ?? "application/octet-stream";
+    const contentType = CONTENT_TYPES[path.extname(realFilePath)] ?? "application/octet-stream";
     res.writeHead(200, { "Content-Type": contentType });
     res.end(data);
   });
@@ -122,7 +162,12 @@ function serializeFeatureSummary(record: FeatureRecord) {
 }
 
 function sendJson(res: http.ServerResponse, value: unknown, status = 200): void {
-  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
+  // no-store: API responses expose workspace source; they must never land in
+  // a shared or disk cache, and the dashboard always wants fresh data anyway.
+  res.writeHead(status, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
+  });
   res.end(JSON.stringify(value));
 }
 
@@ -193,18 +238,53 @@ function serializeFeatureDetail(
 
 /**
  * Creates (but does not start) the read-only dashboard HTTP server for the
- * workspace at `workspaceDir`. Every route reloads the workspace from disk
- * — no in-memory cache — the same "correctness over latency" stance as the
- * MCP server.
+ * workspace at `workspaceDir`. Workspace state is cached in memory and
+ * invalidated by the same file watcher that drives live reload, so a page
+ * load costs one workspace read after every change instead of one per
+ * request. Without a watcher (no config file at startup, or a watcher
+ * error), every route falls back to reloading from disk — correctness over
+ * latency, the MCP server's stance.
  */
 export function createDashboardServer(
   workspaceDir: string,
   options: DashboardServerOptions = {},
 ): http.Server {
   const CLIENT_DIR = options.publicDir ?? defaultClientDir();
+  const extraHosts = new Set(options.allowedHosts ?? []);
+  // Binding a wildcard address is an explicit "expose to the network" choice;
+  // remote clients then address the machine by whatever name reaches it, so a
+  // Host allowlist cannot work and is disabled (the CLI warns loudly instead).
+  const skipHostCheck = extraHosts.has("0.0.0.0") || extraHosts.has("::");
   const sseClients = new Set<http.ServerResponse>();
+  let reloadTimer: NodeJS.Timeout | undefined;
   const broadcastReload = (): void => {
-    for (const client of sseClients) client.write("data: reload\n\n");
+    // Coalesce bursts (branch switches touch many files at once) into a
+    // single reload event; the SPA refetches everything on each one.
+    if (reloadTimer !== undefined) return;
+    reloadTimer = setTimeout(() => {
+      reloadTimer = undefined;
+      for (const client of sseClients) {
+        try {
+          client.write("data: reload\n\n");
+        } catch {
+          sseClients.delete(client);
+        }
+      }
+    }, 100);
+    reloadTimer.unref?.();
+  };
+
+  interface WorkspaceState {
+    workspace: ReturnType<typeof loadWorkspace>;
+    records: FeatureRecord[];
+    /** Detail payloads memoized per feature id — rendering all four Mermaid
+     * views is the expensive part of a detail request. */
+    details: Map<string, unknown>;
+  }
+  let cachedState: WorkspaceState | undefined;
+  let watcherHealthy = false;
+  const invalidate = (): void => {
+    cachedState = undefined;
   };
 
   const initialWorkspace = loadWorkspace(workspaceDir);
@@ -212,22 +292,63 @@ export function createDashboardServer(
     initialWorkspace.configPath !== undefined
       ? watchWorkspace(
           watchTargetsFor(initialWorkspace, workspaceDir),
-          () => broadcastReload(),
           () => {
-            // A watcher error is non-fatal for a read-only dashboard: the
-            // worst case is a stale page until the user refreshes by hand.
+            invalidate();
+            broadcastReload();
+          },
+          () => {
+            // A watcher error is non-fatal for a read-only dashboard, but the
+            // cache can no longer trust its invalidation signal — disable it
+            // and fall back to per-request reloads.
+            watcherHealthy = false;
+            invalidate();
           },
         )
       : undefined;
+  watcherHealthy = watcher !== undefined;
 
-  const server = http.createServer((req, res) => {
-    if (req.method !== "GET") {
+  const loadState = (): WorkspaceState => {
+    if (watcherHealthy && cachedState !== undefined) return cachedState;
+    const workspace = loadWorkspace(workspaceDir);
+    const records =
+      workspace.configPath !== undefined ? loadFeatureRecords(workspace, workspaceDir) : [];
+    const state: WorkspaceState = { workspace, records, details: new Map() };
+    if (watcherHealthy && workspace.configPath !== undefined) cachedState = state;
+    return state;
+  };
+
+  const handleRequest = (req: http.IncomingMessage, res: http.ServerResponse): void => {
+    if (req.method !== "GET" && req.method !== "HEAD") {
       res.writeHead(405, { "Content-Type": "text/plain" });
       res.end("Method not allowed");
       return;
     }
 
+    if (!skipHostCheck && !hostHeaderAllowed(req.headers.host, extraHosts)) {
+      res.writeHead(403, { "Content-Type": "text/plain" });
+      res.end("Forbidden: unrecognized Host header.");
+      return;
+    }
+
     const url = new URL(req.url ?? "/", "http://localhost");
+
+    if (url.pathname === "/health") {
+      if (req.method === "HEAD") {
+        res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+        res.end();
+        return;
+      }
+      sendJson(res, { status: "ok" });
+      return;
+    }
+
+    // HEAD support for the page routes so health checkers and `curl -I`
+    // work; headers only, mirroring what a GET of the SPA shell would send.
+    if (req.method === "HEAD") {
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end();
+      return;
+    }
 
     if (url.pathname === "/events") {
       res.writeHead(200, {
@@ -265,7 +386,8 @@ export function createDashboardServer(
       return;
     }
 
-    const workspace = loadWorkspace(workspaceDir);
+    const state = loadState();
+    const { workspace, records } = state;
     if (workspace.configPath === undefined) {
       if (url.pathname.startsWith("/api/")) {
         sendJson(
@@ -279,8 +401,6 @@ export function createDashboardServer(
       }
       return;
     }
-
-    const records = loadFeatureRecords(workspace, workspaceDir);
 
     if (url.pathname === "/api/features") {
       sendJson(
@@ -298,20 +418,48 @@ export function createDashboardServer(
     const detailMatch = /^\/api\/features\/([^/]+)$/.exec(url.pathname);
     const rawId = detailMatch?.[1];
     if (rawId !== undefined) {
-      const record = findFeatureRecord(records, decodeURIComponent(rawId));
+      let featureId: string;
+      try {
+        featureId = decodeURIComponent(rawId);
+      } catch {
+        // Malformed percent-encoding ("/api/features/%") is a client error,
+        // not a reason to throw out of the handler.
+        sendJson(res, { error: "not found" }, 404);
+        return;
+      }
+      const record = findFeatureRecord(records, featureId);
       if (record === undefined) {
         sendJson(res, { error: "not found" }, 404);
         return;
       }
-      const related = computeRelated(record, records, featureDependents(workspace));
-      sendJson(res, serializeFeatureDetail(record, related));
+      let detail = state.details.get(record.id);
+      if (detail === undefined) {
+        const related = computeRelated(record, records, featureDependents(workspace));
+        detail = serializeFeatureDetail(record, related);
+        state.details.set(record.id, detail);
+      }
+      sendJson(res, detail);
       return;
     }
 
     serveIndexHtml(res, CLIENT_DIR);
+  };
+
+  const server = http.createServer((req, res) => {
+    try {
+      handleRequest(req, res);
+    } catch {
+      // A handler bug must cost one 500 response, never the process. The
+      // body stays generic: internal messages can carry workspace paths.
+      if (!res.headersSent) {
+        res.writeHead(500, { "Content-Type": "application/json; charset=utf-8" });
+      }
+      res.end(JSON.stringify({ error: "Internal server error." }));
+    }
   });
 
   server.on("close", () => {
+    if (reloadTimer !== undefined) clearTimeout(reloadTimer);
     for (const client of sseClients) client.end();
     watcher?.close();
   });

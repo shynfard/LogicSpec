@@ -103,10 +103,14 @@ steps:
       - eventKind: error
         name: OutOfStock
         next: backorder
+    # Outcome keys match the called feature's final outcomes (LS404 checks the
+    # contract); the labels keep the domain vocabulary on the rendered edges.
     on:
-      shipped:
+      success:
+        label: shipped
         next: notify
-      returned:
+      cancelled:
+        label: returned
         next: refunded
 
   notify:

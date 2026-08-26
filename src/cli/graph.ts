@@ -8,7 +8,13 @@ import {
 import type { RenderDirection } from "../schema/config.js";
 import { featureStem } from "../workspace/loader.js";
 import { color, type Io, printDiagnostics, processIo } from "./report.js";
-import { EXIT_OK, EXIT_USAGE, requireWorkspace, workspaceDiagnostics } from "./shared.js";
+import {
+  EXIT_OK,
+  EXIT_USAGE,
+  requireWorkspace,
+  resolveConfigOutputDir,
+  workspaceDiagnostics,
+} from "./shared.js";
 
 export interface GraphCommandOptions {
   output?: string;
@@ -75,10 +81,17 @@ export function runGraph(dirArg: string | undefined, options: GraphCommandOption
           "",
         ].join("\n");
 
-  const outDir =
-    options.output !== undefined
-      ? path.resolve(cwd, options.output)
-      : path.resolve(workspace.root, workspace.config.output.directory);
+  let outDir: string;
+  if (options.output !== undefined) {
+    outDir = path.resolve(cwd, options.output);
+  } else {
+    const resolvedOut = resolveConfigOutputDir(workspace);
+    if ("error" in resolvedOut) {
+      printDiagnostics([resolvedOut.error], io);
+      return EXIT_USAGE;
+    }
+    outDir = resolvedOut.dir;
+  }
   const outFile = path.join(outDir, format === "mermaid" ? "dependencies.mmd" : "dependencies.md");
   fs.mkdirSync(path.dirname(outFile), { recursive: true });
   fs.writeFileSync(outFile, content, "utf8");

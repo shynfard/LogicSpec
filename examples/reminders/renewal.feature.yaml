@@ -5,6 +5,8 @@ version: "1"
 #   * typed events      — a timer event (after), a message event, a signal event
 #   * transition guards — descriptive "when" on operation outcomes and page actions
 #   * typed terminals   — a final that terminates the whole flow instance
+# plus the core `wait` step type — a plain duration delay (the dunning grace
+# period), as opposed to the timer *event* the flow starts with.
 
 feature:
   id: renewal
@@ -71,6 +73,17 @@ steps:
     direction: publish
     eventKind: message
     event: PaymentFailed
+    next: grace-period
+
+  # A `wait` step: an intentional, descriptive delay. After the failure notice
+  # the account keeps its benefits for a dunning grace period before the
+  # customer is asked for a new card. Unlike the timer event above, a wait has
+  # no outcome map — just a duration and a single `next`.
+  grace-period:
+    type: wait
+    label: Dunning Grace Period
+    actor: scheduler
+    duration: 3d
     next: update-payment
 
   update-payment:

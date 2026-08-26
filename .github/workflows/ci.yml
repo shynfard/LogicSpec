@@ -28,14 +28,24 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Version lockstep
+        run: npm run check:versions
+
+      - name: Doc drift (LS codes documented everywhere)
+        run: npm run check:docs
+
       - name: Build
         run: npm run build
 
-      - name: Test
-        run: npm test
+      - name: Test (with coverage floor)
+        run: npm run test:coverage
 
-      - name: CLI smoke — validate example workspace
-        run: node dist/cli/main.js validate examples/booking
+      - name: CLI smoke — validate every example workspace
+        run: |
+          for dir in examples/*/; do
+            echo "── $dir"
+            node dist/cli/main.js validate "$dir"
+          done
 
       - name: CLI smoke — render booking example
         run: node dist/cli/main.js render examples/booking/booking.feature.yaml --output /tmp/ls-ci

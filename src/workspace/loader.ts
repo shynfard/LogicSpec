@@ -104,7 +104,13 @@ export function findFeatureFiles(directory: string): string[] {
  * would otherwise let a crafted config read arbitrary files off disk.
  */
 export function isWithinRoot(root: string, resolved: string): boolean {
-  const rel = path.relative(root, resolved);
+  // On Windows, `path.relative` treats a drive-letter case mismatch
+  // ("C:\ws" vs "c:\ws") as two different roots and returns an absolute
+  // path, falsely rejecting legitimate in-root files. The filesystem is
+  // case-insensitive there; compare accordingly.
+  const [from, to] =
+    process.platform === "win32" ? [root.toLowerCase(), resolved.toLowerCase()] : [root, resolved];
+  const rel = path.relative(from, to);
   return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
 }
 

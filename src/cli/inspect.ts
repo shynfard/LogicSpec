@@ -31,10 +31,14 @@ const TYPE_ORDER = [
 export function runInspect(paths: readonly string[], options: InspectCommandOptions = {}): number {
   const io = options.io ?? processIo;
   const cwd = options.cwd ?? process.cwd();
+  // Under --json, stdout carries ONLY the JSON payload; diagnostics (which
+  // printDiagnostics routes to `out` for warning/info severity) must go to
+  // stderr or they corrupt the machine-readable output.
+  const diagIo: Io = options.json === true ? { out: io.err, err: io.err } : io;
 
   const { targets, diagnostics: resolveDiagnostics } = resolveTargets(paths, cwd);
   if (resolveDiagnostics.length > 0) {
-    printDiagnostics(resolveDiagnostics, io);
+    printDiagnostics(resolveDiagnostics, diagIo);
     return EXIT_USAGE;
   }
 
@@ -46,7 +50,7 @@ export function runInspect(paths: readonly string[], options: InspectCommandOpti
   for (const target of targets) {
     const { result, fatal } = validateTarget(target, workspaceFor);
     if (!result.normalized || !result.graph) {
-      printDiagnostics(result.diagnostics, io);
+      printDiagnostics(result.diagnostics, diagIo);
       if (fatal) sawFatal = true;
       else sawError = true;
       continue;

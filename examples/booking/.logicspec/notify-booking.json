@@ -124,6 +124,7 @@
     "BookingCreated"
   ],
   "subflows": [],
+  "zones": [],
   "stats": {
     "steps": 7,
     "byType": {

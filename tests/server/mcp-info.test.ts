@@ -7,7 +7,7 @@ describe("mcpInfo", () => {
     expect(info.command).toBe("claude mcp add logicspec -- logicspec mcp /home/me/my-workspace");
   });
 
-  it("lists all seven MCP tools", () => {
+  it("lists all ten MCP tools", () => {
     const info = mcpInfo("/tmp/x");
     expect(info.tools.map((t) => t.name)).toEqual([
       "list_features",
@@ -17,6 +17,9 @@ describe("mcpInfo", () => {
       "get_service_dependencies",
       "get_events",
       "validate_feature",
+      "render_feature",
+      "diff_feature",
+      "get_data_flow",
     ]);
   });
 });

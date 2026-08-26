@@ -1,6 +1,6 @@
 # Roadmap
 
-v0.1 delivered the complete `YAML → parse → validate → normalize → visualize` core. 0.5.0 implemented the next four planned milestones in one release. None of it changed the language's independence: the YAML DSL stays useful without any integration.
+v0.1 delivered the complete `YAML → parse → validate → normalize → visualize` core. 0.5.0 implemented the next four planned milestones in one release, and 0.6–0.13 grew the language and the tooling around it. None of it changed the language's independence: the YAML DSL stays useful without any integration.
 
 ## Shipped in 0.5.0
 
@@ -31,6 +31,23 @@ Formerly the v0.2–v0.5 roadmap:
 * `logicspec validate --json` and workspace-wide bare `validate` for CI and agents.
 * Per-workspace severity overrides (`diagnostics:` in config).
 
+## Shipped in 0.6–0.13
+
+Language extensions — all additive and backward-compatible; every field optional, everything descriptive, nothing evaluated:
+
+* **Typed events** (0.6): optional `eventKind` on event steps (`timer`/`message`/`signal`/`error`/`conditional`) with per-kind fields (`after`/`at`/`every`, `event`, `name`, `when`), LS305. Plus transition guards (descriptive `when` on outcomes/actions) and `final.terminate`.
+* **Decision tables** (0.7): DMN-style `decisionTable` on decision steps — inputs, outputs, hit policy, rules; a reserved `next` output column names each rule's target. LS307.
+* **Boundary handlers** (0.8): `boundary[]` on `page`/`subflow`/`parallel` — documented timeout/error/message/conditional diverts while a step is in progress, interrupting or not. LS308.
+* **Agent zones** (0.9): `zones` annotate regions of a flow as autonomous-agent territory (order-not-fixed), plus the `agent` actor kind. Rendered as clusters; LS309.
+* **Shared definitions** (0.10): `$ref` reuse of actors and step templates from a `definitions.yaml` catalog (`catalogs.definitions`), expanded on load. LS110–LS112.
+
+Tooling:
+
+* **`logicspec export`** (0.5.1): full workspace artifact build (per-feature Markdown + JSON, dependency graph, workspace index, diagnostics) into `.logicspec/`.
+* **`logicspec serve`** (0.11): local read-only dashboard, rewritten in 0.12 as a React SPA with an interactive drag/zoom/pan diagram canvas, all four Mermaid views, live reload and an MCP registration page.
+* **Dashboard interactivity** (0.13): step-detail side panel, full-screen feature-detail shell, working dark mode across canvas and Mermaid views.
+* **VS Code**: interactive React Flow canvas as the default preview (parity with the dashboard), step inspector with cross-file links, workspace graph panel, dashboard launcher — published on the VS Code Marketplace; npm publishes `logicspec` (with provenance).
+
 ## Later
 
 * Language server behind the VS Code extension (shared with other editors)
@@ -40,7 +57,6 @@ Formerly the v0.2–v0.5 roadmap:
 * Documentation generation beyond diagrams
 * Pull-request validation bot
 * CI policy checks (e.g. "every operation must handle an error outcome") — severity overrides are the first brick
-* Marketplace/npm publication once the final public name is settled
 
 ## Non-goals
 

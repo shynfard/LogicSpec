@@ -9,7 +9,7 @@ import { runGraph } from "./graph.js";
 import { runInit } from "./init.js";
 import { runInspect } from "./inspect.js";
 import { type RenderFormat, runRender } from "./render.js";
-import { runServe } from "./serve.js";
+import { DEFAULT_HOST, DEFAULT_PORT, runServe } from "./serve.js";
 import { EXIT_USAGE } from "./shared.js";
 import { runValidate } from "./validate.js";
 import { runWatch } from "./watch.js";
@@ -104,17 +104,17 @@ export function buildProgram(): Command {
   program
     .command("serve")
     .description(
-      `run a local read-only dashboard over the workspace (default: http://127.0.0.1:${27000})`,
+      `run a local read-only dashboard over the workspace (default: http://${DEFAULT_HOST}:${DEFAULT_PORT})`,
     )
     .argument("[dir]", "workspace directory (default: current)")
-    .option("--port <port>", "port to listen on (default: 27000)", (value) => {
+    .option("--port <port>", `port to listen on (default: ${DEFAULT_PORT})`, (value) => {
       const parsed = Number(value);
-      if (!Number.isInteger(parsed) || parsed < 0 || parsed > 65535) {
+      if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65535) {
         throw new CommanderError(EXIT_USAGE, "logicspec.invalidOption", `Invalid port "${value}".`);
       }
       return parsed;
     })
-    .option("--host <host>", "host to bind (default: 127.0.0.1)")
+    .option("--host <host>", `host to bind (default: ${DEFAULT_HOST})`)
     .option("--open", "open the dashboard in your default browser")
     .action(
       (dir: string | undefined, options: { port?: number; host?: string; open?: boolean }) => {
@@ -207,11 +207,13 @@ async function main(): Promise<void> {
   }
 }
 
-// Exit quietly when output is piped into a closed consumer (e.g. `| head`).
+// Exit quietly when output is piped into a closed consumer (e.g. `| head`) —
+// but keep the exit code already earned: `validate | head` on a failing
+// workspace must still exit 1. Any other stream error means output is gone;
+// exit non-zero (throwing here would itself be an uncaught exception).
 for (const stream of [process.stdout, process.stderr]) {
   stream.on("error", (error: NodeJS.ErrnoException) => {
-    if (error.code === "EPIPE") process.exit(0);
-    throw error;
+    process.exit(error.code === "EPIPE" ? (process.exitCode ?? 0) : 1);
   });
 }
 

@@ -276,9 +276,8 @@ steps:
     expect(result?.ok).toBe(false);
     expect(result?.diagnostics.some((d) => d.code === "LS112")).toBe(true);
     // Builds + fully-walks a 10k-entry catalog (the reported crash threshold);
-    // the depth cap returns fast, but parse + full-graph walk is heavy, so give
-    // this deliberate stress case headroom over the 5s default under parallel load.
-  }, 30000);
+    // heavy under parallel load — covered by the config's global testTimeout.
+  });
 
   it("still resolves a legitimate shallow definition-to-definition chain (fix 1)", () => {
     const chained = definitions(`

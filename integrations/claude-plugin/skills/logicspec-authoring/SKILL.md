@@ -1,6 +1,6 @@
 ---
 name: logicspec-authoring
-description: Author, edit and validate LogicSpec YAML specifications. Use when creating or modifying *.feature.yaml, services.yaml, events.yaml or logicspec.config.yaml files; when the user asks to design, spec or diagram feature logic (booking, checkout, signup, approval, onboarding flows); when they mention LogicSpec, feature specs, step types, or LS-code diagnostics; or before implementing a feature in a repo that contains a logicspec.config.yaml.
+description: Author, edit and validate LogicSpec YAML specifications — the full DSL including decision tables, typed events, boundary handlers, agent zones, guarded outcomes and $ref shared definitions. Use when creating or modifying *.feature.yaml, services.yaml, events.yaml, definitions.yaml or logicspec.config.yaml files; when the user asks to design, spec or diagram feature logic (booking, checkout, signup, approval, onboarding flows); when they mention LogicSpec, feature specs, step types, or LS-code diagnostics; or before implementing a feature in a repo that contains a logicspec.config.yaml.
 ---
 
 # LogicSpec authoring
@@ -8,8 +8,10 @@ description: Author, edit and validate LogicSpec YAML specifications. Use when c
 LogicSpec describes application feature logic in YAML — pages, actions,
 decisions, backend operations, events, waits, error paths, outcomes. The YAML
 is the behavioral source of truth: it is validated and rendered, never
-executed. Generated Markdown/Mermaid is documentation only — never hand-edit
-it, and never infer behavior from a diagram when the YAML disagrees.
+executed — every `when`, expression, hit policy, timer and boundary is
+descriptive documentation. Generated Markdown/Mermaid is documentation only —
+never hand-edit it, and never infer behavior from a diagram when the YAML
+disagrees.
 
 ## The loop (always)
 
@@ -32,41 +34,54 @@ feature:
   id: booking             # kebab-case identifier
   name: Booking
 start: select-service     # id of the first step
-actors:                   # optional; kinds: user frontend service broker external system
+actors:                   # optional; kinds: user frontend service broker external system agent
   frontend: { kind: frontend, label: Web App }
 context:                  # optional; types: string number boolean object array date datetime
   reservationId: { type: string }
-steps:                    # required map of step id → step
+steps:                    # required map of step id → step (a value may be a $ref)
   ...
+zones:                    # optional; annotate AI-agent-driven regions of steps
+  - { label: AI Triage, steps: [classify, enrich] }
 ```
 
 Strict schemas everywhere — unknown properties are rejected. Org-specific
 data goes under `extensions:` with namespaced keys (`company.example/foo`).
+Actors and steps may be `$ref`s to shared definitions (see below).
 
 ## The nine step types — closed set, never invent others
 
 | Type | Purpose | Transitions |
 |------|---------|-------------|
-| `page` | screen/UI state | `actions.<id>.next` (each may `requires`/`produces`) |
-| `decision` | branching | `cases[].next` + optional `default.next`; ≥1 required |
-| `operation` | backend work (`call: service.operation`) | `next` XOR `on.<outcome>.next` |
-| `event` | pub/sub | `publish` → `next`; `wait` → `on.received/.timeout` + `timeout: 15m` |
+| `page` | screen/UI state | `actions.<id>.next` (each may `when`/`requires`/`produces`); may carry `boundary` |
+| `decision` | branching | `cases[].next` XOR `decisionTable` (reserved `next` output column) + optional `default.next`; ≥1 required |
+| `operation` | backend work (`call: service.operation`) | `next` XOR `on.<outcome>.next` (outcomes may carry a `when` guard) |
+| `event` | pub/sub, optionally typed `eventKind: timer\|message\|signal\|error\|conditional` | `publish` → `next`; `wait` → `on.received/.timeout` + `timeout: 15m` |
 | `wait` | time delay (`duration: 10m`) | `next` |
-| `subflow` | invoke another feature (`flow: <id>`) | `next` XOR `on` (keys must match target's final outcomes) |
-| `parallel` | run subflows (`branches`, `wait: all\|any`) | `next` |
+| `subflow` | invoke another feature (`flow: <id>`) | `next` XOR `on` (keys must match target's final outcomes); may carry `boundary` |
+| `parallel` | run subflows (`branches`, `wait: all\|any`) | `next`; may carry `boundary` |
 | `error` | failure | `actions.<id>.next`; no actions = terminal |
-| `final` | end (`outcome: success\|failure\|cancelled`) | none — ever |
+| `final` | end (`outcome: success\|failure\|cancelled`; `terminate: true` ends the whole instance) | none — ever |
 
 Rules that trip people up:
 
 - `next` and `on` are mutually exclusive (LS301). `next` = single unnamed
   outcome; `on` = named outcomes with `{ next: <step-id> }` values.
 - Waiting events must not use `next`; publishing events must not use
-  `on`/`timeout` (LS302).
+  `on`/`timeout` (LS302). Typed events need their kind's fields — timer:
+  exactly one of `after`/`at`/`every` and `direction: wait`; message/signal:
+  an `event` name; conditional: `when` and wait (LS305).
+- `cases` and `decisionTable` are mutually exclusive (LS307); a table needs a
+  reserved `next` output column or a `default`.
+- `boundary` handlers (mid-flight timeout/error/message/condition paths)
+  attach only to `page`, `subflow` and `parallel` (LS308) — operations and
+  waiting events already have `on:`/`on.timeout`.
 - Every context name in `requires`/`produces` must be declared, and every
   `requires` must be **produced on every path from start** before it's needed
   (LS203) — put `produces` on the page action or operation that creates the
   value.
+- A `when` guard is descriptive, never evaluated — and never blank (LS306).
+- Zone `steps` must name existing steps, one zone per step (LS309). Zones are
+  annotations: no control-flow effect.
 - Big behavior deserves its own step: never hide a backend call inside a page
   action — the action `next`s to an `operation` step with `call:`.
 - Page `states` and `load.on` targets are LOCAL UI states, not workflow steps.
@@ -77,13 +92,20 @@ Rules that trip people up:
 ## Catalogs and workspace
 
 `call: booking.reserve-slot` must exist in `services.yaml`; `event:` names
-must exist in `events.yaml` when catalogs are configured in
-`logicspec.config.yaml`. Operations may link `openapi: { document,
-operationId }`, events `asyncapi: { document, channel }` — both verified.
-Severity overrides live in config: `diagnostics: { LS402: "off" }`.
+(on event steps and message/signal boundaries) must exist in `events.yaml`
+when catalogs are configured in `logicspec.config.yaml`. Operations may link
+`openapi: { document, operationId }`, events `asyncapi: { document, channel
+}` — both verified. A `definitions.yaml` catalog (`catalogs.definitions`)
+holds shared actors and step templates that features pull in with
+`$ref: "definitions#/actors/<name>"` / `"definitions#/steps/<name>"`; local
+keys override the resolved definition (local wins). Severity overrides live
+in config: `diagnostics: { LS402: "off" }`.
 
 For the full grammar read `references/dsl-reference.md`; for every diagnostic
-code and its fix read `references/diagnostics.md`.
+code and its fix read `references/diagnostics.md`. Both cover the complete
+current language (0.14): decision tables, typed events, boundary handlers,
+agent zones, guarded outcomes, `final.terminate` and `$ref` shared
+definitions.
 
 ## When implementing code in a repo with specs
 

@@ -6,6 +6,7 @@ exports[`v0.6.0 vocabulary example (examples/reminders) > renders typed events, 
   await_renewal_window>"Renewal window reached<br/>EVENT · TIMER"]
   charge_card[["Charge Card<br/>OPERATION"]]
   payment_failed>"Payment Failed Notice<br/>EVENT · MESSAGE"]
+  grace_period(["Dunning Grace Period<br/>WAIT"])
   update_payment["Update Payment Method<br/>PAGE"]
   renewed_signal>"Renewed<br/>EVENT · SIGNAL"]
   renewed((("Subscription Renewed<br/>FINAL · success")))
@@ -15,7 +16,8 @@ exports[`v0.6.0 vocabulary example (examples/reminders) > renders typed events, 
   await_renewal_window -. "received" .-> charge_card
   charge_card -- "paid [when: gateway confirms the charge]" --> renewed_signal
   charge_card -- "declined [when: gateway declines the charge]" --> payment_failed
-  payment_failed --> update_payment
+  payment_failed --> grace_period
+  grace_period -- "after 3d" --> update_payment
   update_payment -- "Retry payment [when: customer supplies a new card]" --> charge_card
   update_payment -- "Cancel subscription" --> lapsed
   renewed_signal --> renewed

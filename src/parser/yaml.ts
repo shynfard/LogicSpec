@@ -53,7 +53,11 @@ export function loadYaml(source: string, file?: string): LoadedYaml {
       const node = end === 0 ? document.contents : document.getIn(path.slice(0, end), true);
       if (isNode(node) && node.range) {
         const start = offsetToLocation(node.range[0], lineStarts);
-        const endPos = offsetToLocation(node.range[1], lineStarts);
+        // In CRLF sources the parser's exclusive end offset can sit after the
+        // \r; step back so the underline never covers the carriage return.
+        let endOffset = node.range[1];
+        while (endOffset > node.range[0] && source[endOffset - 1] === "\r") endOffset -= 1;
+        const endPos = offsetToLocation(endOffset, lineStarts);
         return { ...start, endLine: endPos.line, endColumn: endPos.column };
       }
     }

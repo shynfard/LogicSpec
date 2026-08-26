@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -105,7 +106,7 @@ describe("MCP handshake", () => {
 });
 
 describe("tools/list", () => {
-  it("lists exactly the seven workspace tools with object schemas", async () => {
+  it("lists exactly the ten workspace tools with object schemas", async () => {
     const { tools } = resultOf(await rpc("tools/list")) as { tools: McpToolDescriptor[] };
     expect(tools.map((tool) => tool.name)).toEqual([
       "list_features",
@@ -115,6 +116,9 @@ describe("tools/list", () => {
       "get_service_dependencies",
       "get_events",
       "validate_feature",
+      "render_feature",
+      "diff_feature",
+      "get_data_flow",
     ]);
     for (const tool of tools) {
       expect(tool.description.length).toBeGreaterThan(10);
@@ -198,6 +202,65 @@ describe("tools/call", () => {
     expect(report.feature).toBe("booking");
     expect(report.valid).toBe(true);
     expect(Array.isArray(report.diagnostics)).toBe(true);
+  });
+
+  it("validate_feature matches the CLI: severity overrides apply, workspace findings included", async () => {
+    // The booking workspace config turns LS402 (unused actor) off. The CLI
+    // honors that; the MCP answer must too, or agents and CI disagree.
+    const report = toolPayload<{
+      diagnostics: Array<{ code: string }>;
+      workspaceDiagnostics: Array<{ code: string }>;
+    }>(await callTool("validate_feature", { feature: "booking" }));
+    expect(report.diagnostics.some((d) => d.code === "LS402")).toBe(false);
+    expect(Array.isArray(report.workspaceDiagnostics)).toBe(true);
+  });
+
+  it("render_feature returns Mermaid for the requested view", async () => {
+    const report = toolPayload<{ feature: string; view: string; mermaid: string }>(
+      await callTool("render_feature", { feature: "booking", view: "sequence" }),
+    );
+    expect(report.view).toBe("sequence");
+    expect(report.mermaid).toContain("sequenceDiagram");
+    const flow = toolPayload<{ view: string; mermaid: string }>(
+      await callTool("render_feature", { feature: "booking" }),
+    );
+    expect(flow.view).toBe("flow");
+    expect(flow.mermaid).toContain("flowchart");
+  });
+
+  it("diff_feature reports semantic changes against a proposed source", async () => {
+    const original = fs.readFileSync(path.join(BOOKING, "booking.feature.yaml"), "utf8");
+    const identical = toolPayload<{ identical: boolean }>(
+      await callTool("diff_feature", { feature: "booking", proposed_source: original }),
+    );
+    expect(identical.identical).toBe(true);
+
+    const renamed = original.replace("label: Select Service", "label: Pick a Service");
+    const changed = toolPayload<{ identical: boolean; summary: string }>(
+      await callTool("diff_feature", { feature: "booking", proposed_source: renamed }),
+    );
+    expect(changed.identical).toBe(false);
+    expect(changed.summary).toContain("select-service");
+  });
+
+  it("diff_feature rejects an unparseable proposal as a tool error", async () => {
+    const result = await callTool("diff_feature", {
+      feature: "booking",
+      proposed_source: "not: [valid",
+    });
+    expect(result.isError).toBe(true);
+  });
+
+  it("get_data_flow maps producers and consumers of a context key", async () => {
+    const flow = toolPayload<{ key: string; producedBy: string[]; requiredBy: string[] }>(
+      await callTool("get_data_flow", { feature: "booking", key: "selectedService" }),
+    );
+    expect(flow.producedBy).toContain("select-service.select");
+    expect(flow.requiredBy).toContain("select-staff");
+    const all = toolPayload<Array<{ key: string }>>(
+      await callTool("get_data_flow", { feature: "booking" }),
+    );
+    expect(all.map((f) => f.key)).toContain("reservationId");
   });
 
   it("reports unknown features as tool errors, not protocol errors", async () => {

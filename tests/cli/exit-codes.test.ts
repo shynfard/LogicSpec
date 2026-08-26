@@ -161,9 +161,9 @@ steps:
     } finally {
       fs.rmSync(wsDir, { recursive: true, force: true });
     }
-    // 10k-entry catalog stress case: generous timeout over the 5s default so it
-    // doesn't flake under parallel CPU load (the fix itself returns fast).
-  }, 30000);
+    // 10k-entry catalog stress case: relies on the config's generous global
+    // testTimeout so it doesn't flake under parallel CPU load.
+  });
 
   it("init scaffolds a valid workspace and never overwrites", () => {
     const initDir = fs.mkdtempSync(path.join(os.tmpdir(), "logicspec-init-"));

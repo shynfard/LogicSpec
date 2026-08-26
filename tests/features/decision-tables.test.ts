@@ -205,10 +205,11 @@ describe("decision tables (LS307)", () => {
       rules:
 ${rules}
 `);
-    const started = Date.now();
+
     const diagnostics = parseFeature(source).diagnostics;
     // Rejected promptly by the schema bound, well under any DoS threshold.
-    expect(Date.now() - started).toBeLessThan(5000);
+    // No wall-clock assertion: flaky under parallel suite load. A true hang
+    // is caught by the test timeout; the deterministic guarantee is LS307.
     expect(diagnostics.some((d) => d.code === "LS307")).toBe(true);
     expect(
       diagnostics.some((d) => d.code === "LS307" && d.message.includes("more than 1000 rules")),

@@ -15,6 +15,30 @@ describe("parseFeature", () => {
     expect(Object.keys(result.data?.steps ?? {})).toEqual(["home", "done"]);
   });
 
+  it("reports identical diagnostic ranges for LF and CRLF sources", () => {
+    // Windows-authored files must not underline the carriage return: the
+    // exclusive end offset steps back over \r, so columns match LF byte-for-byte.
+    const lf = featureWith(`
+  start-step:
+    type: operation
+    call: svc.op
+    next: missing-step
+  fin:
+    type: final
+    outcome: success
+`);
+    const crlf = lf.replace(/\n/g, "\r\n");
+    const lfResult = parseFeature(lf);
+    const crlfResult = parseFeature(crlf);
+    // Schema-valid in both encodings; compare the located range of the same node.
+    expect(lfResult.ok).toBe(true);
+    expect(crlfResult.ok).toBe(true);
+    const lfLoc = lfResult.locate?.(["steps", "start-step", "next"]);
+    const crlfLoc = crlfResult.locate?.(["steps", "start-step", "next"]);
+    expect(lfLoc).toBeDefined();
+    expect(crlfLoc).toEqual(lfLoc);
+  });
+
   it("reports LS001 for invalid YAML with a location", () => {
     const result = parseFeature("version: [unclosed");
     expect(result.ok).toBe(false);

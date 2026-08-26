@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=../../schemas/feature.schema.json
+version: "1"
+
+# One branch of order-fulfillment's parallel `notify` step: deliver the order
+# confirmation by email.
+
+feature:
+  id: send-email
+  name: Send Email
+  description: Deliver the order confirmation email to the customer.
+
+start: send
+
+actors:
+
+  notifier:
+    kind: system
+    label: Notifier
+
+steps:
+
+  send:
+    type: operation
+    label: Send Confirmation Email
+    actor: notifier
+    call: email.send
+    on:
+      sent:
+        next: delivered
+      bounced:
+        next: bounced
+
+  delivered:
+    type: final
+    label: Email Sent
+    outcome: success
+
+  bounced:
+    type: final
+    label: Email Bounced
+    outcome: failure

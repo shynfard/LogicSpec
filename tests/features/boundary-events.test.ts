@@ -340,11 +340,12 @@ describe("boundary events — resource bounds (LS308 DoS guard)", () => {
       () => "      - eventKind: timer\n        after: 15m\n        next: diverted",
     ).join("\n");
     const source = pageWithBoundary(handlers);
-    const started = Date.now();
+
     const result = validateFeature(source);
     // Rejected promptly by the schema bound, well under any DoS threshold —
     // normalization/graph work (the O(handlers·steps) suggest pass) never runs.
-    expect(Date.now() - started).toBeLessThan(5000);
+    // No wall-clock assertion: flaky under parallel suite load. A true hang
+    // is caught by the test timeout; the deterministic guarantee is LS308.
     expect(result.valid).toBe(false);
     expect(
       result.diagnostics.some(

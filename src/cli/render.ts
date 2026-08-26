@@ -11,6 +11,7 @@ import {
   EXIT_VALIDATION,
   type FileTarget,
   makeWorkspaceCache,
+  resolveConfigOutputDir,
   resolveTargets,
   validateTarget,
   workspaceDiagnostics,
@@ -91,15 +92,21 @@ export function runRender(paths: readonly string[], options: RenderCommandOption
             source: target.display,
           });
 
+    let outputDir: string;
+    if (options.output !== undefined) {
+      outputDir = path.resolve(cwd, options.output);
+    } else {
+      const resolvedOut = resolveConfigOutputDir(workspace);
+      if ("error" in resolvedOut) {
+        printDiagnostics([resolvedOut.error], io);
+        sawFatal = true;
+        continue;
+      }
+      outputDir = resolvedOut.dir;
+    }
     const outFile = explicitFile
       ? path.resolve(cwd, options.output as string)
-      : outputPathFor(
-          target,
-          format,
-          options.output !== undefined
-            ? path.resolve(cwd, options.output)
-            : path.resolve(workspace.root, workspace.config.output.directory),
-        );
+      : outputPathFor(target, format, outputDir);
 
     fs.mkdirSync(path.dirname(outFile), { recursive: true });
     fs.writeFileSync(outFile, content, "utf8");

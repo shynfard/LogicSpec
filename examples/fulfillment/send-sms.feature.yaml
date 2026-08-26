@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=../../schemas/feature.schema.json
+version: "1"
+
+# One branch of order-fulfillment's parallel `notify` step: deliver the order
+# confirmation by SMS.
+
+feature:
+  id: send-sms
+  name: Send SMS
+  description: Deliver the order confirmation SMS to the customer.
+
+start: send
+
+actors:
+
+  notifier:
+    kind: system
+    label: Notifier
+
+steps:
+
+  send:
+    type: operation
+    label: Send Confirmation SMS
+    actor: notifier
+    call: sms.send
+    on:
+      delivered:
+        next: sent
+      undeliverable:
+        next: failed
+
+  sent:
+    type: final
+    label: SMS Sent
+    outcome: success
+
+  failed:
+    type: final
+    label: SMS Undeliverable
+    outcome: failure

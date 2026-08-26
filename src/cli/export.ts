@@ -15,6 +15,7 @@ import {
   EXIT_VALIDATION,
   makeWorkspaceCache,
   requireWorkspace,
+  resolveConfigOutputDir,
   validateTarget,
   workspaceDiagnostics,
 } from "./shared.js";
@@ -50,10 +51,17 @@ export function runExport(dirArg: string | undefined, options: ExportCommandOpti
   }
   const { workspace } = resolved;
 
-  const outDir =
-    options.output !== undefined
-      ? path.resolve(cwd, options.output)
-      : path.resolve(workspace.root, workspace.config.output.directory);
+  let outDir: string;
+  if (options.output !== undefined) {
+    outDir = path.resolve(cwd, options.output);
+  } else {
+    const resolvedOut = resolveConfigOutputDir(workspace);
+    if ("error" in resolvedOut) {
+      printDiagnostics([resolvedOut.error], io);
+      return EXIT_USAGE;
+    }
+    outDir = resolvedOut.dir;
+  }
   fs.mkdirSync(outDir, { recursive: true });
 
   const wsFindings = workspaceDiagnostics(workspace);
@@ -101,7 +109,9 @@ export function runExport(dirArg: string | undefined, options: ExportCommandOpti
       `${JSON.stringify(inspectFeature(result.normalized, result.graph), null, 2)}\n`,
       "utf8",
     );
-    io.out(`${color.green("✓")} ${display} → ${path.relative(cwd, outDir)}/${stem}.{md,json}`);
+    io.out(
+      `${color.green("✓")} ${display} → ${path.join(path.relative(cwd, outDir), `${stem}.{md,json}`)}`,
+    );
   }
 
   if (workspace.features.length > 0) {
@@ -153,7 +163,7 @@ export function runExport(dirArg: string | undefined, options: ExportCommandOpti
     "utf8",
   );
   io.out(
-    `${color.green("✓")} workspace → ${path.relative(cwd, outDir)}/{dependencies.md,workspace.json,diagnostics.json}`,
+    `${color.green("✓")} workspace → ${path.join(path.relative(cwd, outDir), "{dependencies.md,workspace.json,diagnostics.json}")}`,
   );
 
   if (sawFatal) return EXIT_USAGE;

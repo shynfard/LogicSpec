@@ -6,7 +6,10 @@ argument-hint: [path (default: whole workspace)]
 Validate LogicSpec specifications and repair them: $ARGUMENTS
 
 1. Run `logicspec validate $ARGUMENTS --json` (bare `logicspec validate
-   --json` when no path was given) and parse the report.
+   --json` when no path was given) and parse the report. Exit 2 means a
+   parse/config/usage error — fix the YAML/config/invocation before
+   interpreting diagnostics. Feature findings are under `files[]`,
+   workspace-level catalog findings under `workspace.diagnostics`.
 2. For each finding, apply the fix for its LS code per the
    logicspec-authoring skill's diagnostics reference. Fix errors first, then
    warnings; mention infos to the user rather than churning the files.

@@ -28,6 +28,6 @@ describe("GET /api/mcp", () => {
     const body = (await res.json()) as { command: string; tools: unknown[] };
     expect(body.command).toContain("logicspec mcp");
     expect(body.command).toContain(BOOKING);
-    expect(body.tools).toHaveLength(7);
+    expect(body.tools).toHaveLength(10);
   });
 });

@@ -1,0 +1,11 @@
+version: "1"
+
+features:
+  directory: .
+
+output:
+  directory: ./.logicspec
+
+render:
+  view: flow
+  direction: TD

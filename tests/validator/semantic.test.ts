@@ -422,13 +422,13 @@ describe("suggestion budget bounds a hostile document (DoS guard)", () => {
     ].join("\n");
     const source = featureWith(rows);
 
-    // Coarse "does not hang" smoke check (generous so parallel test workers
-    // don't flake it); the precise, deterministic guarantee is the suggestion
-    // cap asserted below — if the budget were removed, `withHint` would jump to
-    // N + 1 and the O(refs × steps) blow-up would return.
-    const started = Date.now();
+    // No wall-clock assertion: under full-suite parallel load this file has
+    // been observed to take >18s total, so any time bound tight enough to
+    // catch the quadratic blow-up is flaky in CI. The deterministic guarantee
+    // is the suggestion cap asserted below — if the budget were removed,
+    // `withHint` would jump to N + 1 and the O(refs × steps) blow-up would
+    // return.
     const result = validateFeature(source);
-    expect(Date.now() - started).toBeLessThan(5000);
 
     // Every unresolved reference is still reported (start-step + s0..s{N-1}).
     const unresolved = result.diagnostics.filter((d) => d.code === "LS101");

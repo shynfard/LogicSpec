@@ -75,4 +75,41 @@ describe("export command", () => {
       fs.rmSync(empty, { recursive: true, force: true });
     }
   });
+
+  it("refuses an output.directory that escapes the workspace root (LS005)", () => {
+    // A checked-in config must not be able to steer `export` into writing
+    // outside the repo. Only the explicit --output flag may leave the root.
+    const parent = fs.mkdtempSync(path.join(os.tmpdir(), "logicspec-escape-"));
+    const ws = path.join(parent, "ws");
+    fs.mkdirSync(ws);
+    fs.writeFileSync(
+      path.join(ws, "logicspec.config.yaml"),
+      ['version: "1"', "features:", "  directory: .", "output:", "  directory: ../loot", ""].join(
+        "\n",
+      ),
+    );
+    fs.writeFileSync(
+      path.join(ws, "demo.feature.yaml"),
+      [
+        'version: "1"',
+        "feature:",
+        "  id: demo",
+        "  name: Demo",
+        "start: done",
+        "steps:",
+        "  done:",
+        "    type: final",
+        "    outcome: success",
+        "",
+      ].join("\n"),
+    );
+    try {
+      const io = captureIo();
+      expect(runExport(ws, { cwd: ws, io })).toBe(2);
+      expect(io.stderr.join("\n")).toContain("LS005");
+      expect(fs.existsSync(path.join(parent, "loot"))).toBe(false);
+    } finally {
+      fs.rmSync(parent, { recursive: true, force: true });
+    }
+  });
 });

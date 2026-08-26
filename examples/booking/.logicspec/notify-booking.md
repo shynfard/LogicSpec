@@ -16,7 +16,7 @@ flowchart TD
   send_confirmation[["Send Confirmation<br/>OPERATION"]]
   notify_error["Notification Failed<br/>ERROR"]:::error
   notified((("Customer Notified<br/>FINAL · success")))
-  gave_up((("Notification Abandoned<br/>FINAL · failure")))
+  gave_up((("Notification Abandoned<br/>FINAL · failure · ⊗ ERROR")))
 
   START --> wait_booking
   wait_booking -. "received" .-> load_preference

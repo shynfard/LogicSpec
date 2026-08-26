@@ -11,6 +11,7 @@ import {
 import {
   FEATURE_FILE_SUFFIX,
   findFeatureFiles,
+  isWithinRoot,
   loadWorkspace,
   type Workspace,
 } from "../workspace/loader.js";
@@ -159,6 +160,33 @@ export function workspaceDiagnostics(workspace: Workspace): Diagnostic[] {
   );
   workspaceDiagnosticsCache.set(workspace, diagnostics);
   return diagnostics;
+}
+
+/**
+ * Resolves the config-driven output directory, refusing paths that escape the
+ * workspace root (LS005) — the same containment every config-referenced *read*
+ * path gets. Without it, a checked-in config with
+ * `output: { directory: ../../somewhere }` would make export/render/graph
+ * write attacker-named files outside the repo. An explicit `--output` flag is
+ * the user's own choice and is not routed through this check.
+ */
+export function resolveConfigOutputDir(
+  workspace: Workspace,
+): { dir: string } | { error: Diagnostic } {
+  const configured = workspace.config.output.directory;
+  const dir = path.resolve(workspace.root, configured);
+  if (!isWithinRoot(workspace.root, dir)) {
+    return {
+      error: makeDiagnostic(CODES.UNSAFE_WORKSPACE_PATH, {
+        message:
+          `output.directory resolves outside the workspace root: ${configured}. ` +
+          "Use a directory inside the workspace, or pass --output explicitly.",
+        file: workspace.configPath,
+        path: ["output", "directory"],
+      }),
+    };
+  }
+  return { dir };
 }
 
 /** Resolves the workspace for bare commands (no paths) from the cwd. */
