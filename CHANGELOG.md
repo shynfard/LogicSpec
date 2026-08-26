@@ -65,7 +65,11 @@ Docs & examples:
   boundary handlers, agent zones, `final.terminate`, `$ref` shared
   definitions, `serve`/`export`, `--debug`.
 - The Claude Code plugin's skill teaches the full current language and all
-  diagnostic codes.
+  diagnostic codes, and a second skill — `logicspec-implementing` — covers
+  the consuming side: reading a spec as an implementation contract and
+  deriving unit/integration/E2E tests from it (per-outcome matrices,
+  boundary/timeout tests, data-flow assertions, journey scripting from
+  pages' routes and action labels), plus a `/logicspec:tests` command.
 - Every example directory is a validating workspace with a README; the
   `wait` step type is now exercised by an example.
 

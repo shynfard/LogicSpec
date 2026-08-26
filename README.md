@@ -270,10 +270,11 @@ The fastest way to make Claude fluent in LogicSpec — inside Claude Code run:
 /plugin install logicspec@logicspec
 ```
 
-You get three things:
+You get four things:
 
 * **The `logicspec-authoring` skill** — Claude learns the full language (nine step types, typed events, decision tables, boundaries, zones, `$ref`), the transition rules, data-flow expectations and the validate → fix → render loop, with the complete grammar and a fix table for every LS code loaded on demand. It activates whenever you work on `*.feature.yaml`, catalogs, or ask to design a flow.
-* **Slash commands** — `/logicspec:feature <description>` designs a new spec end to end (sketch → YAML → catalogs → validate until clean → render); `/logicspec:check [path]` validates a workspace and repairs findings by LS code.
+* **The `logicspec-implementing` skill** — the consuming side: reading a spec as an implementation contract, and deriving tests from it — one test per operation outcome, boundary/timeout tests, data-flow assertions, and E2E journeys scripted straight from pages' routes and action labels, with test names that trace back to step ids.
+* **Slash commands** — `/logicspec:feature <description>` designs a new spec end to end (sketch → YAML → catalogs → validate until clean → render); `/logicspec:check [path]` validates a workspace and repairs findings by LS code; `/logicspec:tests <feature> [framework]` derives a coverage checklist and writes the tests.
 * **MCP server** — `logicspec mcp` is registered automatically (see below).
 
 Requires the CLI: `npm install -g logicspec`. Skill-only alternative (no plugin system): copy `integrations/claude-plugin/skills/logicspec-authoring/` into `~/.claude/skills/`.

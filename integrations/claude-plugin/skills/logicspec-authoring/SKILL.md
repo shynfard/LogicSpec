@@ -112,4 +112,6 @@ definitions.
 Before writing implementation code: read the relevant feature YAML, run
 `logicspec validate`, identify affected pages/operations/events/error paths,
 and do not contradict the spec. If the requested change contradicts the spec,
-update the spec first, validate, then implement.
+update the spec first, validate, then implement. For the full consuming-side
+method — step-type → implementation obligations, and deriving unit/
+integration/E2E tests from a spec — use the `logicspec-implementing` skill.

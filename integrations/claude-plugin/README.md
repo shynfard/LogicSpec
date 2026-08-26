@@ -1,7 +1,7 @@
 # LogicSpec plugin for Claude Code
 
 Teaches Claude to author, validate and visualize LogicSpec specifications in
-any project.
+any project — and to implement and test against them.
 
 **Contents**
 
@@ -11,13 +11,22 @@ any project.
   typed events (timer/message/signal/error/conditional), boundary handlers,
   agent zones, guarded outcomes, `final.terminate`, `$ref` shared
   definitions — and every LS diagnostic code (LS001–LS404) with its fix.
+- **Skill `logicspec-implementing`** — the consuming side: how to read a spec
+  as an implementation contract (step type → implementation obligation), and
+  how to derive tests from it — per-outcome matrices, boundary/timeout tests,
+  data-flow assertions, E2E journeys scripted from pages' routes and action
+  labels, with spec-traceable test names. Includes a worked derivation for
+  the booking example.
 - **`/logicspec:feature <description>`** — design a new feature spec end to
   end: sketch, write YAML, extend catalogs, validate until clean, render.
 - **`/logicspec:check [path]`** — validate the workspace and fix findings by
   LS code.
+- **`/logicspec:tests <feature> [framework]`** — derive a coverage checklist
+  and test plan from a spec, then write the tests in the project's framework.
 - **MCP server** — registers `logicspec mcp`, exposing 10 tools:
   `list_features`, `get_feature`, `get_step`, `get_transitions`,
-  `get_service_dependencies`, `get_events`, `validate_feature`.
+  `get_service_dependencies`, `get_events`, `validate_feature`,
+  `render_feature`, `diff_feature`, `get_data_flow`.
   `validate_feature` returns the same verdict as `logicspec validate` in CI —
   severity overrides applied, workspace-level catalog findings included.
 

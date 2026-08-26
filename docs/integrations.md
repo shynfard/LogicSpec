@@ -125,8 +125,16 @@ Teaches AI agents the DSL instead of letting them guess it.
   data-flow expectations, catalog linking, and the mandatory
   validate-fix-render loop — with condensed grammar and per-LS-code fix
   references loaded on demand.
+- **Skill `logicspec-implementing`**: the consuming side — reading a spec as
+  an implementation contract (step type → implementation obligation) and
+  deriving unit/integration/E2E tests from it (per-outcome matrices,
+  boundary/timeout tests, data-flow assertions, journey scripting from
+  pages' routes and action labels), with a worked derivation for the booking
+  example.
 - **Commands**: `/logicspec:feature <description>` designs a spec end to end;
-  `/logicspec:check [path]` validates and repairs a workspace by LS code.
+  `/logicspec:check [path]` validates and repairs a workspace by LS code;
+  `/logicspec:tests <feature> [framework]` derives a coverage checklist and
+  test plan from a spec and writes the tests.
 - **MCP**: registers `logicspec mcp` so agents can query features/steps/
   transitions/dependencies structurally instead of re-parsing YAML.
 
