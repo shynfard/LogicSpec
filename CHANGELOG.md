@@ -7,6 +7,19 @@ All notable changes to LogicSpec. The DSL itself is versioned independently
 
 Nothing yet.
 
+## 0.14.1 — 2026-08-26
+
+- Fix a hard process crash of `watch`/`serve` on Windows: libuv's native
+  fs-event watcher asserts (`fs-event.c: !_wcsnicmp(filename, dir, dirlen)`)
+  when a watched path's spelling differs from the kernel's (8.3 short names
+  like `RUNNER~1` on CI). Watch targets are canonicalized via
+  `realpathSync.native` and the watcher polls on Windows. This is also what
+  had been failing the Windows CI job.
+- Release workflow gains an `open-vsx` target publishing the VS Code
+  extension to open-vsx.org (VSCodium, Gitpod, Theia) via the `OVSX_PAT`
+  secret.
+- README gains a table of contents.
+
 ## 0.14.0 — 2026-08-26
 
 **Production hardening: server security, CLI correctness, lockstep versions,

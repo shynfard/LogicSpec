@@ -18,6 +18,7 @@ on:
           - vsix-artifact
           - github-release
           - vscode-marketplace
+          - open-vsx
 
 permissions:
   contents: read
@@ -131,6 +132,46 @@ jobs:
           npm run build
           npm test
           npx --yes @vscode/vsce publish --no-dependencies -p "$VSCE_PAT"
+
+  # Publishes the extension to Open VSX (open-vsx.org) — the registry used
+  # by VSCodium, Gitpod, Eclipse Theia and other non-Microsoft builds.
+  # Requires the OVSX_PAT repository secret (token from open-vsx.org).
+  publish-openvsx:
+    if: inputs.target == 'open-vsx'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Guard — run this on a vX.Y.Z release tag
+        run: |
+          if ! printf '%s' "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || \
+             [ "$GITHUB_REF" != "refs/tags/$GITHUB_REF_NAME" ]; then
+            echo "Pick a vX.Y.Z tag in 'Use workflow from' when dispatching (got $GITHUB_REF)."
+            exit 1
+          fi
+
+      - name: Core install (source-aliased deps)
+        run: npm ci
+
+      - name: Core build
+        run: npm run build
+
+      - name: Build, package and publish to Open VSX
+        working-directory: integrations/vscode
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          npm ci
+          npm run typecheck
+          npm run build
+          npm test
+          npx --yes @vscode/vsce package --no-dependencies -o logicspec-vscode.vsix
+          npx --yes ovsx publish logicspec-vscode.vsix -p "$OVSX_PAT"
 
   # No-marketplace distribution: attach the VS Code .vsix ("Install from
   # VSIX…") and the Obsidian plugin folder to a GitHub Release for the tag.

@@ -9,6 +9,23 @@
 
 **Define the logic. Validate it. Visualize it. Then build it.**
 
+## Contents
+
+- [What is LogicSpec?](#what-is-logicspec)
+- [Why LogicSpec?](#why-logicspec)
+- [Quick start (30 seconds)](#quick-start-30-seconds)
+- [How an example works](#how-an-example-works)
+- [The language](#the-language) — nine step types, [and beyond](#beyond-the-basics)
+- [Using with AI coding agents](#using-with-ai-coding-agents) — Claude Code plugin, MCP server
+- [VS Code extension](#vs-code-extension)
+- [The dashboard (local website)](#the-dashboard-local-website)
+- [CLI](#cli)
+- [Workspace configuration](#workspace-configuration)
+- [Linking catalogs to OpenAPI and AsyncAPI](#linking-catalogs-to-openapi-and-asyncapi)
+- [Library API](#library-api)
+- [Other integrations](#other-integrations)
+- [Documentation](#documentation) · [Development](#development) · [Design principles](#design-principles) · [License](#license)
+
 ## What is LogicSpec?
 
 LogicSpec is a small, open-source YAML DSL for describing **application feature logic** — booking, checkout, authentication, onboarding, approval workflows — *before* you implement them.
