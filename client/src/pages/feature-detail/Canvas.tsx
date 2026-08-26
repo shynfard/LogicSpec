@@ -222,6 +222,11 @@ export function Canvas({ steps, edges, actors, onStepClick }: CanvasProps): Reac
         fitView
         minZoom={0.15}
         maxZoom={4}
+        // @xyflow/react's Controls/MiniMap ship hardcoded light-theme
+        // defaults; `colorMode="system"` switches them to the library's
+        // built-in `.react-flow.dark` palette and tracks OS theme changes
+        // live (no reload needed).
+        colorMode="system"
       >
         <Background gap={18} />
         <Controls showInteractive={false} />

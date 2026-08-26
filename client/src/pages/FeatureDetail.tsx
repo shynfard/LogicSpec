@@ -1,9 +1,17 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "@/lib/router";
 import { useApi } from "@/lib/useApi";
 import { DiagnosticsTab } from "./feature-detail/DiagnosticsTab";
-import { DiagramTab } from "./feature-detail/DiagramTab";
+import { DIAGRAM_VIEWS, DiagramTab, type DiagramView } from "./feature-detail/DiagramTab";
 import { InspectTab } from "./feature-detail/InspectTab";
 import { RelatedTab } from "./feature-detail/RelatedTab";
 import { SourceTab } from "./feature-detail/SourceTab";
@@ -53,70 +61,81 @@ export interface FeatureDetailData {
 
 export function FeatureDetail({ id }: { id: string }) {
   const { data, error } = useApi<FeatureDetailData>(`/api/features/${encodeURIComponent(id)}`);
+  const [tab, setTab] = useState("diagram");
+  const [view, setView] = useState<DiagramView>("interactive");
 
   if (error !== null) return <p className="p-6 text-destructive">{error}</p>;
   if (data === null) return <p className="p-6 text-muted-foreground">Loading…</p>;
 
   return (
-    <div className="space-y-4 p-6">
-      <div className="mx-auto max-w-4xl space-y-4">
-        <Link to="/" className="text-sm hover:underline">
+    // A single full-screen app shell (like Miro): a slim top bar holding
+    // navigation, the tab switcher and (on Diagram) the view picker, with
+    // whichever tab is active filling the entire rest of the viewport —
+    // not a page you scroll past a header/breadcrumb/tab-row to reach.
+    <Tabs value={tab} onValueChange={setTab} className="flex h-screen flex-col gap-0">
+      <div className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
+        <Link to="/" className="shrink-0 text-sm hover:underline">
           &larr; Dashboard
         </Link>
-        <h1 className="flex items-center gap-2 text-2xl font-bold">
-          {data.name}
+        <div className="flex shrink-0 items-center gap-2" title={`${data.id} · ${data.path}`}>
+          <span className="font-semibold">{data.name}</span>
           <Badge variant={data.valid ? "default" : "destructive"}>
             {data.valid ? "valid" : "invalid"}
           </Badge>
-        </h1>
-        <p className="text-xs text-muted-foreground">
-          {data.id} · {data.path}
-        </p>
-      </div>
-      <Tabs defaultValue="diagram">
-        <div className="mx-auto max-w-4xl">
-          <TabsList>
-            <TabsTrigger value="diagram">Diagram</TabsTrigger>
-            <TabsTrigger value="steps">Steps</TabsTrigger>
-            <TabsTrigger value="source">Source</TabsTrigger>
-            <TabsTrigger value="inspect">Inspect</TabsTrigger>
-            <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
-            <TabsTrigger value="related">Related</TabsTrigger>
-          </TabsList>
         </div>
-        <TabsContent value="diagram">
-          {data.diagram === undefined ? (
-            <p className="mx-auto max-w-4xl p-4 text-muted-foreground">
-              Spec is invalid — see the Diagnostics tab.
-            </p>
-          ) : (
-            <DiagramTab diagram={data.diagram} />
-          )}
-        </TabsContent>
-        <TabsContent value="steps" className="mx-auto max-w-4xl">
-          {data.diagram === undefined ? (
-            <p className="p-4 text-muted-foreground">Spec is invalid — see the Diagnostics tab.</p>
-          ) : (
-            <StepsTab steps={data.diagram.steps} />
-          )}
-        </TabsContent>
-        <TabsContent value="source" className="mx-auto max-w-4xl">
-          <SourceTab source={data.source} />
-        </TabsContent>
-        <TabsContent value="inspect" className="mx-auto max-w-4xl">
-          {data.inspect === undefined ? (
-            <p className="p-4 text-muted-foreground">Spec is invalid — see the Diagnostics tab.</p>
-          ) : (
-            <InspectTab inspect={data.inspect} />
-          )}
-        </TabsContent>
-        <TabsContent value="diagnostics" className="mx-auto max-w-4xl">
-          <DiagnosticsTab diagnostics={data.diagnostics} path={data.path} />
-        </TabsContent>
-        <TabsContent value="related" className="mx-auto max-w-4xl">
-          <RelatedTab related={data.related} />
-        </TabsContent>
-      </Tabs>
-    </div>
+        <TabsList>
+          <TabsTrigger value="diagram">Diagram</TabsTrigger>
+          <TabsTrigger value="steps">Steps</TabsTrigger>
+          <TabsTrigger value="source">Source</TabsTrigger>
+          <TabsTrigger value="inspect">Inspect</TabsTrigger>
+          <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
+          <TabsTrigger value="related">Related</TabsTrigger>
+        </TabsList>
+        {tab === "diagram" && data.diagram !== undefined ? (
+          <Select value={view} onValueChange={(v) => setView(v as DiagramView)}>
+            <SelectTrigger className="ml-auto w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DIAGRAM_VIEWS.map((v) => (
+                <SelectItem key={v} value={v}>
+                  {v}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
+      </div>
+      <TabsContent value="diagram" className="min-h-0 flex-1">
+        {data.diagram === undefined ? (
+          <p className="p-4 text-muted-foreground">Spec is invalid — see the Diagnostics tab.</p>
+        ) : (
+          <DiagramTab diagram={data.diagram} view={view} />
+        )}
+      </TabsContent>
+      <TabsContent value="steps" className="min-h-0 flex-1 overflow-auto p-4">
+        {data.diagram === undefined ? (
+          <p className="text-muted-foreground">Spec is invalid — see the Diagnostics tab.</p>
+        ) : (
+          <StepsTab steps={data.diagram.steps} />
+        )}
+      </TabsContent>
+      <TabsContent value="source" className="min-h-0 flex-1 overflow-auto p-4">
+        <SourceTab source={data.source} />
+      </TabsContent>
+      <TabsContent value="inspect" className="min-h-0 flex-1 overflow-auto p-4">
+        {data.inspect === undefined ? (
+          <p className="text-muted-foreground">Spec is invalid — see the Diagnostics tab.</p>
+        ) : (
+          <InspectTab inspect={data.inspect} />
+        )}
+      </TabsContent>
+      <TabsContent value="diagnostics" className="min-h-0 flex-1 overflow-auto p-4">
+        <DiagnosticsTab diagnostics={data.diagnostics} path={data.path} />
+      </TabsContent>
+      <TabsContent value="related" className="min-h-0 flex-1 overflow-auto p-4">
+        <RelatedTab related={data.related} />
+      </TabsContent>
+    </Tabs>
   );
 }

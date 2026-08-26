@@ -9,6 +9,13 @@ import "./index.css";
 
 function App() {
   const route = useRoute();
+  // The feature-detail page is its own full-screen app shell (top bar +
+  // tab content fill the whole viewport) with its own "← Dashboard" link,
+  // so the global header would just be a second, redundant nav strip
+  // stealing vertical space from the canvas.
+  if (route.name === "detail") {
+    return <FeatureDetail id={route.id} />;
+  }
   return (
     <div>
       <header className="flex items-center gap-4 border-b p-3">
@@ -21,7 +28,6 @@ function App() {
       </header>
       <main>
         {route.name === "list" ? <FeatureList /> : null}
-        {route.name === "detail" ? <FeatureDetail id={route.id} /> : null}
         {route.name === "mcp" ? <McpInfo /> : null}
         {route.name === "not-found" ? <p className="p-6">Not found.</p> : null}
       </main>
