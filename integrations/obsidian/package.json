@@ -1,6 +1,6 @@
 {
   "name": "logicspec-obsidian",
-  "version": "0.14.1",
+  "version": "0.14.2",
   "description": "Render and validate LogicSpec feature specifications inside Obsidian notes (experimental).",
   "private": true,
   "license": "Apache-2.0",

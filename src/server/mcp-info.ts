@@ -11,9 +11,13 @@ export interface McpInfo {
   tools: McpTool[];
 }
 
-/** Quotes a path for display in a copy-pasteable shell command. */
+/**
+ * Quotes a path for display in a copy-pasteable shell command. Backslashes
+ * pass through untouched — a Windows path must not come out JSON-escaped.
+ */
 function quoteArg(value: string): string {
-  return /[\s"'\\$`]/.test(value) ? JSON.stringify(value) : value;
+  if (!/[\s"']/.test(value)) return value;
+  return `"${value.replace(/"/g, '\\"')}"`;
 }
 
 /**

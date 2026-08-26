@@ -7,6 +7,12 @@ All notable changes to LogicSpec. The DSL itself is versioned independently
 
 Nothing yet.
 
+## 0.14.2 — 2026-08-26
+
+- Fix the dashboard MCP page's registration command on Windows: the
+  workspace path came out JSON-escaped (doubled backslashes). Quoting now
+  wraps in plain double quotes only when the path contains whitespace.
+
 ## 0.14.1 — 2026-08-26
 
 - Fix a hard process crash of `watch`/`serve` on Windows: libuv's native

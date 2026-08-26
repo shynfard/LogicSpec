@@ -7,6 +7,20 @@ describe("mcpInfo", () => {
     expect(info.command).toBe("claude mcp add logicspec -- logicspec mcp /home/me/my-workspace");
   });
 
+  it("leaves a Windows path unmangled and quotes only on whitespace", () => {
+    // No spaces: backslashes pass through untouched, no quotes added.
+    expect(mcpInfo("D:\\a\\LogicSpec\\examples\\booking").command).toBe(
+      "claude mcp add logicspec -- logicspec mcp D:\\a\\LogicSpec\\examples\\booking",
+    );
+    // Spaces: plain double quotes, still no backslash doubling.
+    expect(mcpInfo("C:\\My Specs\\shop").command).toBe(
+      'claude mcp add logicspec -- logicspec mcp "C:\\My Specs\\shop"',
+    );
+    expect(mcpInfo("/home/me/my specs").command).toBe(
+      'claude mcp add logicspec -- logicspec mcp "/home/me/my specs"',
+    );
+  });
+
   it("lists all ten MCP tools", () => {
     const info = mcpInfo("/tmp/x");
     expect(info.tools.map((t) => t.name)).toEqual([
