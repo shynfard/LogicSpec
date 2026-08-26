@@ -30,7 +30,15 @@ export interface DiagramData {
   clickMap: Record<string, { stepId: string; flow?: string }>;
 }
 
-export function DiagramTab({ diagram, view }: { diagram: DiagramData; view: DiagramView }) {
+export function DiagramTab({
+  diagram,
+  view,
+  registerCanvasExport,
+}: {
+  diagram: DiagramData;
+  view: DiagramView;
+  registerCanvasExport?: (exporter: (filename: string) => Promise<void>) => void;
+}) {
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
 
   return (
@@ -41,6 +49,7 @@ export function DiagramTab({ diagram, view }: { diagram: DiagramData; view: Diag
           edges={diagram.edges}
           actors={diagram.actors}
           onStepClick={setSelectedStepId}
+          registerExport={registerCanvasExport}
         />
       ) : (
         <MermaidView source={diagram.mermaid[view] ?? ""} />

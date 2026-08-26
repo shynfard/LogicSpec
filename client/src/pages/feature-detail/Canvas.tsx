@@ -5,6 +5,8 @@ import {
   Background,
   Controls,
   type Edge,
+  getNodesBounds,
+  getViewportForBounds,
   Handle,
   MiniMap,
   type Node,
@@ -15,7 +17,9 @@ import {
   ReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { type ReactElement, useCallback, useEffect, useMemo, useState } from "react";
+import { toPng } from "html-to-image";
+import { type ReactElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { downloadBlob, pageBackground } from "@/lib/export";
 
 interface CanvasStep {
   id: string;
@@ -121,12 +125,62 @@ export interface CanvasProps {
   edges: CanvasEdge[];
   actors: CanvasActor[];
   onStepClick: (stepId: string) => void;
+  /**
+   * Called with a function that exports the whole graph (not just the
+   * visible viewport) as a PNG download. Registered from inside the canvas
+   * because the capture needs the live node positions and the rendered
+   * `.react-flow__viewport` element.
+   */
+  registerExport?: (exporter: (filename: string) => Promise<void>) => void;
 }
 
-export function Canvas({ steps, edges, actors, onStepClick }: CanvasProps): ReactElement {
+/** Longest edge of the exported bitmap; bounds-proportional below this. */
+const EXPORT_MAX_EDGE = 4096;
+
+export function Canvas({
+  steps,
+  edges,
+  actors,
+  onStepClick,
+  registerExport,
+}: CanvasProps): ReactElement {
   const [nodes, setNodes] = useState<Node[]>(() => layout(steps, edges));
   const [hovered, setHovered] = useState<string | null>(null);
   const [hoveredActor, setHoveredActor] = useState<string | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+
+  useEffect(() => {
+    if (registerExport === undefined) return;
+    registerExport(async (filename: string) => {
+      const viewport = wrapperRef.current?.querySelector<HTMLElement>(".react-flow__viewport");
+      if (!viewport) throw new Error("Canvas is not mounted.");
+      const bounds = getNodesBounds(nodesRef.current);
+      const padding = 24;
+      // 2× for crispness, capped so a huge graph can't allocate an
+      // unbounded bitmap.
+      const scale = Math.min(
+        2,
+        EXPORT_MAX_EDGE / Math.max(bounds.width + padding * 2, bounds.height + padding * 2, 1),
+      );
+      const width = Math.round((bounds.width + padding * 2) * scale);
+      const height = Math.round((bounds.height + padding * 2) * scale);
+      const transform = getViewportForBounds(bounds, width, height, scale, scale, padding);
+      const dataUrl = await toPng(viewport, {
+        backgroundColor: pageBackground(),
+        width,
+        height,
+        style: {
+          width: `${width}px`,
+          height: `${height}px`,
+          transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.zoom})`,
+        },
+      });
+      const response = await fetch(dataUrl);
+      downloadBlob(filename, await response.blob());
+    });
+  }, [registerExport]);
 
   // Re-layout when `steps`/`edges` change — not just on first mount. Without
   // this, live reload (Task 11) would leave the canvas showing stale data:
@@ -210,7 +264,7 @@ export function Canvas({ steps, edges, actors, onStepClick }: CanvasProps): Reac
     // `height: 100%` fills whatever definite height DiagramTab's wrapper
     // establishes (React Flow needs an ancestor with a resolved height, not
     // just a 100% chain with nothing concrete at its root).
-    <div style={{ height: "100%" }}>
+    <div ref={wrapperRef} style={{ height: "100%" }}>
       <ReactFlow
         nodes={displayNodes}
         edges={displayEdges}

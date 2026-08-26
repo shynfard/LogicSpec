@@ -7,6 +7,18 @@ All notable changes to LogicSpec. The DSL itself is versioned independently
 
 Nothing yet.
 
+## 0.15.0 — 2026-08-26
+
+**Dashboard: diagram export.** An Export control joins the view picker in
+the feature-detail top bar:
+
+- Interactive canvas → PNG of the **whole graph** (not just the visible
+  viewport), 2× resolution capped at 4096px, page-matching background.
+- Mermaid views (flow / swimlane / sequence / event-model) → PNG, standalone
+  SVG, or the raw Mermaid source (`.mmd`).
+- Filenames are `<feature>-<view>.<ext>`. Everything runs client-side; the
+  server and its read-only API are unchanged.
+
 ## 0.14.2 — 2026-08-26
 
 - Fix the dashboard MCP page's registration command on Windows: the

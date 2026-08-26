@@ -41,5 +41,5 @@ export function MermaidView({ source }: { source: string }) {
     };
   }, [source, dark]);
 
-  return <div ref={ref} className="h-full overflow-auto" />;
+  return <div ref={ref} data-mermaid-view className="h-full overflow-auto" />;
 }
