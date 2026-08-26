@@ -3,6 +3,28 @@
 All notable changes to LogicSpec. The DSL itself is versioned independently
 (`version: "1"` in documents); this file tracks the toolchain.
 
+## 0.13.0
+
+**Dashboard: interactive step detail, full-screen shell, live dark mode.**
+
+- Clicking a step in the interactive canvas opens a side panel (description,
+  notes, tags, requires/produces, incoming/outgoing transitions) instead of
+  switching to the Steps tab. A subflow step's panel shows the linked
+  feature's name/description with a link to open it, replacing the old
+  instant-navigate.
+- The feature-detail page is a single full-screen app shell: a slim top bar
+  (back link, feature name/status, tab switcher, and the diagram view
+  picker) with whichever tab is active filling the rest of the viewport —
+  every tab, not just Diagram.
+- The feature list is a compact table with a description column instead of
+  stacked cards.
+- Dark mode actually works now: the interactive canvas's controls/minimap
+  and all four Mermaid views switch to their dark palettes and track live
+  OS theme changes (previously stuck on their light-theme defaults).
+- Server: feature-level `description` and per-step `description`/`notes`/
+  `tags` are now included in the dashboard's JSON API (already computed,
+  just never threaded through before).
+
 ## 0.12.0
 
 **Dashboard rewrite: a real React app.** `logicspec serve`'s dashboard is now
