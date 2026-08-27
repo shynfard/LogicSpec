@@ -7,6 +7,40 @@ All notable changes to LogicSpec. The DSL itself is versioned independently
 
 Nothing yet.
 
+## 0.16.0 — 2026-08-27
+
+**New DSL surface: `details` refinement links.** Any step may carry
+`details:` — a list of flows that specify the step in more detail. An entry
+is a flow name (feature id or file stem, resolved like `subflow.flow`) or a
+single-key `flow-name: note` map annotating the link:
+
+```yaml
+checkout:
+  type: page
+  details:
+    - send-email: Order-confirmation copy and retry policy
+    - send-sms
+```
+
+A detail link is pure refinement documentation — no transition, no outcome
+contract, the flow is not invoked (that stays `subflow`). New diagnostic
+**LS113 `UNKNOWN_DETAIL_FLOW`** (warning) flags dangling links, with
+suggestions; it only fires when a workspace config makes flows resolvable.
+
+Surfaces:
+
+- Flow view renders a `» details: …` line in the step's node label — never
+  an edge; `logicspec graph` draws dotted feature-to-feature `details` edges.
+- Dashboard: the step panel's "Detailed by" entries are clickable links into
+  the linked features (with their notes); the Related tab lists detail flows
+  in both directions — including the reverse search for which other features
+  cite the current one.
+- `inspect --json` / MCP `get_feature` carry per-step `{ flow, note? }`
+  records and a feature-level `details` list; new `detailRefs`/`DetailRef`
+  exports normalize both authored shapes.
+- Schema, docs (specification, views, validation, README), both Claude
+  plugin skills and the fulfillment example updated.
+
 ## 0.15.0 — 2026-08-26
 
 **Dashboard: diagram export.** An Export control joins the view picker in

@@ -25,6 +25,7 @@ codes follow the effective severities.
 | LS110 | error | `$ref` target definition does not exist (or no definitions catalog configured) | add it to definitions.yaml, fix the name (see suggestion), or set `catalogs.definitions` |
 | LS111 | error | `$ref` malformed, or wrong section (actor slot → step or vice versa) | write exactly `definitions#/actors/<name>` or `definitions#/steps/<name>`, matching the slot |
 | LS112 | error | definition `$ref` cycle, chain deeper than 100 links, or expansion over the 5 MB budget | break the cycle, flatten the chain, or shrink the fanned-out template |
+| LS113 | warning | a step's `details` entry names a flow that doesn't exist in the workspace | fix the flow name (suggestion given), create the feature, or drop the link — `details` is documentation, nothing is invoked |
 | LS200 | warning | step unreachable from start | connect it or delete it |
 | LS201 | error | non-terminal step has no outgoing transition | add `next`/`on`/an action, or end in a `final` |
 | LS202 | error | loop with no path to any terminal | give the cycle an exit toward a final/terminal error |

@@ -24,6 +24,7 @@ LogicSpec is a **specification language**, not an execution language. Nothing in
 | **Workspace** | A directory tree governed by one `logicspec.config.yaml` |
 | **Terminal** | A step where the flow ends: any `final` step, or an `error` step without actions |
 | **Boundary event** | A documented mid-flight handler (`boundary`) on a `page`, `subflow`, or `parallel` step |
+| **Detail flow** | A flow referenced from a step's `details` list: it specifies the step in more detail, without being invoked |
 | **Zone** | A descriptive region of steps driven by an autonomous AI agent (`zones`) |
 | **Shared definition** | A named actor or step template in `definitions.yaml`, pulled into features via `$ref` |
 
@@ -127,11 +128,22 @@ actor:        # responsible actor id
 description:  # free text
 tags:         # list of strings
 notes:        # free text
+details:      # flows that specify this step in more detail (refinement links)
 boundary:     # boundary event handlers — page, subflow and parallel steps only (below)
 extensions:   # namespaced extension data
 ```
 
 `boundary` is accepted by the schema on every step type but is only *valid* on `page`, `subflow`, and `parallel` steps; its normative rules are specified in [Boundary events](#boundary-events-boundary) after the step types.
+
+`details` is valid on **every** step type: a list of refinement links to flows that specify the step in more detail. Each entry is a flow name (feature id or file stem, resolved exactly like `subflow.flow`) or a single-key `flow-name: note` map annotating the link. A detail link is pure documentation — it produces **no transition**, imposes **no outcome contract**, and the linked flow is **not invoked**; use a `subflow` step when the flow actually runs. An entry that resolves to no workspace feature is LS113 (warning). Renderers show detail links as a `» details: …` line in the step's node label, never as an edge:
+
+```yaml
+checkout:
+  type: page
+  details:
+    - send-email: Order-confirmation copy and retry policy
+    - send-sms
+```
 
 Transition targets always use the form `next: <step-id>`. Where a step has named outcomes, each outcome is an object:
 

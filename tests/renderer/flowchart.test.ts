@@ -209,4 +209,23 @@ steps:
     expect(output).toContain(":::error"); // marked error
     expect(output).toContain('f((("'); // double circle
   });
+
+  it("renders a details marker line — and never an edge — for detail flows", () => {
+    const { feature, graph } = modelOf(`
+version: "1"
+feature: { id: d, name: D }
+start: p
+steps:
+  p:
+    type: page
+    details: [send-email, send-sms]
+    actions: { go: { next: f } }
+  f: { type: final, outcome: success }
+`);
+    const output = renderMermaid(feature, graph);
+    expect(output).toContain("» details: send-email, send-sms");
+    // Refinement links are documentation: no graph edge may point at them.
+    expect(output).not.toContain("send_email");
+    expect(graph.edges).toHaveLength(1); // only p→f; details add no edges
+  });
 });

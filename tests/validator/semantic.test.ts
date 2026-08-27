@@ -171,6 +171,79 @@ steps:
     expect(codesOf(source)).not.toContain("LS106");
   });
 
+  it("reports LS113 (warning) for an unknown detail flow, with a suggestion", () => {
+    const source = featureWith(`
+  start-step:
+    type: page
+    details: [paymnt]
+    actions:
+      go: { next: fin }
+  fin:
+    type: final
+    outcome: success
+`);
+    const knownFlows = new Set(["payment", "notification"]);
+    const diagnostic = validateFeature(source, { knownFlows }).diagnostics.find(
+      (d) => d.code === "LS113",
+    );
+    expect(diagnostic?.severity).toBe("warning");
+    expect(diagnostic?.suggestion).toBe("payment");
+    // Without workspace flow knowledge the check does not fire (like LS106).
+    expect(codesOf(source)).not.toContain("LS113");
+  });
+
+  it("checks annotated details entries (`flow: note`) the same way", () => {
+    const source = featureWith(`
+  start-step:
+    type: page
+    details:
+      - paymnt: The payment sub-spec
+    actions:
+      go: { next: fin }
+  fin:
+    type: final
+    outcome: success
+`);
+    const knownFlows = new Set(["payment"]);
+    const diagnostic = validateFeature(source, { knownFlows }).diagnostics.find(
+      (d) => d.code === "LS113",
+    );
+    expect(diagnostic?.suggestion).toBe("payment");
+
+    const annotatedOk = featureWith(`
+  start-step:
+    type: page
+    details:
+      - payment: The payment sub-spec
+    actions:
+      go: { next: fin }
+  fin:
+    type: final
+    outcome: success
+`);
+    expect(
+      validateFeature(annotatedOk, { knownFlows }).diagnostics.filter((d) => d.code === "LS113"),
+    ).toEqual([]);
+  });
+
+  it("accepts details entries that resolve, on any step type", () => {
+    const source = featureWith(`
+  start-step:
+    type: operation
+    call: svc.op
+    details: [payment, notification]
+    next: fin
+  fin:
+    type: final
+    outcome: success
+    details: [payment]
+`);
+    const knownFlows = new Set(["payment", "notification"]);
+    const result = validateFeature(source, { knownFlows });
+    expect(result.diagnostics.filter((d) => d.code === "LS113")).toEqual([]);
+    expect(result.valid).toBe(true);
+  });
+
   it("reports LS107 when a page load targets an undeclared state", () => {
     const source = featureWith(`
   start-step:

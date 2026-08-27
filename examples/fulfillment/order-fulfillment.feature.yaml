@@ -51,6 +51,13 @@ steps:
     type: page
     label: Checkout
     actor: shopper
+    # `details` is refinement documentation, not invocation: the customer
+    # messaging behind this screen is specified in those flows, but nothing
+    # here calls them (the `notify` parallel step below does that). An entry
+    # is a flow name, or `flow-name: note` to annotate the link.
+    details:
+      - send-email: Order-confirmation copy and retry policy
+      - send-sms
     # Boundary events on a PAGE: the user step times out (interrupting), or a
     # price change arrives mid-session (non-interrupting → a parallel path).
     boundary:

@@ -136,7 +136,13 @@ function typeMarker(node: GraphNode): string {
  * (marked), final → double circle.
  */
 export function nodeDeclaration(node: GraphNode, mermaidId: string): string {
-  const label = `${escapeMermaid(node.label)}<br/>${escapeMermaid(typeMarker(node))}`;
+  // A refinement link renders as its own label line — documentation, never an
+  // edge: the linked flow is not invoked, so it must not look like one.
+  const detailsLine =
+    node.details !== undefined && node.details.length > 0
+      ? `<br/>${escapeMermaid(`» details: ${node.details.join(", ")}`)}`
+      : "";
+  const label = `${escapeMermaid(node.label)}<br/>${escapeMermaid(typeMarker(node))}${detailsLine}`;
   switch (node.type) {
     case "page":
       return `${mermaidId}["${label}"]`;

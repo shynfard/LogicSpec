@@ -10,6 +10,7 @@ Every feature file passes through the same stages:
 YAML source
     ↓  syntax            → LS001
 $ref expansion           → LS110, LS111, LS112
+detail-flow links        → LS113
     ↓
 Schema validation (Zod)  → LS002, LS300
     ↓
@@ -82,6 +83,7 @@ Codes are stable and documented. They are never renumbered or reused.
 | LS110 | `UNKNOWN_REF` | error | A `$ref` points to a shared definition that does not exist (no such `definitions#/actors/<name>` or `definitions#/steps/<name>`, or no definitions catalog is configured). Also emitted at catalog load for a definition whose `$ref` chain reaches an unknown definition, even when no feature references it |
 | LS111 | `INVALID_REF` | error | A `$ref` is malformed — not the string `definitions#/actors\|steps/<name>` (including a non-string `$ref` value) — or targets the wrong section (an actor slot referencing a step, or vice versa). Checked both at the feature slot and across the whole catalog at load |
 | LS112 | `REF_CYCLE` | error | Shared definitions reference each other in a cycle (a definition whose `$ref` chain returns to itself), **or** form a `$ref` chain deeper than 100 links (a runaway reference), **or** expand past the cumulative expanded-bytes budget (5 MB — "expansion output too large", guarding against memory amplification when one large template is fanned out across many `$ref` nodes). Detected both during feature expansion and across the complete catalog graph at load, so an unused cyclic/runaway definition is still reported |
+| LS113 | `UNKNOWN_DETAIL_FLOW` | **warning** | A step's `details` entry names a flow (feature id or file stem) that does not exist in the workspace. `details` is refinement documentation — the flow is not invoked — so a dangling link warns instead of failing; promote it via a severity override if your workspace treats broken links as errors. Like LS106, checked only when a workspace config makes flows resolvable |
 
 ### Graph analysis
 

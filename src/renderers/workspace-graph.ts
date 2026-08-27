@@ -7,6 +7,8 @@ export interface WorkspaceFeatureSummary {
   name: string;
   /** Feature ids/stems referenced via subflow steps and parallel branches. */
   subflows: string[];
+  /** Feature ids/stems referenced as refinement docs via step `details`. */
+  details?: string[];
   /** Event names published by the feature. */
   publishes: string[];
   /** Event names the feature waits for. */
@@ -54,7 +56,7 @@ export function renderWorkspaceGraph(
 
   const missingTargets: string[] = [];
   for (const feature of features) {
-    for (const target of feature.subflows) {
+    for (const target of [...feature.subflows, ...(feature.details ?? [])]) {
       if (!knownIds.has(target) && !missingTargets.includes(target)) missingTargets.push(target);
     }
   }
@@ -86,6 +88,10 @@ export function renderWorkspaceGraph(
       pushEdge(
         `  ${featureAlias(feature.id)} ${edgeArrow("next", "subflow")} ${featureAlias(target)}`,
       );
+    }
+    for (const target of feature.details ?? []) {
+      // Refinement links are documentation, not invocation — dotted, labeled.
+      pushEdge(`  ${featureAlias(feature.id)} -. "details" .-> ${featureAlias(target)}`);
     }
     for (const name of feature.publishes) {
       pushEdge(

@@ -1,5 +1,6 @@
 import type { FeatureGraph } from "./graph/edges.js";
 import type { NormalizedFeature } from "./graph/normalize.js";
+import { detailRefs } from "./schema/feature.js";
 import { computeStats, type FeatureStats } from "./validator/stats.js";
 
 /**
@@ -21,6 +22,8 @@ export interface InspectReport {
   operations: string[];
   events: string[];
   subflows: string[];
+  /** Flows referenced as refinement documentation via step `details`. */
+  details: string[];
   /** Agent zones: descriptive regions of autonomous AI-agent behavior. */
   zones: Array<{ label: string; description?: string; kind: string; steps: string[] }>;
   stats: FeatureStats;
@@ -30,6 +33,7 @@ export function inspectFeature(feature: NormalizedFeature, graph: FeatureGraph):
   const operations: string[] = [];
   const events: string[] = [];
   const subflows: string[] = [];
+  const details: string[] = [];
 
   for (const step of feature.steps) {
     const def = step.def;
@@ -39,6 +43,7 @@ export function inspectFeature(feature: NormalizedFeature, graph: FeatureGraph):
     }
     if (def.type === "event" && def.event !== undefined) events.push(def.event);
     if (def.type === "subflow") subflows.push(def.flow);
+    for (const ref of detailRefs(def)) details.push(ref.flow);
     if (def.type === "parallel") {
       for (const branch of Object.values(def.branches)) subflows.push(branch.flow);
     }
@@ -61,6 +66,7 @@ export function inspectFeature(feature: NormalizedFeature, graph: FeatureGraph):
       label: s.label,
       ...(s.actor !== undefined ? { actor: s.actor } : {}),
       ...(s.zone !== undefined ? { zone: s.zone } : {}),
+      ...(detailRefs(s.def).length > 0 ? { details: detailRefs(s.def) } : {}),
     })),
     edges: graph.edges.map((e) => ({
       from: e.from,
@@ -74,6 +80,7 @@ export function inspectFeature(feature: NormalizedFeature, graph: FeatureGraph):
     operations: unique(operations),
     events: unique(events),
     subflows: unique(subflows),
+    details: unique(details),
     zones: feature.zones.map((z) => ({
       label: z.label,
       ...(z.description !== undefined ? { description: z.description } : {}),

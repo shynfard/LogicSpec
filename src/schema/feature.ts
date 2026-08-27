@@ -110,6 +110,22 @@ const stepBase = {
   description: z.string().optional(),
   tags: z.array(z.string()).optional(),
   notes: z.string().optional(),
+  details: z
+    .array(
+      z.union([
+        identifierSchema,
+        z.record(identifierSchema, z.string()).refine((entry) => Object.keys(entry).length === 1, {
+          message: "One flow per details entry — write `- flow-id: note` per line.",
+        }),
+      ]),
+    )
+    .optional()
+    .describe(
+      "Flows (feature ids or file stems) that specify this step in more detail. " +
+        "An entry is a flow name, or `flow-name: note` to annotate the link. " +
+        "Pure refinement documentation: no transitions, no outcome contract — " +
+        "use a subflow step when the flow is actually invoked. Unknown names are LS113.",
+    ),
   boundary: z
     .array(boundaryHandlerSchema)
     .max(
@@ -653,3 +669,22 @@ export const STEP_TYPES: readonly StepType[] = [
  * avoid a second way to express the same handling.
  */
 export const BOUNDARY_STEP_TYPES: readonly StepType[] = ["page", "subflow", "parallel"];
+
+/** One resolved `details` entry: the referenced flow plus its optional note. */
+export interface DetailRef {
+  flow: string;
+  note?: string;
+}
+
+/**
+ * Normalizes a step's `details` list — entries are either a bare flow name
+ * or a single-key `flow: note` map — into `{ flow, note? }` records. The
+ * single place both authored shapes collapse; every consumer goes through it.
+ */
+export function detailRefs(def: { details?: Array<string | Record<string, string>> }): DetailRef[] {
+  return (def.details ?? []).map((entry) => {
+    if (typeof entry === "string") return { flow: entry };
+    const [flow = "", note] = Object.entries(entry)[0] ?? [];
+    return note === undefined || note === "" ? { flow } : { flow, note };
+  });
+}

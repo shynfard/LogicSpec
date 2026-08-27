@@ -80,6 +80,9 @@ Rules that trip people up:
   (LS203) — put `produces` on the page action or operation that creates the
   value.
 - A `when` guard is descriptive, never evaluated — and never blank (LS306).
+- `details: [flow, other-flow: note]` (any step) links flows that REFINE the
+  step — documentation only, no edge/invocation/contract (invoking = subflow).
+  Unknown flow → LS113 warning.
 - Zone `steps` must name existing steps, one zone per step (LS309). Zones are
   annotations: no control-flow effect.
 - Big behavior deserves its own step: never hide a backend call inside a page
@@ -103,9 +106,9 @@ in config: `diagnostics: { LS402: "off" }`.
 
 For the full grammar read `references/dsl-reference.md`; for every diagnostic
 code and its fix read `references/diagnostics.md`. Both cover the complete
-current language (0.14): decision tables, typed events, boundary handlers,
-agent zones, guarded outcomes, `final.terminate` and `$ref` shared
-definitions.
+current language (0.16): decision tables, typed events, boundary handlers,
+agent zones, guarded outcomes, `final.terminate`, `$ref` shared definitions
+and `details` refinement links.
 
 ## When implementing code in a repo with specs
 

@@ -27,6 +27,9 @@ Reading order that works: `feature` meta → `start` → walk `steps` by
 following transitions (not file order) → `context` (the data contract) →
 `actors` (who owns what) → error steps and `boundary` arrays (the unhappy
 paths) → `final` steps (the complete set of ways this feature can end).
+Follow each step's `details` links: those flows specify the step more deeply
+and are part of its contract to read — but they are documentation, not
+invocation, so they add no test obligations of their own.
 
 ## Step type → implementation obligation
 

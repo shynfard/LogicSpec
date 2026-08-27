@@ -94,6 +94,12 @@ export const CODES = {
     "error",
     "Shared definitions reference each other in a cycle.",
   ),
+  UNKNOWN_DETAIL_FLOW: code(
+    "LS113",
+    "UNKNOWN_DETAIL_FLOW",
+    "warning",
+    "A details entry references a flow that does not exist in the workspace.",
+  ),
 
   // ── Graph analysis ────────────────────────────────────────────────────────
   UNREACHABLE_STEP: code(

@@ -13,6 +13,7 @@ import {
 } from "../graph/reachability.js";
 import type { PathLocator } from "../parser/yaml.js";
 import type { EventsFile } from "../schema/events.js";
+import { detailRefs } from "../schema/feature.js";
 import type { ServicesFile } from "../schema/services.js";
 
 /** Cross-reference context. Absent catalogs simply skip the matching checks. */
@@ -289,6 +290,16 @@ function checkBoundaryEvents(step: NormalizedStep, events: EventsFile, report: R
 
 function checkFlows(step: NormalizedStep, knownFlows: ReadonlySet<string>, report: Reporter): void {
   const def = step.def;
+  for (const [index, ref] of detailRefs(def).entries()) {
+    if (!knownFlows.has(ref.flow)) {
+      report(
+        CODES.UNKNOWN_DETAIL_FLOW,
+        `Step "${step.id}" lists unknown detail flow "${ref.flow}".`,
+        ["steps", step.id, "details", index],
+        suggest(ref.flow, knownFlows),
+      );
+    }
+  }
   if (def.type === "subflow" && !knownFlows.has(def.flow)) {
     report(
       CODES.UNKNOWN_SUBFLOW,

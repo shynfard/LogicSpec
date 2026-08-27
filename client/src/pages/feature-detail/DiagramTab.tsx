@@ -23,6 +23,7 @@ export interface DiagramData {
     tags?: string[];
     requires?: string[];
     produces?: string[];
+    details?: Array<{ flow: string; note?: string }>;
   }>;
   edges: Array<{ from: string; to: string; kind: string; label?: string }>;
   actors: Array<{ id: string; label: string }>;

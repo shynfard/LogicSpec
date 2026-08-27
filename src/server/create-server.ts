@@ -6,6 +6,7 @@ import { countBySeverity } from "../diagnostics/diagnostic.js";
 import { inspectFeature } from "../inspect.js";
 import { renderMermaid } from "../renderers/markdown.js";
 import type { RenderView } from "../schema/config.js";
+import { detailRefs } from "../schema/feature.js";
 import { featureDependents, loadWorkspace } from "../workspace/loader.js";
 import { watchTargetsFor, watchWorkspace } from "../workspace/watch.js";
 import { buildNodeClickMap } from "./click-map.js";
@@ -214,7 +215,11 @@ function serializeFeatureDetail(
     ...base,
     diagram: {
       steps: normalized.steps.map((s) => {
-        const def = s.def as { requires?: string[]; produces?: string[] };
+        const def = s.def as {
+          requires?: string[];
+          produces?: string[];
+          details?: Array<string | Record<string, string>>;
+        };
         return {
           id: s.id,
           type: s.type,
@@ -225,6 +230,7 @@ function serializeFeatureDetail(
           tags: s.tags,
           requires: def.requires ?? [],
           produces: def.produces ?? [],
+          details: detailRefs(def),
         };
       }),
       edges: graph.edges.map((e) => ({ from: e.from, to: e.to, kind: e.kind, label: e.label })),

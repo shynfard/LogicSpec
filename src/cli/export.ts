@@ -120,6 +120,7 @@ export function runExport(dirArg: string | undefined, options: ExportCommandOpti
         id: ref.id ?? featureStem(ref.path),
         name: ref.name ?? ref.id ?? featureStem(ref.path),
         subflows: [...ref.flows].sort(),
+        details: [...ref.details].sort(),
         publishes: [...ref.publishes].sort(),
         waitsFor: [...ref.waitsFor].sort(),
         services: [...ref.services].sort(),

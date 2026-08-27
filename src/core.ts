@@ -63,6 +63,8 @@ export {
   type DecisionRule,
   type DecisionStep,
   type DecisionTable,
+  type DetailRef,
+  detailRefs,
   type FeatureFile,
   type HitPolicy,
   type Step,

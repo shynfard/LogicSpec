@@ -45,7 +45,8 @@ The type marker gains detail where a step carries more meaning:
 
 * a typed event reads `EVENT · <KIND>` (`EVENT · TIMER`, `EVENT · MESSAGE`, …);
 * a table-driven decision keeps the diamond but reads `DECISION TABLE · <POLICY> · <N> rules` (e.g. `DECISION TABLE · FIRST · 3 rules`), with one labeled edge per rule — from the rule's descriptive output cells (`priority: high`), or `rule N`;
-* a final reads `FINAL · <outcome>`, suffixed `· ⦻ TERMINATE` when `terminate: true` ends the whole instance, or `· ⊗ ERROR` for a non-terminated `failure` outcome.
+* a final reads `FINAL · <outcome>`, suffixed `· ⦻ TERMINATE` when `terminate: true` ends the whole instance, or `· ⊗ ERROR` for a non-terminated `failure` outcome;
+* a step with refinement links gains a `» details: <flow>, <flow>` label line — documentation, never an edge (the flows are not invoked). In the workspace graph (`logicspec graph`), detail links are dotted feature-to-feature edges labeled `details`.
 
 ### Boundary edges
 

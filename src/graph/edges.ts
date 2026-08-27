@@ -1,6 +1,7 @@
 import {
   type AgentZoneKind,
   BOUNDARY_STEP_TYPES,
+  detailRefs,
   type EventKind,
   type HitPolicy,
   type StepType,
@@ -37,6 +38,8 @@ export interface GraphNode {
   eventKind?: EventKind;
   /** True for a final step that terminates the whole flow instance. */
   terminate?: boolean;
+  /** Flows that specify this step in more detail (refinement documentation). */
+  details?: string[];
   /** Present only on decision steps driven by a decision table. */
   decisionTable?: GraphDecisionTable;
   /** Boundary event handlers; present only on subflow, page and parallel steps. */
@@ -95,6 +98,8 @@ export function buildGraph(feature: NormalizedFeature): FeatureGraph {
     outcome: step.def.type === "final" ? step.def.outcome : undefined,
     eventKind: step.def.type === "event" ? step.def.eventKind : undefined,
     terminate: step.def.type === "final" ? step.def.terminate : undefined,
+    details:
+      detailRefs(step.def).length > 0 ? detailRefs(step.def).map((ref) => ref.flow) : undefined,
     decisionTable:
       step.def.type === "decision" && step.def.decisionTable !== undefined
         ? {

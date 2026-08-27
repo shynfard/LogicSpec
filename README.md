@@ -263,6 +263,16 @@ lapsed:
   terminate: true
 ```
 
+**Detail-flow links** — any step may carry `details:`: refinement links to flows that specify it more deeply, each optionally annotated (`flow: note`). Documentation only — no edge, no invocation (that's `subflow`); dangling links warn (`LS113`). The dashboard renders them as clickable links in the step panel and searches the reverse direction in the Related tab:
+
+```yaml
+checkout:
+  type: page
+  details:
+    - send-email: Order-confirmation copy and retry policy
+    - send-sms
+```
+
 **Shared definitions (`$ref`)** — a `definitions.yaml` catalog (`catalogs.definitions` in the config) holds named actors and step templates any feature can pull in with `$ref`; local keys shallow-merge over the resolved definition (local wins):
 
 ```yaml

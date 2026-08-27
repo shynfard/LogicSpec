@@ -3,7 +3,7 @@
 exports[`boundary-events example (examples/fulfillment) > renders each boundary kind as a plain labelled edge (golden) 1`] = `
 "flowchart TD
   START(("Start"))
-  checkout["Checkout<br/>PAGE"]
+  checkout["Checkout<br/>PAGE<br/>» details: send-email, send-sms"]
   refresh_prices[["Refresh Prices<br/>OPERATION"]]
   process_payment[["Process Payment<br/>OPERATION"]]
   fulfil[["Fulfil Order<br/>SUBFLOW"]]

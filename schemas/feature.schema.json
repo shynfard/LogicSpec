@@ -180,6 +180,28 @@
                   "notes": {
                     "type": "string"
                   },
+                  "details": {
+                    "description": "Flows (feature ids or file stems) that specify this step in more detail. An entry is a flow name, or `flow-name: note` to annotate the link. Pure refinement documentation: no transitions, no outcome contract — use a subflow step when the flow is actually invoked. Unknown names are LS113.",
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                          },
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      ]
+                    }
+                  },
                   "boundary": {
                     "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
                     "maxItems": 1000,
@@ -392,6 +414,28 @@
                   },
                   "notes": {
                     "type": "string"
+                  },
+                  "details": {
+                    "description": "Flows (feature ids or file stems) that specify this step in more detail. An entry is a flow name, or `flow-name: note` to annotate the link. Pure refinement documentation: no transitions, no outcome contract — use a subflow step when the flow is actually invoked. Unknown names are LS113.",
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                          },
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      ]
+                    }
                   },
                   "boundary": {
                     "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
@@ -629,6 +673,28 @@
                   "notes": {
                     "type": "string"
                   },
+                  "details": {
+                    "description": "Flows (feature ids or file stems) that specify this step in more detail. An entry is a flow name, or `flow-name: note` to annotate the link. Pure refinement documentation: no transitions, no outcome contract — use a subflow step when the flow is actually invoked. Unknown names are LS113.",
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                          },
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      ]
+                    }
+                  },
                   "boundary": {
                     "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
                     "maxItems": 1000,
@@ -798,6 +864,28 @@
                   },
                   "notes": {
                     "type": "string"
+                  },
+                  "details": {
+                    "description": "Flows (feature ids or file stems) that specify this step in more detail. An entry is a flow name, or `flow-name: note` to annotate the link. Pure refinement documentation: no transitions, no outcome contract — use a subflow step when the flow is actually invoked. Unknown names are LS113.",
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                          },
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      ]
+                    }
                   },
                   "boundary": {
                     "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
@@ -1016,6 +1104,28 @@
                   "notes": {
                     "type": "string"
                   },
+                  "details": {
+                    "description": "Flows (feature ids or file stems) that specify this step in more detail. An entry is a flow name, or `flow-name: note` to annotate the link. Pure refinement documentation: no transitions, no outcome contract — use a subflow step when the flow is actually invoked. Unknown names are LS113.",
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                          },
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      ]
+                    }
+                  },
                   "boundary": {
                     "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
                     "maxItems": 1000,
@@ -1143,6 +1253,28 @@
                   },
                   "notes": {
                     "type": "string"
+                  },
+                  "details": {
+                    "description": "Flows (feature ids or file stems) that specify this step in more detail. An entry is a flow name, or `flow-name: note` to annotate the link. Pure refinement documentation: no transitions, no outcome contract — use a subflow step when the flow is actually invoked. Unknown names are LS113.",
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                          },
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      ]
+                    }
                   },
                   "boundary": {
                     "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
@@ -1313,6 +1445,28 @@
                   "notes": {
                     "type": "string"
                   },
+                  "details": {
+                    "description": "Flows (feature ids or file stems) that specify this step in more detail. An entry is a flow name, or `flow-name: note` to annotate the link. Pure refinement documentation: no transitions, no outcome contract — use a subflow step when the flow is actually invoked. Unknown names are LS113.",
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                          },
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      ]
+                    }
+                  },
                   "boundary": {
                     "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
                     "maxItems": 1000,
@@ -1465,6 +1619,28 @@
                   "notes": {
                     "type": "string"
                   },
+                  "details": {
+                    "description": "Flows (feature ids or file stems) that specify this step in more detail. An entry is a flow name, or `flow-name: note` to annotate the link. Pure refinement documentation: no transitions, no outcome contract — use a subflow step when the flow is actually invoked. Unknown names are LS113.",
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                          },
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      ]
+                    }
+                  },
                   "boundary": {
                     "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",
                     "maxItems": 1000,
@@ -1608,6 +1784,28 @@
                   },
                   "notes": {
                     "type": "string"
+                  },
+                  "details": {
+                    "description": "Flows (feature ids or file stems) that specify this step in more detail. An entry is a flow name, or `flow-name: note` to annotate the link. Pure refinement documentation: no transitions, no outcome contract — use a subflow step when the flow is actually invoked. Unknown names are LS113.",
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                        },
+                        {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                          },
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      ]
+                    }
                   },
                   "boundary": {
                     "description": "Boundary event handlers: documented alternative paths when this step times out, errors, or receives a message/condition mid-flight. Allowed only on subflow, page and parallel steps (LS308).",

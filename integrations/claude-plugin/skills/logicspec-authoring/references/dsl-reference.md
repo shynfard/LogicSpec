@@ -24,6 +24,10 @@ object array date datetime`) · `steps: { <id>: <step> | $ref }` ·
 
 `type, label, actor, description, tags, notes, extensions`
 plus `boundary: [...]` on `page` / `subflow` / `parallel` ONLY (LS308).
+`details: [flow-a, flow-b: note]` on ANY step: refinement links to flows that
+specify the step in more detail. Entry = flow name (feature id/stem) or
+single-key `flow: note` map. Documentation only — no edge, no invocation, no
+outcome contract (use `subflow` to invoke). Unknown flow → LS113 (warning).
 `label` defaults to the step id. `actor` must be declared under `actors`.
 
 ## Per-type properties

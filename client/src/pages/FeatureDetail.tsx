@@ -42,6 +42,7 @@ export interface FeatureDetailData {
       tags?: string[];
       requires?: string[];
       produces?: string[];
+      details?: Array<{ flow: string; note?: string }>;
     }>;
     edges: Array<{ from: string; to: string; kind: string; label?: string }>;
     actors: Array<{ id: string; label: string }>;
@@ -52,6 +53,8 @@ export interface FeatureDetailData {
   related: {
     subflows: Array<{ id: string; name: string; known: boolean }>;
     dependents: Array<{ id: string; name: string; known: boolean }>;
+    details: Array<{ id: string; name: string; known: boolean }>;
+    detailedIn: Array<{ id: string; name: string; known: boolean }>;
     events: Array<{
       event: string;
       direction: "publish" | "wait";

@@ -10,6 +10,7 @@ import { loadYaml, type PathLocator } from "../parser/yaml.js";
 import type { LogicSpecConfig } from "../schema/config.js";
 import type { DefinitionsFile } from "../schema/definitions.js";
 import type { EventsFile } from "../schema/events.js";
+import { detailRefs } from "../schema/feature.js";
 import type { ServicesFile } from "../schema/services.js";
 import { loadConfig } from "./config.js";
 
@@ -26,6 +27,8 @@ export interface WorkspaceFeatureRef {
   outcomes: string[];
   /** Feature ids/stems this feature invokes via subflow or parallel branches. */
   flows: string[];
+  /** Feature ids/stems this feature's steps reference as detail flows. */
+  details: string[];
   /** Event names this feature publishes. */
   publishes: string[];
   /** Event names this feature waits for. */
@@ -243,6 +246,7 @@ function collectFlowRefs(
   const empty: Omit<WorkspaceFeatureRef, "path"> = {
     outcomes: [],
     flows: [],
+    details: [],
     publishes: [],
     waitsFor: [],
     services: [],
@@ -255,11 +259,13 @@ function collectFlowRefs(
     if (!parsed.data) return empty;
     const outcomes = new Set<string>();
     const flows = new Set<string>();
+    const details = new Set<string>();
     const publishes = new Set<string>();
     const waitsFor = new Set<string>();
     const services = new Set<string>();
     for (const step of Object.values(parsed.data.steps)) {
       if (step.type === "final") outcomes.add(step.outcome);
+      for (const ref of detailRefs(step)) details.add(ref.flow);
       if (step.type === "subflow") flows.add(step.flow);
       if (step.type === "parallel") {
         for (const branch of Object.values(step.branches)) flows.add(branch.flow);
@@ -281,6 +287,7 @@ function collectFlowRefs(
       name: parsed.data.feature.name,
       outcomes: [...outcomes],
       flows: [...flows],
+      details: [...details],
       publishes: [...publishes],
       waitsFor: [...waitsFor],
       services: [...services],

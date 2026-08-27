@@ -21,6 +21,7 @@ interface PanelStep {
   tags?: string[];
   requires?: string[];
   produces?: string[];
+  details?: Array<{ flow: string; note?: string }>;
 }
 
 interface PanelEdge {
@@ -119,6 +120,25 @@ export function StepDetailPanel({
                       </Badge>
                     ))}
                   </div>
+                </Field>
+              ) : null}
+              {(step.details?.length ?? 0) > 0 ? (
+                <Field label="Detailed by">
+                  <ul className="list-disc pl-5">
+                    {step.details?.map((ref) => (
+                      <li key={ref.flow}>
+                        <Link
+                          to={`/features/${encodeURIComponent(ref.flow)}`}
+                          className="text-primary hover:underline"
+                        >
+                          {ref.flow}
+                        </Link>
+                        {ref.note !== undefined ? (
+                          <span className="text-muted-foreground"> — {ref.note}</span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
                 </Field>
               ) : null}
               {(step.requires?.length ?? 0) > 0 ? (

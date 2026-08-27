@@ -15,6 +15,8 @@ interface RelatedEvent {
 interface Related {
   subflows: RelatedRef[];
   dependents: RelatedRef[];
+  details: RelatedRef[];
+  detailedIn: RelatedRef[];
   events: RelatedEvent[];
 }
 
@@ -49,6 +51,14 @@ export function RelatedTab({ related }: { related: Related }) {
       <div>
         <h3 className="mb-1 font-semibold">Dependents (call this as a subflow)</h3>
         <RefList refs={related.dependents} />
+      </div>
+      <div>
+        <h3 className="mb-1 font-semibold">Detail flows (referenced via steps' details)</h3>
+        <RefList refs={related.details ?? []} />
+      </div>
+      <div>
+        <h3 className="mb-1 font-semibold">Detailed in (features whose steps cite this one)</h3>
+        <RefList refs={related.detailedIn ?? []} />
       </div>
       <div>
         <h3 className="mb-1 font-semibold">Shared events</h3>
