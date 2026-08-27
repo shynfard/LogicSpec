@@ -7,6 +7,18 @@ All notable changes to LogicSpec. The DSL itself is versioned independently
 
 Nothing yet.
 
+## 0.16.1 — 2026-08-27
+
+- VS Code: the extension now understands monorepos with **nested LogicSpec
+  workspaces**. Previously every command resolved against the VS Code folder
+  root, so a repo whose workspaces live in subdirectories (like this one's
+  `examples/*`) reported "No logicspec.config.yaml found". Now: the features
+  tree and *Validate Workspace* discover and union every nested workspace;
+  *Start Dashboard* / *Show Workspace Graph* resolve the workspace
+  surrounding the active file (walking up), fall back to discovery, and ask
+  with a quick-pick when several workspaces qualify; the tree's "Open in
+  Dashboard" resolves from the clicked feature's own path.
+
 ## 0.16.0 — 2026-08-27
 
 **New DSL surface: `details` refinement links.** Any step may carry

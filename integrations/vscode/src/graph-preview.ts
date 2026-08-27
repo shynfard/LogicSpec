@@ -184,8 +184,3 @@ export function buildWebviewHtml(
   ].join("\n");
 }
 
-export function graphStartDir(): string | undefined {
-  const active = vscode.window.activeTextEditor?.document.uri.fsPath;
-  if (active !== undefined) return path.dirname(active);
-  return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-}

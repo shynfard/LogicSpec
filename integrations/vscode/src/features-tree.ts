@@ -3,6 +3,7 @@ import { featureStem, type WorkspaceFeatureRef } from "logicspec";
 import * as vscode from "vscode";
 import { type FeatureSeverity, severityFor } from "./feature-severity.js";
 import { validateContent, workspaceFor } from "./validation.js";
+import { discoverWorkspaceRoots } from "./workspace-discovery.js";
 
 /** Built lazily (not at module load) — constructing vscode.Theme* eagerly breaks under some hosts. */
 function iconFor(severity: FeatureSeverity): vscode.ThemeIcon {
@@ -60,8 +61,19 @@ export class FeatureTreeProvider implements vscode.TreeDataProvider<FeatureTreeI
   getChildren(): FeatureTreeItem[] {
     const folder = vscode.workspace.workspaceFolders?.[0];
     if (folder === undefined) return [];
-    const workspace = workspaceFor(folder.uri.fsPath);
-    return workspace.features
+    // A folder may hold several nested workspaces (monorepo): union their
+    // features instead of resolving only against the folder root.
+    const roots = discoverWorkspaceRoots(folder.uri.fsPath);
+    const dirs = roots.length > 0 ? roots : [folder.uri.fsPath];
+    const seen = new Set<string>();
+    const features = dirs.flatMap((dir) =>
+      workspaceFor(dir).features.filter((ref) => {
+        if (seen.has(ref.path)) return false;
+        seen.add(ref.path);
+        return true;
+      }),
+    );
+    return features
       .map((ref) => {
         let content: string;
         try {
