@@ -145,7 +145,7 @@
   },
   "dependencies": {
     "yaml": "^2.8.0",
-    "zod": "^4.0.0"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@dagrejs/dagre": "^3.1.1",
